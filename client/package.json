@@ -2,6 +2,17 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "author": "VirtuNode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codesuke/ListItUp.git",
+    "directory": "client"
+  },
+  "homepage": "https://listitup.virtunode.tech/",
+  "bugs": {
+    "url": "https://github.com/codesuke/ListItUp/issues"
+  },
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "next dev",

@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: listitup
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-listitup}
+      POSTGRES_DB: listitup
+    volumes:
+      - listitup-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U listitup"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: ./client
+      target: builder
+    command: ["pnpm", "exec", "prisma", "migrate", "deploy"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://listitup:${POSTGRES_PASSWORD:-listitup}@db:5432/listitup?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: ./client
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://listitup:${POSTGRES_PASSWORD:-listitup}@db:5432/listitup?schema=public
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  listitup-db:
