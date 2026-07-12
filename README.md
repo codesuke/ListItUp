@@ -4,7 +4,7 @@
 
 **From scattered to sorted, without making organization feel like a second job.**
 
-A self-hostable project and task management app for people who want to capture work and get it done — without the ceremony of tools like Asana or ClickUp.
+A self-hostable project and task management app for people who want to capture work and get it done, without the ceremony of most enterprise project management tools.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/codesuke/ListItUp/actions/workflows/ci.yml/badge.svg)](https://github.com/codesuke/ListItUp/actions/workflows/ci.yml)
@@ -55,14 +55,14 @@ Both run the exact same open source code. Nothing about the hosted instance is a
 
 ListItUp is under **active early development**. Here's what's actually true today, not aspirational:
 
-| Area                                                                | Status         |
-| ------------------------------------------------------------------- | -------------- |
-| Authentication (sign-up, sign-in, password reset, 2FA, magic links) | ✅ Shipped     |
-| Personal workspace provisioning                                     | ✅ Shipped     |
-| `My Tasks` personal planning view                                   | ✅ Shipped     |
-| List and Item management                                            | 🚧 In progress |
-| Shared/team workspaces                                              | 🚧 In progress |
-| Reports & Analytics                                                 | 🗓️ Planned     |
+| Area                                                                | Status      |
+| ------------------------------------------------------------------- | ----------- |
+| Authentication (sign-up, sign-in, password reset, 2FA, magic links) | Shipped     |
+| Personal workspace provisioning                                     | Shipped     |
+| `My Tasks` personal planning view                                   | Shipped     |
+| List and Item management                                            | In progress |
+| Shared/team workspaces                                              | In progress |
+| Reports & Analytics                                                 | Planned     |
 
 Track live progress in [GitHub Issues](https://github.com/codesuke/ListItUp/issues). Screenshots will land in this README once the core List/Item UI ships — we'd rather under-promise here than show you a mockup and call it done.
 

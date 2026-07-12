@@ -6,11 +6,11 @@ Thank you for helping keep ListItUp and its users safe. This document explains w
 
 ListItUp does not yet publish versioned releases — it ships continuously from `main`, which is what both the hosted instance at [listitup.virtunode.tech](https://listitup.virtunode.tech/) and the Docker images track.
 
-| What you're running                    | Supported                                                             |
-| -------------------------------------- | --------------------------------------------------------------------- |
-| The hosted instance                    | ✅ Always the latest `main`                                           |
-| Self-hosted, tracking latest `main`    | ✅ Yes                                                                |
-| Self-hosted, pinned to an older commit | ⚠️ Update to `main` before reporting — the issue may already be fixed |
+| What you're running                    | Supported                                                          |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| The hosted instance                    | Always the latest `main`                                           |
+| Self-hosted, tracking latest `main`    | Yes                                                                |
+| Self-hosted, pinned to an older commit | Update to `main` before reporting — the issue may already be fixed |
 
 ## Reporting a Vulnerability
 

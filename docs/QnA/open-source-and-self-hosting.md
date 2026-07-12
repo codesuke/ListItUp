@@ -2,7 +2,7 @@
 
 ## Context
 
-The user wants ListItUp to become a properly open-sourced, self-hostable project management app — a simpler alternative to Asana/ClickUp — with the polish of reference projects Better-Auth and Dokploy: a real LICENSE, README, and standard OSS repo scaffolding.
+The user wants ListItUp to become a properly open-sourced, self-hostable project management app — a simpler alternative to the enterprise incumbents — with the polish of reference projects Better-Auth and Dokploy: a real LICENSE, README, and standard OSS repo scaffolding.
 
 ## Questions
 
