@@ -1,0 +1,15 @@
+import assert from "node:assert/strict";
+
+import {
+  SESSION_UPDATE_AGE_SECONDS,
+  THIRTY_DAYS_IN_SECONDS,
+} from "./auth-config";
+
+const EXPECTED_THIRTY_DAYS_IN_SECONDS = 2_592_000;
+const EXPECTED_SESSION_UPDATE_AGE_SECONDS = 86_400;
+
+assert.equal(THIRTY_DAYS_IN_SECONDS, EXPECTED_THIRTY_DAYS_IN_SECONDS);
+assert.equal(SESSION_UPDATE_AGE_SECONDS, EXPECTED_SESSION_UPDATE_AGE_SECONDS);
+assert.ok(SESSION_UPDATE_AGE_SECONDS < THIRTY_DAYS_IN_SECONDS);
+
+console.log("auth session policy test passed");

@@ -1,0 +1,14 @@
+{
+  "name": "listitup",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Repo-level tooling for ListItUp. The app itself lives in client/.",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9",
+    "lint-staged": "^15",
+    "prettier": "^3"
+  }
+}

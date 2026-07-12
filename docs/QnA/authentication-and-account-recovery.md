@@ -477,3 +477,12 @@ The authentication work will be planned as simple vertical slices that pair the 
 - Glossary updates: Added Display Name. Updated personal Workspace provisioning to happen after verified first sign-in.
 - ADRs created: None yet.
 - Specs affected: Future authentication and account-recovery PRD.
+
+## Amendment (2026-07-11)
+
+Question 16's settled outcome is revised: magic-link sign-in no longer requires the second factor, even when a User has two-factor authentication enabled. A magic link already proves the User controls the invited inbox, and that is treated as a sufficient sign-in factor on its own for this product — implementing a second, hand-rolled 2FA challenge for magic-link sign-in (parallel to Better Auth's own password-sign-in mechanism) added real complexity for marginal benefit.
+
+- **Magic link → signs in directly**, even when 2FA is enabled.
+- **Password sign-in → still requires TOTP/recovery code** when 2FA is enabled (unchanged).
+
+Trade-off, made explicit: 2FA now protects password sign-ins specifically, not an already-compromised email inbox. See `docs/ADR/0003-magic-link-two-factor-bridge.md` (superseded) for the mechanism this replaced.

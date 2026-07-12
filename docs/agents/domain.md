@@ -7,6 +7,7 @@ How engineering skills should consume this repo's domain documentation.
 - `CONTEXT.md` at the repo root for domain language.
 - `Brand.md` for tone, positioning, and naming.
 - `DESIGN.md` for product and interface direction.
+- `Architecture.md` for repo layout and the `client/` app's structure.
 - `sample.html` for the current visual reference implementation of `DESIGN.md`.
 - `docs/ADR/` for architecture decisions relevant to the area being changed.
 
@@ -21,8 +22,10 @@ This is a single-context repo:
 ├── CONTEXT.md
 ├── Brand.md
 ├── DESIGN.md
+├── Architecture.md
 ├── sample.html
-├── AGENTS.md
+├── AGENTS.md / CLAUDE.md
+├── client/
 └── docs/
     ├── ADR/
     ├── QnA/

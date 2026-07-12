@@ -2,17 +2,27 @@
 
 This repo is intended to be built with AI agents, but the source of truth stays in the repository. Agents should read the docs first, make decisions explicit, and leave durable context behind when a decision changes the project.
 
+## Auto-Loaded Context
+
+Claude Code imports these automatically into every session in this repo (do not wrap the lines below in backticks or code fences — that disables the import):
+
+@Architecture.md
+@docs/agents/code-quality.md
+@docs/agents/nextjs-conventions.md
+
 ## Working Rules
 
-- Read `CONTEXT.md`, `Brand.md`, `DESIGN.md`, and relevant files in `docs/` before planning work.
+- Read `CONTEXT.md`, `Brand.md`, `DESIGN.md`, `Architecture.md`, and relevant files in `docs/` before planning work.
 - Treat `sample.html` as the current visual reference implementation for `DESIGN.md`.
 - Prefer small vertical slices that are demoable end to end.
 - Use test-driven development for product behavior: one failing behavior test, minimal implementation, then refactor.
+- Treat `client/prisma/schema.prisma` as the only source of truth for database changes. Create development migrations with `pnpm exec prisma migrate dev --name <descriptive_name>` from `client/`; never manually create or edit `client/prisma/migrations/**/migration.sql`. Apply already-committed migrations in deployed environments only with `pnpm run prisma:migrate`.
 - Keep implementation details out of `CONTEXT.md`; it is a domain glossary, not a spec.
 - Record meaningful architecture decisions in `docs/ADR/`.
 - Put planned specs in `docs/Specs-Planned/` and move completed specs to `docs/Specs-Completed/` when shipped.
 - Capture `grill-with-docs` sessions and their resolved answers in `docs/QnA/`.
 - Avoid broad rewrites unless a spec or ADR explicitly calls for them.
+- Follow `docs/agents/code-quality.md` for clean-code expectations and `docs/agents/nextjs-conventions.md` for `client/`-specific Next.js/React rules.
 
 ## Agent skills
 
@@ -27,6 +37,10 @@ Use the default Matt Pocock skills triage vocabulary: `needs-triage`, `needs-inf
 ### Domain docs
 
 This is a single-context repo with root domain docs and ADRs in `docs/ADR/`. See `docs/agents/domain.md`.
+
+### Code quality
+
+Clean-code and Next.js/React conventions, plus when to run the `/smell` review. See `docs/agents/code-quality.md` and `docs/agents/nextjs-conventions.md`.
 
 ## Preferred Skill Workflow
 

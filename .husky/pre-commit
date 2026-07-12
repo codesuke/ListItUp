@@ -1,0 +1,2 @@
+npx lint-staged
+cd client && pnpm run lint && pnpm run typecheck && pnpm test
