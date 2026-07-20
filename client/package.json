@@ -21,7 +21,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx app/page.smoke.test.tsx",
+    "test": "tsx scripts/behavior-suite.ts",
     "test:auth": "tsx lib/auth/auth-config.test.ts && tsx lib/auth/verification-resend.test.ts && tsx lib/workspace/workspace-provisioning.test.ts && tsx lib/auth/magic-link-tokens.test.ts && tsx lib/auth/password-reset-tokens.test.ts && tsx lib/session/callback-url.test.ts && tsx lib/session/protected-route.test.ts && tsx lib/two-factor/two-factor-verification.test.ts && tsx lib/auth/pending-email-change.test.ts && tsx lib/auth/auth.integration.test.ts && tsx lib/auth/sign-in.integration.test.ts && tsx lib/session/protected-route.integration.test.ts && tsx lib/auth/password-reset.integration.test.ts && tsx lib/two-factor/two-factor.integration.test.ts && tsx lib/auth/security-settings.integration.test.ts && tsx lib/two-factor/two-factor-management.integration.test.ts && tsx lib/workspace/workspace-invitations.test.ts && tsx lib/workspace/workspace-invitation-flow.integration.test.ts",
     "test:mail": "tsx lib/mailer/email-templates/render.test.ts && tsx lib/mailer/email-templates/templates.test.ts && tsx lib/mailer/mailer-core.test.ts",
     "prisma:generate": "prisma generate",

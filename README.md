@@ -31,6 +31,7 @@ A self-hostable project and task management app for people who want to capture w
   - [Option C — Local development](#option-c--local-development)
   - [Environment Variables](#environment-variables)
 - [Project Structure](#project-structure)
+- [Testing](#testing)
 - [Documentation](#documentation)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
@@ -170,6 +171,21 @@ The app is now running at `http://localhost:3000` with hot reload. See [CONTRIBU
 | `MAIL_FROM_NAME`, `MAIL_FROM_EMAIL`     | Yes                   | From header on verification/reset emails                                           |
 
 See [`.env.example`](.env.example) (Compose) or [`client/.env.example`](client/.env.example) (local dev / Dokploy) for copy-paste starting points.
+
+## Testing
+
+The required behavior suite runs against disposable PostgreSQL, Redis, and Mailpit services. It never uses a real SMTP account.
+
+```bash
+docker compose -f docker-compose.test.yml up -d
+cd client
+cp .env.test.example .env.test
+set -a; . .env.test; set +a
+pnpm exec prisma migrate deploy
+pnpm test
+```
+
+The test database is disposable. Stop the services with `docker compose -f docker-compose.test.yml down` when finished. CI uses the same service configuration and runs migrations before the suite. The browser release journeys are added by the follow-up [issue #32](https://github.com/codesuke/ListItUp/issues/32).
 
 ## Project Structure
 
