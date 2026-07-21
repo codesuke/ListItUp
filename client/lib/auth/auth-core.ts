@@ -46,6 +46,7 @@ import {
   type ProgressiveSignInRateLimiter,
   type SignInFailureKind,
 } from "@/lib/auth/progressive-sign-in-rate-limit";
+import { recordSecurityEvent } from "@/lib/security/platform-operations";
 
 const EMAIL_REQUEST_PATHS = new Set([
   "/send-verification-email",
@@ -440,7 +441,16 @@ export function createAuth(
         const user =
           failureKind === "password"
             ? await database.user.findUnique({ where: { email: identity } })
-            : null;
+            : await database.user.findUnique({ where: { id: identity } });
+        await recordSecurityEvent(database, {
+          type:
+            failureKind === "password"
+              ? "failed-password-sign-in"
+              : "failed-two-factor-sign-in",
+          userId: user?.id,
+          email: failureKind === "password" ? identity : user?.email,
+          ipAddress: requestIpAddress(headers),
+        });
         const { shouldWarn } = await progressiveSignInRateLimiter.recordFailure(
           {
             identity,

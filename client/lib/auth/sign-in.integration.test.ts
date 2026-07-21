@@ -161,6 +161,14 @@ async function run() {
       unknownEmailBody.message,
       "wrong password and unknown email must fail with the same generic message"
     );
+    const event = await prisma.securityEvent.findFirst({
+      where: { email, type: "failed-password-sign-in" },
+    });
+    assert.equal(
+      event?.userId === null,
+      false,
+      "a failed password sign-in must create a durable security event"
+    );
   }
 
   async function testRepeatedPasswordFailuresAreTemporarilyRestricted() {
