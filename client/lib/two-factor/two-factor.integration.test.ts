@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
 import { createOTP } from "@better-auth/utils/otp";
+import { base32 } from "@better-auth/utils/base32";
 
 import type {
   Mailer,
@@ -13,6 +14,13 @@ function sessionCookie(response: Response): string | null {
   const setCookie = response.headers.get("set-cookie");
 
   return setCookie ? setCookie.split(";", 1)[0] : null;
+}
+
+function twoFactorCookie(response: Response): string | null {
+  const cookies = response.headers.getSetCookie();
+  const cookie = cookies.find((value) => value.includes("two_factor="));
+
+  return cookie ? cookie.split(";", 1)[0] : null;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -114,7 +122,11 @@ async function run() {
     const secret = new URL(totpURI).searchParams.get("secret");
     assert.ok(secret, "expected a totp secret in the enrollment URI");
 
-    const code = await createOTP(secret!, { digits: 6, period: 30 }).totp();
+    const decodedSecret = new TextDecoder().decode(base32.decode(secret!));
+    const code = await createOTP(decodedSecret, {
+      digits: 6,
+      period: 30,
+    }).totp();
     const confirmResponse = await auth.handler(
       new Request("http://localhost:3000/api/auth/two-factor/verify-totp", {
         method: "POST",
@@ -167,7 +179,7 @@ async function run() {
         })
       );
       const body = record(await response.json());
-      const pendingCookie = sessionCookie(response);
+      const pendingCookie = twoFactorCookie(response);
 
       return { body, pendingCookie };
     }
@@ -349,8 +361,10 @@ async function run() {
       magicLinkCookie,
       "a magic link must sign a 2FA-enabled User in directly, with no challenge"
     );
+    const callbackLocation = verifyResponse.headers.get("location");
+    assert.ok(callbackLocation);
     assert.equal(
-      verifyResponse.headers.get("location"),
+      new URL(callbackLocation).pathname,
       "/my-tasks",
       "it must redirect straight to the requested callback URL, not a challenge screen"
     );

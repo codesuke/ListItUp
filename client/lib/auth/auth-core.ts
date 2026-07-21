@@ -1,5 +1,5 @@
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { betterAuth } from "better-auth";
+import { APIError, betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { twoFactor } from "better-auth/plugins/two-factor";
@@ -37,8 +37,52 @@ import {
   resendVerificationEmailIfAllowed,
 } from "@/lib/auth/verification-resend";
 import { provisionPersonalWorkspace } from "@/lib/workspace/workspace-provisioning";
+import {
+  GENERIC_EMAIL_REQUEST_LIMIT_MESSAGE,
+  type EmailRequestRateLimiter,
+} from "@/lib/auth/email-request-rate-limit";
 
-export function createAuth(database: PrismaClient, mailer: Mailer) {
+const EMAIL_REQUEST_PATHS = new Set([
+  "/send-verification-email",
+  "/request-password-reset",
+  "/sign-in/magic-link",
+]);
+
+function requestEmail(body: unknown): string | null {
+  if (!body || typeof body !== "object") {
+    return null;
+  }
+
+  const email = (body as { email?: unknown }).email;
+
+  return typeof email === "string" ? email.trim().toLowerCase() : null;
+}
+
+function requestIpAddress(headers: Headers | undefined): string {
+  const trustedHeader = process.env.AUTH_TRUSTED_PROXY_IP_HEADER;
+
+  if (!trustedHeader) {
+    return "unknown";
+  }
+
+  const forwardedFor = headers?.get(trustedHeader);
+
+  if (forwardedFor) {
+    return forwardedFor.split(",", 1)[0].trim();
+  }
+
+  return "unknown";
+}
+
+function requestPath(request: Request | undefined): string | null {
+  return request ? new URL(request.url).pathname.replace("/api/auth", "") : null;
+}
+
+export function createAuth(
+  database: PrismaClient,
+  mailer: Mailer,
+  emailRequestRateLimiter?: EmailRequestRateLimiter
+) {
   async function sendVerificationEmail(email: string, url: string) {
     // Better Auth's changeEmail endpoint reuses this same callback (with
     // `email` set to the new address) rather than exposing a separate hook,
@@ -197,6 +241,36 @@ export function createAuth(database: PrismaClient, mailer: Mailer) {
           window: VERIFICATION_RESEND_COOLDOWN_SECONDS,
           max: 1,
         },
+      },
+    },
+    hooks: {
+      before: async (context) => {
+        const path = requestPath(context.request);
+
+        if (!emailRequestRateLimiter || !path) {
+          return;
+        }
+
+        if (!EMAIL_REQUEST_PATHS.has(path)) {
+          return;
+        }
+
+        const email = requestEmail(context.body);
+
+        if (!email) {
+          return;
+        }
+
+        const allowed = await emailRequestRateLimiter.consume(
+          email,
+          requestIpAddress(new Headers(context.headers))
+        );
+
+        if (!allowed) {
+          throw new APIError("TOO_MANY_REQUESTS", {
+            message: GENERIC_EMAIL_REQUEST_LIMIT_MESSAGE,
+          });
+        }
       },
     },
     plugins: [

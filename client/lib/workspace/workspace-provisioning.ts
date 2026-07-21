@@ -13,12 +13,20 @@ function isOwnerIdUniqueConstraintViolation(error: unknown): boolean {
     return false;
   }
 
-  const prismaError = error as { code?: unknown; meta?: { target?: unknown } };
+  const prismaError = error as {
+    code?: unknown;
+    message?: unknown;
+    meta?: { target?: unknown };
+  };
+  const target = prismaError.meta?.target;
+  const targetsOwnerId =
+    Array.isArray(target) && target.some((value) => String(value).includes("ownerId"));
+  const messageNamesOwnerId =
+    typeof prismaError.message === "string" && prismaError.message.includes("ownerId");
 
   return (
     prismaError.code === UNIQUE_CONSTRAINT_VIOLATION_CODE &&
-    Array.isArray(prismaError.meta?.target) &&
-    prismaError.meta.target.includes("ownerId")
+    (targetsOwnerId || messageNamesOwnerId)
   );
 }
 

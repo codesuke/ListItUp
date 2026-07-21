@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
 import { createOTP } from "@better-auth/utils/otp";
+import { base32 } from "@better-auth/utils/base32";
 
 import type {
   Mailer,
@@ -14,6 +15,13 @@ function sessionCookie(response: Response): string | null {
   const setCookie = response.headers.get("set-cookie");
 
   return setCookie ? setCookie.split(";", 1)[0] : null;
+}
+
+function twoFactorCookie(response: Response): string | null {
+  const cookies = response.headers.getSetCookie();
+  const cookie = cookies.find((value) => value.includes("two_factor="));
+
+  return cookie ? cookie.split(";", 1)[0] : null;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -122,7 +130,9 @@ async function run() {
     return { userId, email, cookie: cookie! };
   }
 
-  async function enrollTwoFactor(cookie: string): Promise<string[]> {
+  async function enrollTwoFactor(
+    cookie: string
+  ): Promise<{ backupCodes: string[]; cookie: string }> {
     const enableResponse = await auth.handler(
       new Request("http://localhost:3000/api/auth/two-factor/enable", {
         method: "POST",
@@ -139,9 +149,13 @@ async function run() {
       backupCodes: string[];
     };
     const secret = new URL(totpURI).searchParams.get("secret")!;
-    const code = await createOTP(secret, { digits: 6, period: 30 }).totp();
+    const decodedSecret = new TextDecoder().decode(base32.decode(secret));
+    const code = await createOTP(decodedSecret, {
+      digits: 6,
+      period: 30,
+    }).totp();
 
-    await auth.handler(
+    const confirmResponse = await auth.handler(
       new Request("http://localhost:3000/api/auth/two-factor/verify-totp", {
         method: "POST",
         headers: {
@@ -152,13 +166,16 @@ async function run() {
         body: JSON.stringify({ code }),
       })
     );
+    const refreshedCookie = sessionCookie(confirmResponse);
+    assert.ok(refreshedCookie, "enrolling 2FA must refresh the active session");
 
-    return backupCodes;
+    return { backupCodes, cookie: refreshedCookie };
   }
 
   async function testDisableRequiresReauthAndSecondFactor() {
-    const { userId, email, cookie } = await createVerifiedUserSession();
-    const backupCodes = await enrollTwoFactor(cookie);
+    const { userId, email, cookie: originalCookie } =
+      await createVerifiedUserSession();
+    const { backupCodes, cookie } = await enrollTwoFactor(originalCookie);
 
     const otherDeviceResponse = await auth.handler(
       new Request("http://localhost:3000/api/auth/sign-in/email", {
@@ -170,7 +187,7 @@ async function run() {
         body: JSON.stringify({ email, password }),
       })
     );
-    const otherDeviceTwoFactorCookie = sessionCookie(otherDeviceResponse);
+    const otherDeviceTwoFactorCookie = twoFactorCookie(otherDeviceResponse);
     assert.ok(otherDeviceTwoFactorCookie);
     const totpChallengeResponse = await auth.handler(
       new Request("http://localhost:3000/api/auth/two-factor/verify-totp", {
@@ -261,7 +278,8 @@ async function run() {
 
   async function testRegenerateBackupCodesInvalidatesOldSet() {
     const { userId, cookie } = await createVerifiedUserSession();
-    const originalCodes = await enrollTwoFactor(cookie);
+    const { backupCodes: originalCodes, cookie: enrolledCookie } =
+      await enrollTwoFactor(cookie);
 
     const regenerateResponse = await auth.handler(
       new Request(
@@ -271,7 +289,7 @@ async function run() {
           headers: {
             "content-type": "application/json",
             origin: "http://localhost:3000",
-            cookie,
+            cookie: enrolledCookie,
           },
           body: JSON.stringify({ password }),
         }
