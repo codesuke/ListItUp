@@ -11,6 +11,7 @@ const TEST_FILES = [
   "lib/auth/auth-config.test.ts",
   "lib/auth/verification-resend.test.ts",
   "lib/auth/email-request-rate-limit.integration.test.ts",
+  "lib/auth/progressive-sign-in-rate-limit.integration.test.ts",
   "lib/auth/auth-email-request-limits.integration.test.ts",
   "lib/workspace/workspace-provisioning.test.ts",
   "lib/auth/magic-link-tokens.test.ts",

@@ -8,6 +8,7 @@ export type EmailMessageType =
   | "email-change"
   | "email-changed-notice"
   | "two-factor-notice"
+  | "failed-sign-in-notice"
   | "recovery-code-notice"
   | "workspace-invitation";
 

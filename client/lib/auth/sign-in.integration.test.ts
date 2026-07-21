@@ -31,15 +31,22 @@ function extractUrl(text: string): string {
 }
 
 async function run() {
-  if (!process.env.DATABASE_URL) {
-    console.log("sign-in integration test skipped: DATABASE_URL is not set");
-    return;
+  if (!process.env.DATABASE_URL || !process.env.REDIS_URL) {
+    throw new Error(
+      "DATABASE_URL and REDIS_URL must be set to run sign-in integration tests."
+    );
   }
 
-  const [{ PrismaPg }, { PrismaClient }, { createAuth }] = await Promise.all([
+  const [
+    { PrismaPg },
+    { PrismaClient },
+    { createAuth },
+    { createRedisProgressiveSignInRateLimiter },
+  ] = await Promise.all([
     import("@prisma/adapter-pg"),
     import("@/generated/prisma/client"),
     import("@/lib/auth/auth-core"),
+    import("@/lib/auth/progressive-sign-in-rate-limit"),
   ]);
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -52,7 +59,10 @@ async function run() {
       return { ok: true };
     },
   };
-  const auth = createAuth(prisma, fakeMailer);
+  const signInRateLimiter = createRedisProgressiveSignInRateLimiter(
+    process.env.REDIS_URL
+  );
+  const auth = createAuth(prisma, fakeMailer, undefined, signInRateLimiter);
   const testEmails: string[] = [];
   const password = "a-long-test-password";
 
@@ -88,6 +98,7 @@ async function run() {
 
   async function testPasswordSignInSucceedsForVerifiedUser() {
     const email = await createVerifiedUser();
+    const ipAddress = `198.17.${Number.parseInt(randomUUID().slice(0, 2), 16)}.${Number.parseInt(randomUUID().slice(0, 2), 16)}`;
 
     const response = await auth.handler(
       new Request("http://localhost:3000/api/auth/sign-in/email", {
@@ -95,6 +106,7 @@ async function run() {
         headers: {
           "content-type": "application/json",
           origin: "http://localhost:3000",
+          "x-forwarded-for": ipAddress,
         },
         body: JSON.stringify({ email, password }),
       })
@@ -109,6 +121,7 @@ async function run() {
 
   async function testPasswordSignInFailsSafelyForWrongCredentials() {
     const email = await createVerifiedUser();
+    const ipAddress = `198.18.${Number.parseInt(randomUUID().slice(0, 2), 16)}.${Number.parseInt(randomUUID().slice(0, 2), 16)}`;
 
     const wrongPasswordResponse = await auth.handler(
       new Request("http://localhost:3000/api/auth/sign-in/email", {
@@ -116,6 +129,7 @@ async function run() {
         headers: {
           "content-type": "application/json",
           origin: "http://localhost:3000",
+          "x-forwarded-for": ipAddress,
         },
         body: JSON.stringify({ email, password: "not-the-right-password" }),
       })
@@ -126,6 +140,7 @@ async function run() {
         headers: {
           "content-type": "application/json",
           origin: "http://localhost:3000",
+          "x-forwarded-for": ipAddress,
         },
         body: JSON.stringify({
           email: `unknown-${randomUUID()}@example.test`,
@@ -145,6 +160,38 @@ async function run() {
       wrongPasswordBody.message,
       unknownEmailBody.message,
       "wrong password and unknown email must fail with the same generic message"
+    );
+  }
+
+  async function testRepeatedPasswordFailuresAreTemporarilyRestricted() {
+    const email = await createVerifiedUser();
+    const ipAddress = `198.19.${Number.parseInt(randomUUID().slice(0, 2), 16)}.${Number.parseInt(randomUUID().slice(0, 2), 16)}`;
+
+    async function attempt(password: string): Promise<Response> {
+      return auth.handler(
+        new Request("http://localhost:3000/api/auth/sign-in/email", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            origin: "http://localhost:3000",
+            "x-forwarded-for": ipAddress,
+          },
+          body: JSON.stringify({ email, password }),
+        })
+      );
+    }
+
+    for (let failure = 0; failure < 5; failure += 1) {
+      const response = await attempt("not-the-right-password");
+      assert.notEqual(response.status, 200);
+    }
+
+    const restrictedResponse = await attempt(password);
+    assert.equal(restrictedResponse.status, 429);
+    assert.equal(
+      record(await restrictedResponse.json()).message,
+      "Please try again later.",
+      "the retry window must not reveal account or security-control details"
     );
   }
 
@@ -317,6 +364,7 @@ async function run() {
   try {
     await testPasswordSignInSucceedsForVerifiedUser();
     await testPasswordSignInFailsSafelyForWrongCredentials();
+    await testRepeatedPasswordFailuresAreTemporarilyRestricted();
     await testMagicLinkRequestForUnknownEmailIsGenericAndCreatesNoUser();
     await testMagicLinkConsumptionSignsInAutoVerifiesAndHonorsReturnUrl();
     await testMagicLinkIsSingleUseAndInvalidatesPriorLink();
@@ -329,6 +377,7 @@ async function run() {
       where: { identifier: { in: testEmails } },
     });
     await prisma.$disconnect();
+    await signInRateLimiter.close?.();
   }
 
   console.log("sign-in integration test passed");

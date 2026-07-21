@@ -6,6 +6,7 @@ import { passwordResetEmail } from "./password-reset";
 import { emailChangeEmail } from "./email-change";
 import { emailChangedNoticeEmail } from "./email-changed-notice";
 import { twoFactorNoticeEmail } from "./two-factor-notice";
+import { failedSignInNoticeEmail } from "./failed-sign-in-notice";
 import { recoveryCodeNoticeEmail } from "./recovery-code-notice";
 import { workspaceInvitationEmail } from "./workspace-invitation";
 import type { EmailTemplate } from "./render";
@@ -98,6 +99,10 @@ function run() {
     twoFactorDisabled.subject,
     "Two-factor authentication was disabled"
   );
+
+  const failedSignIn = failedSignInNoticeEmail();
+  assertWellFormed(failedSignIn, "failed sign-in notice");
+  assert.equal(failedSignIn.subject, "We noticed repeated sign-in attempts");
 
   const recoveryRegenerated = recoveryCodeNoticeEmail({
     reason: "regenerated",

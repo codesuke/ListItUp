@@ -9,7 +9,11 @@ import {
   createRedisEmailRequestRateLimiter,
   GENERIC_EMAIL_REQUEST_LIMIT_MESSAGE,
 } from "./email-request-rate-limit";
-import type { Mailer, SendEmailInput, SendEmailResult } from "@/lib/mailer/mailer-core";
+import type {
+  Mailer,
+  SendEmailInput,
+  SendEmailResult,
+} from "@/lib/mailer/mailer-core";
 
 function request(path: string, email: string, ipAddress: string): Request {
   return new Request(`http://localhost:3000/api/auth${path}`, {
@@ -33,7 +37,9 @@ async function assertSharedRecipientLimit(
   path: string,
   email: string
 ): Promise<void> {
-  const firstResponse = await firstHandler(request(path, email, "198.51.100.10"));
+  const firstResponse = await firstHandler(
+    request(path, email, "198.51.100.10")
+  );
   assert.equal(firstResponse.status, 200);
 
   const secondResponse = await secondHandler(
@@ -41,7 +47,7 @@ async function assertSharedRecipientLimit(
   );
   assert.equal(secondResponse.status, 429);
   assert.equal(
-    (await secondResponse.json() as { message: string }).message,
+    ((await secondResponse.json()) as { message: string }).message,
     GENERIC_EMAIL_REQUEST_LIMIT_MESSAGE
   );
 }
@@ -51,7 +57,9 @@ async function run() {
   const redisUrl = process.env.REDIS_URL;
 
   if (!databaseUrl || !redisUrl) {
-    throw new Error("DATABASE_URL and REDIS_URL must be set to run auth email-request limit tests.");
+    throw new Error(
+      "DATABASE_URL and REDIS_URL must be set to run auth email-request limit tests."
+    );
   }
 
   const prisma = new PrismaClient({
@@ -74,7 +82,11 @@ async function run() {
   try {
     await prisma.user.createMany({
       data: [
-        { id: randomUUID(), name: "Verification User", email: verificationEmail },
+        {
+          id: randomUUID(),
+          name: "Verification User",
+          email: verificationEmail,
+        },
         {
           id: randomUUID(),
           name: "Password Reset User",
@@ -103,15 +115,23 @@ async function run() {
       `magic-${randomUUID()}@example.test`
     );
 
-    const ipAddress = `203.0.113.${Number.parseInt(randomUUID().slice(0, 2), 16)}`;
+    const ipAddress = `192.0.2.${Number.parseInt(randomUUID().slice(0, 2), 16)}`;
     for (let attempt = 0; attempt < 20; attempt += 1) {
       const response = await firstAuth.handler(
-        request("/sign-in/magic-link", `ip-${attempt}-${randomUUID()}@example.test`, ipAddress)
+        request(
+          "/sign-in/magic-link",
+          `ip-${attempt}-${randomUUID()}@example.test`,
+          ipAddress
+        )
       );
       assert.equal(response.status, 200);
     }
     const limitedResponse = await secondAuth.handler(
-      request("/sign-in/magic-link", `ip-final-${randomUUID()}@example.test`, ipAddress)
+      request(
+        "/sign-in/magic-link",
+        `ip-final-${randomUUID()}@example.test`,
+        ipAddress
+      )
     );
     assert.equal(limitedResponse.status, 429);
   } finally {
