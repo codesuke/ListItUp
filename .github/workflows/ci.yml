@@ -48,7 +48,7 @@ jobs:
       MAILPIT_SMTP_HOST: localhost
       MAILPIT_SMTP_PORT: "1025"
       BETTER_AUTH_SECRET: test-secret-with-at-least-32-characters
-      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_URL: http://127.0.0.1:4173
       MAIL_PROVIDER: custom
       SMTP_HOST: localhost
       SMTP_PORT: "1025"
@@ -81,6 +81,10 @@ jobs:
       - run: pnpm run typecheck
 
       - run: pnpm test
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm run test:browser
 
   docker-build:
     name: Docker production build
