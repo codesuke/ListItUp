@@ -37,6 +37,29 @@ export async function resolveInvitation(
   };
 }
 
+export async function resolveInvitationEmailForCallback(
+  database: PrismaClient,
+  callbackURL: string
+): Promise<string | null> {
+  let callback: URL;
+  try {
+    callback = new URL(callbackURL, "http://listitup.local");
+  } catch {
+    return null;
+  }
+
+  if (callback.pathname !== "/accept-invitation") {
+    return null;
+  }
+
+  const token = callback.searchParams.get("token");
+  if (!token) {
+    return null;
+  }
+
+  return (await resolveInvitation(database, token))?.email ?? null;
+}
+
 export type AcceptInvitationResult =
   | { status: "accepted"; workspaceId: string }
   | { status: "invalid" }

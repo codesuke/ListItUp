@@ -5,22 +5,22 @@ import { revalidatePath } from "next/cache";
 import { APIError } from "better-auth";
 import QRCode from "qrcode";
 
-import { auth } from "@/lib/auth/auth";
+import { auth, securityAlertService } from "@/lib/auth/auth";
 import { VERIFICATION_TOKEN_EXPIRES_IN_HOURS } from "@/lib/auth/auth-config";
 import { getAuthSecret } from "@/lib/auth/auth-secret";
-import { recoveryCodeNoticeEmail } from "@/lib/mailer/email-templates/recovery-code-notice";
-import { twoFactorNoticeEmail } from "@/lib/mailer/email-templates/two-factor-notice";
-import { mailer } from "@/lib/mailer/mailer";
 import { normalizeEmail } from "@/lib/auth/normalize-email";
 import {
   clearPendingEmailChange,
   recordPendingEmailChange,
 } from "@/lib/auth/pending-email-change";
 import { prisma } from "@/lib/prisma";
+import { enqueueAndDeliverSecurityNotice } from "@/lib/security/security-notice-outbox";
+import { mailer } from "@/lib/mailer/mailer";
 import {
   verifyAndConsumeBackupCode,
   verifyStoredTotpCode,
 } from "@/lib/two-factor/two-factor-verification";
+import { hasSavedRecoveryCodesAcknowledgement } from "@/lib/two-factor/two-factor-enrollment";
 
 export type EnableTwoFactorState =
   | { status: "idle" }
@@ -92,10 +92,19 @@ export async function confirmTwoFactorEnrollmentAction(
     };
   }
 
+  if (!hasSavedRecoveryCodesAcknowledgement(formData)) {
+    return {
+      status: "error",
+      message: "Confirm that you saved your recovery codes.",
+    };
+  }
+
+  const requestHeaders = await headers();
+
   try {
     await auth.api.verifyTOTP({
       body: { code },
-      headers: await headers(),
+      headers: requestHeaders,
     });
   } catch (error) {
     if (error instanceof APIError) {
@@ -103,6 +112,20 @@ export async function confirmTwoFactorEnrollmentAction(
     }
 
     throw error;
+  }
+
+  const session = await auth.api.getSession({ headers: requestHeaders });
+  if (session) {
+    await enqueueAndDeliverSecurityNotice(
+      prisma,
+      mailer,
+      {
+        recipient: session.user.email,
+        type: "two-factor-notice",
+        action: "enabled",
+      },
+      securityAlertService
+    );
   }
 
   return { status: "confirmed" };
@@ -127,12 +150,21 @@ export async function changePasswordAction(
     };
   }
 
+  const requestHeaders = await headers();
+  const session = await auth.api.getSession({ headers: requestHeaders });
+  if (!session) {
+    return {
+      status: "error",
+      message: "Your session has expired. Sign in again.",
+    };
+  }
+
   try {
     await auth.api.changePassword({
       // Revoking every other session on a password change is a settled
       // product decision (docs/QnA), not a User choice.
       body: { currentPassword, newPassword, revokeOtherSessions: true },
-      headers: await headers(),
+      headers: requestHeaders,
     });
   } catch (error) {
     if (error instanceof APIError) {
@@ -141,6 +173,16 @@ export async function changePasswordAction(
 
     throw error;
   }
+
+  await enqueueAndDeliverSecurityNotice(
+    prisma,
+    mailer,
+    {
+      recipient: session.user.email,
+      type: "password-changed-notice",
+    },
+    securityAlertService
+  );
 
   revalidatePath("/settings/security");
 
@@ -322,11 +364,16 @@ export async function disableTwoFactorAction(
     throw error;
   }
 
-  await mailer.send({
-    to: session.user.email,
-    type: "two-factor-notice",
-    template: twoFactorNoticeEmail({ action: "disabled" }),
-  });
+  await enqueueAndDeliverSecurityNotice(
+    prisma,
+    mailer,
+    {
+      recipient: session.user.email,
+      type: "two-factor-notice",
+      action: "disabled",
+    },
+    securityAlertService
+  );
 
   revalidatePath("/settings/security");
 
@@ -364,11 +411,16 @@ export async function regenerateBackupCodesAction(
       headers: requestHeaders,
     });
 
-    await mailer.send({
-      to: session.user.email,
-      type: "recovery-code-notice",
-      template: recoveryCodeNoticeEmail({ reason: "regenerated" }),
-    });
+    await enqueueAndDeliverSecurityNotice(
+      prisma,
+      mailer,
+      {
+        recipient: session.user.email,
+        type: "recovery-code-notice",
+        action: "regenerated",
+      },
+      securityAlertService
+    );
 
     return { status: "success", backupCodes: result.backupCodes };
   } catch (error) {

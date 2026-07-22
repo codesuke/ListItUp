@@ -9,9 +9,13 @@ import { normalizeEmail } from "@/lib/auth/normalize-email";
 import { prisma } from "@/lib/prisma";
 import { resendVerificationEmailIfAllowed } from "@/lib/auth/verification-resend";
 
-export type ResendFormState = { status: "idle" } | { status: "sent" };
+export type ResendFormState =
+  | { status: "idle" }
+  | { status: "sent" }
+  | { status: "error"; message: string };
 
 const DEFAULT_RETURN_TO = "/my-tasks";
+const RETRY_MESSAGE = "We couldn't send that email. Please try again.";
 
 function readReturnTo(formData: FormData): string {
   const value = formData.get("returnTo");
@@ -28,20 +32,22 @@ export async function resendVerificationAction(
   const returnTo = readReturnTo(formData);
 
   if (email) {
-    await resendVerificationEmailIfAllowed(
-      prisma,
-      async (targetEmail) => {
-        await auth.api.sendVerificationEmail({
-          body: { email: targetEmail, callbackURL: returnTo },
-          headers: await headers(),
-        });
-      },
-      email
-    ).catch(() => undefined);
+    try {
+      await resendVerificationEmailIfAllowed(
+        prisma,
+        async (targetEmail) => {
+          await auth.api.sendVerificationEmail({
+            body: { email: targetEmail, callbackURL: returnTo },
+            headers: await headers(),
+          });
+        },
+        email
+      );
+    } catch {
+      return { status: "error", message: RETRY_MESSAGE };
+    }
   }
 
-  // Always report success: revealing a send failure here would let a caller
-  // distinguish "email exists and is unverified" from "nothing happened".
   return { status: "sent" };
 }
 

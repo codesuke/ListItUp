@@ -26,6 +26,7 @@ const RECORD_FAILURE = `
   local dailyFailureKey = KEYS[7]
   local dailyWarningKey = KEYS[8]
   local shouldWarn = 0
+  local shouldAlertEscalation = 0
 
   for index, failureKey in ipairs(failureKeys) do
     local count = redis.call('INCR', failureKey)
@@ -42,6 +43,7 @@ const RECORD_FAILURE = `
       local restrictionSeconds = tonumber(ARGV[4])
       if escalationCount > 1 then
         restrictionSeconds = tonumber(ARGV[5])
+        shouldAlertEscalation = 1
       end
       redis.call('SET', restrictionKeys[index], '1', 'EX', restrictionSeconds)
       redis.call('DEL', failureKey)
@@ -58,7 +60,7 @@ const RECORD_FAILURE = `
     end
   end
 
-  return shouldWarn
+  return shouldWarn + (shouldAlertEscalation * 2)
 `;
 
 export type SignInFailureKind = "password" | "two-factor";
@@ -72,7 +74,9 @@ export interface RecordSignInFailure {
 
 export interface ProgressiveSignInRateLimiter {
   isRestricted(identity: string, ipAddress: string): Promise<boolean>;
-  recordFailure(failure: RecordSignInFailure): Promise<{ shouldWarn: boolean }>;
+  recordFailure(
+    failure: RecordSignInFailure
+  ): Promise<{ shouldWarn: boolean; shouldAlertEscalation: boolean }>;
   close?(): Promise<void>;
 }
 
@@ -150,7 +154,11 @@ export function createRedisProgressiveSignInRateLimiter(
         ],
       });
 
-      return { shouldWarn: result === 1 };
+      const signal = typeof result === "number" ? result : 0;
+      return {
+        shouldWarn: signal % 2 === 1,
+        shouldAlertEscalation: signal >= 2,
+      };
     },
     async close() {
       if (client.isOpen) {

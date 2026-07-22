@@ -486,3 +486,259 @@ Question 16's settled outcome is revised: magic-link sign-in no longer requires 
 - **Password sign-in → still requires TOTP/recovery code** when 2FA is enabled (unchanged).
 
 Trade-off, made explicit: 2FA now protects password sign-ins specifically, not an already-compromised email inbox. See `docs/ADR/0003-magic-link-two-factor-bridge.md` (superseded) for the mechanism this replaced.
+
+---
+
+## Auth Hardening Follow-Up (2026-07-20)
+
+### 1. Where should durable shared authentication rate limits live?
+
+**Recommended answer**:
+
+Use the available Redis service for authentication rate-limit state. Redis provides atomic, expiring counters shared by every application instance, without placing high-churn failed-attempt counters in the product database.
+
+**User answer**:
+
+Redis-based option is available; the recommendation is good.
+
+**Settled outcome**:
+
+ListItUp will use Redis as the durable shared store for authentication rate limits and temporary security controls. The policy will apply consistently across application instances and survive individual instance restarts.
+
+### 2. When should ListItUp notify a User of suspicious sign-in activity?
+
+**Recommended answer**:
+
+Send a security notice after ten failed password attempts against a verified User within 24 hours, capped at one notice per User per 24 hours. Keep all on-screen sign-in errors generic.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+ListItUp sends a security notice to the affected verified User after ten failed password attempts in 24 hours, with at most one such notice per User in each 24-hour period. Sign-in responses remain generic.
+
+### 3. How should platform-wide security operations evolve as ListItUp adds clients and subscriptions?
+
+**Recommended answer**:
+
+Model a Platform Operator as a backend-enforced role separate from Workspace roles. Keep it in the existing application initially, with server-side authorization and auditable security events; introduce a separate staff web client only when its workflow or isolation needs justify it. The public web and future Android clients use the same backend and never receive operator capabilities.
+
+**User answer**:
+
+Take that as a settled direction.
+
+**Settled outcome**:
+
+ListItUp will model Platform Operator as a backend-enforced role, separate from Workspace membership. The initial internal surface remains in the existing application, while its authorization and security-event boundary is designed so a separate staff web client can be added later without changing the model. Android and public web clients do not expose Platform Operator capabilities.
+
+### 4. How should continuous integration prove authentication behavior?
+
+**Recommended answer**:
+
+Make `pnpm test` the mandatory full behavior suite. Continuous integration should start disposable PostgreSQL and Redis services, apply committed Prisma migrations, and run the same suite so database-backed authentication and rate-limit behavior cannot be skipped.
+
+**User answer**:
+
+Yes.
+
+**Settled outcome**:
+
+`pnpm test` will include the complete behavior suite, including database-backed authentication and mail tests. CI will provision ephemeral PostgreSQL and Redis, apply Prisma migrations, and run that command as a required check.
+
+### 5. How is an invited email locked during sign-up?
+
+**Recommended answer**:
+
+When a sign-up callback identifies a live Workspace invitation, resolve that invitation server-side and use its email as the sign-up email regardless of the submitted form value. The invitation acceptance flow continues to verify the signed-in User's email independently.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+The server treats a live Workspace invitation's email as authoritative for invitation-led sign-up. Browser read-only controls are only a convenience; a submitted email cannot override the invited email.
+
+### 6. How is recovery-code acknowledgement enforced during two-factor enrollment?
+
+**Recommended answer**:
+
+Require an explicit `recoveryCodesSaved` acknowledgement in the enrollment confirmation request and reject the request when it is absent. This enforces the required User acknowledgement at the server boundary, while recognizing that an application cannot prove offline storage of recovery codes.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+Two-factor enrollment completes only when the request includes an explicit recovery-code-saved acknowledgement that the server validates alongside the TOTP code.
+
+### 7. What initial authentication abuse thresholds apply?
+
+**Recommended answer**:
+
+Use Redis to limit verification, password-reset, and magic-link sends to one per recipient per minute, five per hour, and ten per day, plus twenty per IP per hour. After five failed password or TOTP attempts for an email-or-User and IP in 15 minutes, impose a 15-minute retry window; repeated windows escalate to 24 hours. Keep responses generic and do not permanently lock accounts.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+ListItUp applies the recommended Redis-backed recipient/IP send limits and progressive password/TOTP retry windows. Restrictions are temporary, responses remain generic, and accounts are never permanently locked by automated abuse controls.
+
+### 8. How should SMTP failures affect authentication and security actions?
+
+**Recommended answer**:
+
+For verification, magic-link, and password-reset requests, return a generic retryable failure when SMTP clearly fails. For a security change that already completed, retain the successful change, log and retry its security notice, and alert a Platform Operator rather than reporting the underlying change as failed.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+Required authentication-email sends report generic retryable failures when SMTP fails. Completed security changes remain successful; failed notices are logged, retried, and surfaced to Platform Operators.
+
+### 9. Where do initial Platform Operator alerts go?
+
+**Recommended answer**:
+
+Send security events to a configured, server-only webhook destination. This supports immediate operational alerts without requiring a staff client or device-push infrastructure.
+
+**User answer**:
+
+Discord for sure.
+
+**Settled outcome**:
+
+The initial Platform Operator alert channel is a server-configured Discord webhook. A future internal operator client can consume the same security-event boundary.
+
+### 10. What identifying data may Discord security alerts include?
+
+**Recommended answer**:
+
+Exclude raw email addresses and IP addresses from Discord, retaining full data only in ListItUp's server-side security records.
+
+**User answer**:
+
+Do not mask the data; send it to the audited Platform Operator Discord channel.
+
+**Settled outcome**:
+
+Discord security alerts include the relevant raw identifying data, including email addresses and IP addresses, for the audited Platform Operator channel. This is an intentional operational trade-off; Discord webhook access must be restricted and its data-retention practices treated as part of ListItUp's security operations.
+
+### 11. How should end-to-end authentication behavior be verified?
+
+**Recommended answer**:
+
+Add Playwright browser tests that exercise the real application through sign-up and verification, password sign-in with two-factor authentication, password reset, and Workspace invitation acceptance.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+ListItUp will run Playwright browser tests for the critical authentication journeys alongside its behavior suite, proving forms, redirects, cookies, and multi-step navigation end to end.
+
+### 12. How do browser tests inspect authentication emails?
+
+**Recommended answer**:
+
+Use a disposable Mailpit SMTP inbox in CI and local end-to-end testing. Browser tests retrieve verification, reset, and magic links through Mailpit's test API rather than a real provider or inbox.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+ListItUp's browser authentication tests use Mailpit as their disposable SMTP inbox and retrieve real sent links through its test API.
+
+### 13. How long are server-side security-event records retained?
+
+**Recommended answer**:
+
+Retain the raw identifying authentication-security records for 90 days in the first release, balancing incident investigation and abuse-pattern review against indefinite retention of sensitive metadata.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+ListItUp retains server-side authentication-security events, including raw email and IP data, for 90 days.
+
+### 14. How is Platform Operator access granted?
+
+**Recommended answer**:
+
+Use a database-backed PlatformRoleAssignment, granted through a restricted server-side administration or seed command, rather than an environment-variable email allowlist. It is auditable, revocable, and supports multiple operators.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+Platform Operator access is represented by auditable, database-backed role assignments. Restricted server-side administration grants and revokes those assignments; environment-variable email allowlists are not the authorization source.
+
+### 15. How are security-retention cleanup tasks scheduled?
+
+**Recommended answer**:
+
+Expose a daily endpoint protected by a scheduler secret and invoke it through the deployment platform's cron scheduler. It removes expired security events and unverified identities according to their retention rules while remaining observable and testable inside the existing application.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+ListItUp uses a daily secret-authenticated scheduled endpoint, invoked by deployment-platform cron, for security-event retention cleanup and expiration of unverified identities.
+
+### 16. Which abuse events trigger a Discord alert?
+
+**Recommended answer**:
+
+Alert only when a User reaches the ten failed-password-attempt notice threshold, an IP/email/User reaches a 24-hour escalated restriction, or a completed security change's notice email cannot be delivered. Deduplicate each alert subject for 24 hours.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+Discord receives 24-hour-deduplicated alerts for the agreed high-signal abuse transitions and undeliverable completed-security-change notices, not for routine typos or ordinary rate-limit events.
+
+### 17. How are failed security notices retried?
+
+**Recommended answer**:
+
+Persist each notice in a durable outbox and retry delivery after 5 minutes, 1 hour, and 24 hours. Alert Discord on the initial failure; after the final failure, retain the record for Platform Operator follow-up until it is resolved or expires.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+Security notices use a durable outbox with automatic retries after 5 minutes, 1 hour, and 24 hours. Initial failures alert Discord, and final failures remain visible for Platform Operator follow-up.
+
+### 18. How are authentication credentials handled during this hardening work?
+
+**Recommended answer**:
+
+Treat the locally configured production-looking database and SMTP credentials as potentially exposed: rotate them if active, keep `.env` files out of source control and build artifacts, and supply deployment configuration through the platform's secret environment variables.
+
+**User answer**:
+
+Recommendation is good.
+
+**Settled outcome**:
+
+Credential rotation and secret hygiene are release prerequisites for this auth work. The inspected `client/.env.prod` is ignored rather than tracked, but active values must be rotated if necessary and managed only through protected local/deployment secret configuration.

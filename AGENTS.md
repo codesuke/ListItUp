@@ -12,6 +12,7 @@ Claude Code imports these automatically into every session in this repo (do not 
 
 ## Working Rules
 
+- When the User says to “go ahead” on a coding task, continue through implementation, verification, commit, push, and issue closure without pausing for progress updates. Stop only for a genuine decision, missing authority, or external blocker.
 - Read `CONTEXT.md`, `Brand.md`, `DESIGN.md`, `Architecture.md`, and relevant files in `docs/` before planning work.
 - Treat `sample.html` as the current visual reference implementation for `DESIGN.md`.
 - Prefer small vertical slices that are demoable end to end.

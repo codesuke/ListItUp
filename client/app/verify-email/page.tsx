@@ -92,6 +92,11 @@ function VerifyEmailContent() {
             If that address needs a new link, we just sent one.
           </p>
         ) : null}
+        {state.status === "error" ? (
+          <p className="mt-3 text-xs text-[#ff8a70]" role="alert">
+            {state.message}
+          </p>
+        ) : null}
 
         <form action={signOutAction} className="mt-4">
           <button

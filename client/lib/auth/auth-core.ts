@@ -22,7 +22,6 @@ import {
   VERIFICATION_TOKEN_EXPIRES_IN_SECONDS,
 } from "@/lib/auth/auth-config";
 import { emailChangeEmail } from "@/lib/mailer/email-templates/email-change";
-import { emailChangedNoticeEmail } from "@/lib/mailer/email-templates/email-changed-notice";
 import { magicLinkEmail } from "@/lib/mailer/email-templates/magic-link";
 import { passwordResetEmail } from "@/lib/mailer/email-templates/password-reset";
 import { verificationEmail } from "@/lib/mailer/email-templates/verification";
@@ -47,6 +46,9 @@ import {
   type SignInFailureKind,
 } from "@/lib/auth/progressive-sign-in-rate-limit";
 import { recordSecurityEvent } from "@/lib/security/platform-operations";
+import { requestIpAddress } from "@/lib/auth/request-ip-address";
+import { enqueueAndDeliverSecurityNotice } from "@/lib/security/security-notice-outbox";
+import type { SecurityAlertService } from "@/lib/security/security-operations";
 
 const EMAIL_REQUEST_PATHS = new Set([
   "/send-verification-email",
@@ -76,22 +78,6 @@ function requestEmail(body: unknown): string | null {
   const email = (body as { email?: unknown }).email;
 
   return typeof email === "string" ? email.trim().toLowerCase() : null;
-}
-
-function requestIpAddress(headers: Headers | undefined): string {
-  const trustedHeader = process.env.AUTH_TRUSTED_PROXY_IP_HEADER;
-
-  if (!trustedHeader) {
-    return "unknown";
-  }
-
-  const forwardedFor = headers?.get(trustedHeader);
-
-  if (forwardedFor) {
-    return forwardedFor.split(",", 1)[0].trim();
-  }
-
-  return "unknown";
 }
 
 function requestPath(request: Request | undefined): string | null {
@@ -197,7 +183,8 @@ export function createAuth(
   database: PrismaClient,
   mailer: Mailer,
   emailRequestRateLimiter?: EmailRequestRateLimiter,
-  progressiveSignInRateLimiter?: ProgressiveSignInRateLimiter
+  progressiveSignInRateLimiter?: ProgressiveSignInRateLimiter,
+  securityAlerts?: SecurityAlertService
 ) {
   async function sendVerificationEmail(email: string, url: string) {
     // Better Auth's changeEmail endpoint reuses this same callback (with
@@ -231,10 +218,10 @@ export function createAuth(
   }
 
   async function sendEmailChangedNotice(oldEmail: string, newEmail: string) {
-    await mailer.send({
-      to: oldEmail,
+    await enqueueAndDeliverSecurityNotice(database, mailer, {
+      recipient: oldEmail,
       type: "email-changed-notice",
-      template: emailChangedNoticeEmail({ newEmail }),
+      newEmail,
     });
   }
 
@@ -451,20 +438,33 @@ export function createAuth(
           email: failureKind === "password" ? identity : user?.email,
           ipAddress: requestIpAddress(headers),
         });
-        const { shouldWarn } = await progressiveSignInRateLimiter.recordFailure(
-          {
+        const { shouldWarn, shouldAlertEscalation } =
+          await progressiveSignInRateLimiter.recordFailure({
             identity,
             ipAddress: requestIpAddress(headers),
             kind: failureKind,
             verifiedUser: user?.emailVerified ?? false,
-          }
-        );
+          });
 
         if (shouldWarn && user) {
           await mailer.send({
             to: user.email,
             type: "failed-sign-in-notice",
             template: failedSignInNoticeEmail(),
+          });
+          await securityAlerts?.send({
+            subject: `failed-password-warning:${user.id}`,
+            title: "Repeated password failures",
+            email: user.email,
+            ipAddress: requestIpAddress(headers),
+          });
+        }
+        if (shouldAlertEscalation) {
+          await securityAlerts?.send({
+            subject: `escalated-sign-in-restriction:${identity}:${requestIpAddress(headers)}`,
+            title: "24-hour sign-in restriction",
+            email: user?.email ?? identity,
+            ipAddress: requestIpAddress(headers),
           });
         }
 

@@ -6,6 +6,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 import {
   grantPlatformOperator,
+  listFailedSecurityNoticesForOperator,
   listSecurityEventsForOperator,
   recordSecurityEvent,
   revokePlatformOperator,
@@ -60,6 +61,24 @@ async function run() {
     assert.equal(event?.email, "subject@example.test");
     assert.equal(event?.ipAddress, "198.51.100.10");
 
+    const failedNotice = await prisma.securityNoticeOutbox.create({
+      data: {
+        id: randomUUID(),
+        recipient: "subject@example.test",
+        type: "two-factor-notice",
+        action: "disabled",
+        status: "failed",
+        attemptCount: 4,
+        nextAttemptAt: new Date(),
+        finalFailureAt: new Date(),
+      },
+    });
+    const failedNotices = await listFailedSecurityNoticesForOperator(
+      prisma,
+      operatorId
+    );
+    assert.ok(failedNotices.some((notice) => notice.id === failedNotice.id));
+
     await revokePlatformOperator(prisma, {
       userId: operatorId,
       revokedByUserId: operatorId,
@@ -72,10 +91,15 @@ async function run() {
     await prisma.securityEvent.deleteMany({
       where: { userId: { in: [operatorId, subjectId] } },
     });
+    await prisma.securityNoticeOutbox.deleteMany({
+      where: { recipient: "subject@example.test" },
+    });
     await prisma.platformRoleAssignment.deleteMany({
       where: { userId: { in: [operatorId, subjectId] } },
     });
-    await prisma.user.deleteMany({ where: { id: { in: [operatorId, subjectId] } } });
+    await prisma.user.deleteMany({
+      where: { id: { in: [operatorId, subjectId] } },
+    });
     await prisma.$disconnect();
   }
 

@@ -52,6 +52,10 @@ _Avoid_: Dashboard, tenant, organization, personal space, project space
 A Workspace role for a User who can manage the Workspace and its members.
 _Avoid_: Workspace owner, manager, superuser
 
+**Platform Operator**:
+An internal ListItUp role authorized to manage product-wide security and operational concerns. It is distinct from Workspace roles and never grants access merely through Workspace membership.
+_Avoid_: Workspace admin, superuser, customer support agent
+
 **Member**:
 A Workspace role for a User who can participate in shared work by creating or updating Lists and Items.
 _Avoid_: Collaborator, teammate, contributor

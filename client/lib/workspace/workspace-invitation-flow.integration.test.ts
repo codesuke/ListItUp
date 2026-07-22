@@ -6,7 +6,10 @@ import type {
   SendEmailInput,
   SendEmailResult,
 } from "@/lib/mailer/mailer-core";
-import { acceptInvitation } from "./workspace-invitations";
+import {
+  acceptInvitation,
+  resolveInvitationEmailForCallback,
+} from "./workspace-invitations";
 
 function sessionCookie(response: Response): string | null {
   const setCookie = response.headers.get("set-cookie");
@@ -143,6 +146,26 @@ async function run() {
     assert.ok(membership);
   }
 
+  async function testInvitationCallbackBindsTheInvitedEmail() {
+    const invitedEmail = `bound-invitee-${randomUUID()}@example.test`;
+    testEmails.push(invitedEmail);
+    const token = await createInvitation(invitedEmail);
+
+    assert.equal(
+      await resolveInvitationEmailForCallback(
+        prisma,
+        `/accept-invitation?token=${token}`
+      ),
+      invitedEmail,
+      "a valid invitation callback must override a forged sign-up email"
+    );
+    assert.equal(
+      await resolveInvitationEmailForCallback(prisma, "/my-tasks"),
+      null,
+      "a non-invitation callback must not bind an email"
+    );
+  }
+
   async function testExistingUserAcceptsViaInvitationLink() {
     const email = `existing-invitee-${randomUUID()}@example.test`;
     testEmails.push(email);
@@ -258,6 +281,7 @@ async function run() {
     });
 
     await testNewUserSignsUpWithLockedEmailVerifiesAndAccepts();
+    await testInvitationCallbackBindsTheInvitedEmail();
     await testExistingUserAcceptsViaInvitationLink();
     await testMismatchedSignedInUserIsBlocked();
   } finally {

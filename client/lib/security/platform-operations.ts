@@ -94,3 +94,22 @@ export async function listSecurityEventsForOperator(
 
   return database.securityEvent.findMany({ orderBy: { createdAt: "desc" } });
 }
+
+export async function listFailedSecurityNoticesForOperator(
+  database: PrismaClient,
+  operatorId: string
+) {
+  const activeAssignment = await database.platformRoleAssignment.findFirst({
+    where: { userId: operatorId, revokedAt: null },
+    select: { id: true },
+  });
+
+  if (!activeAssignment) {
+    throw new PlatformOperatorAuthorizationError();
+  }
+
+  return database.securityNoticeOutbox.findMany({
+    where: { status: "failed" },
+    orderBy: { finalFailureAt: "desc" },
+  });
+}

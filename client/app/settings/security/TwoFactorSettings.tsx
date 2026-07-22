@@ -80,6 +80,11 @@ export function TwoFactorSettings({
         </label>
 
         <form action={confirmFormAction} className="grid gap-5">
+          <input
+            type="hidden"
+            name="recoveryCodesSaved"
+            value={codesSavedConfirmed ? "true" : "false"}
+          />
           <div className="group">
             <label
               htmlFor="totp-code"

@@ -5,6 +5,7 @@ import { magicLinkEmail } from "./magic-link";
 import { passwordResetEmail } from "./password-reset";
 import { emailChangeEmail } from "./email-change";
 import { emailChangedNoticeEmail } from "./email-changed-notice";
+import { passwordChangedNoticeEmail } from "./password-changed-notice";
 import { twoFactorNoticeEmail } from "./two-factor-notice";
 import { failedSignInNoticeEmail } from "./failed-sign-in-notice";
 import { recoveryCodeNoticeEmail } from "./recovery-code-notice";
@@ -85,6 +86,10 @@ function run() {
   assertWellFormed(emailChangedNotice, "email-changed-notice");
   assert.equal(emailChangedNotice.subject, "Your email address was changed");
   assert.ok(emailChangedNotice.html.includes("new@listitup.test"));
+
+  const passwordChangedNotice = passwordChangedNoticeEmail();
+  assertWellFormed(passwordChangedNotice, "password-changed-notice");
+  assert.equal(passwordChangedNotice.subject, "Your password was changed");
 
   const twoFactorEnabled = twoFactorNoticeEmail({ action: "enabled" });
   assertWellFormed(twoFactorEnabled, "two-factor-notice (enabled)");

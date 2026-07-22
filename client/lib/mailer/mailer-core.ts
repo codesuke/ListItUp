@@ -7,6 +7,7 @@ export type EmailMessageType =
   | "password-reset"
   | "email-change"
   | "email-changed-notice"
+  | "password-changed-notice"
   | "two-factor-notice"
   | "failed-sign-in-notice"
   | "recovery-code-notice"

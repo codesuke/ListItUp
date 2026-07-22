@@ -185,3 +185,30 @@ model SecurityEvent {
   @@index([userId, createdAt])
   @@map("security_event")
 }
+
+model SecurityNoticeOutbox {
+  id             String   @id
+  recipient      String
+  type           String
+  action         String?
+  newEmail       String?
+  status         String   @default("pending")
+  attemptCount   Int      @default(0)
+  nextAttemptAt  DateTime @default(now())
+  lastAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  finalFailureAt DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([status, finalFailureAt])
+  @@map("security_notice_outbox")
+}
+
+model SecurityAlertDispatch {
+  subject   String   @id
+  alertedAt DateTime @default(now())
+
+  @@map("security_alert_dispatch")
+}

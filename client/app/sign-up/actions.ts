@@ -8,6 +8,8 @@ import { auth } from "@/lib/auth/auth";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/auth-config";
 import { isSafeRelativeCallbackUrl } from "@/lib/session/callback-url";
 import { normalizeEmail } from "@/lib/auth/normalize-email";
+import { prisma } from "@/lib/prisma";
+import { resolveInvitationEmailForCallback } from "@/lib/workspace/workspace-invitations";
 
 export type SignUpFormState =
   { status: "idle" } | { status: "error"; message: string };
@@ -33,9 +35,16 @@ export async function signUpAction(
   formData: FormData
 ): Promise<SignUpFormState> {
   const name = String(formData.get("displayName") ?? "").trim();
-  const email = normalizeEmail(formData.get("email"));
+  const submittedEmail = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
   const callbackURL = readCallbackUrl(formData);
+  const invitationEmail = await resolveInvitationEmailForCallback(
+    prisma,
+    callbackURL
+  );
+  const email = invitationEmail
+    ? normalizeEmail(invitationEmail)
+    : submittedEmail;
 
   if (!name || !email || !password) {
     return {
@@ -59,7 +68,7 @@ export async function signUpAction(
       };
     }
 
-    throw error;
+    return { status: "error", message: GENERIC_SIGN_UP_ERROR };
   }
 
   redirect(

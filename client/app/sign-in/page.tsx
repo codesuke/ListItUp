@@ -195,6 +195,11 @@ function SignInContent() {
               If that email has an account, a sign-in link is on its way.
             </p>
           ) : null}
+          {magicLinkState.status === "error" ? (
+            <p role="alert" className="text-sm text-[#ff8a70]">
+              {magicLinkState.message}
+            </p>
+          ) : null}
         </form>
       )}
 

@@ -68,6 +68,11 @@ export default function ForgotPasswordPage() {
             If that email has an account, a reset link is on its way.
           </p>
         ) : null}
+        {state.status === "error" ? (
+          <p role="alert" className="text-sm text-[#ff8a70]">
+            {state.message}
+          </p>
+        ) : null}
       </form>
 
       <p className="mt-8 text-sm text-neutral-500">
