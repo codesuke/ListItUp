@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Updates — ListItUp design mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<link rel="stylesheet" href="../shared/theme.css" />
+<style>
+  body { background: var(--bg-0); }
+  .notif-row { display:flex; align-items:flex-start; gap:12px; padding:11px 10px; border-radius:8px; transition: background .12s ease; }
+  .notif-row:hover { background: var(--bg-3); }
+  .notif-row.unread .notif-dot { background: var(--orange); }
+  .notif-dot { width:7px; height:7px; border-radius:999px; margin-top:6px; flex-shrink:0; background:transparent; }
+</style>
+</head>
+<body>
+
+<div class="ln-shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="ln-sidebar">
+    <div class="ln-workspace-switcher mb-2">
+      <div class="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold" style="background:var(--orange); color:#1a0800; font-family:var(--font-mono);">AS</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[13px] font-semibold truncate" style="color:var(--ink)">Acme Studio</div>
+        <div class="font-mono-label text-[9px]" style="color:var(--ink-faint)">Workspace</div>
+      </div>
+      <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5" style="color:var(--ink-faint)"></i>
+    </div>
+
+    <nav class="mt-2">
+      <div class="ln-nav-item"><i data-lucide="home"></i> Home</div>
+      <div class="ln-nav-item"><i data-lucide="list-checks"></i> My Tasks</div>
+      <div class="ln-nav-item active"><i data-lucide="bell"></i> Updates <span class="ln-nav-badge">6</span></div>
+    </nav>
+
+    <div class="ln-nav-section-label flex items-center gap-1 cursor-pointer">
+      <i data-lucide="chevron-right" class="w-3 h-3"></i> Personal Space
+    </div>
+
+    <div class="mt-auto pt-4 border-t" style="border-color:var(--border)">
+      <div class="ln-nav-item"><div class="ln-avatar" style="background:var(--blue)">RK</div> Riya Kapoor</div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="ln-main">
+    <header class="ln-topbar">
+      <div class="flex items-center gap-2">
+        <span class="text-[13px] font-semibold" style="color:var(--ink)">Updates</span>
+        <span class="ln-badge ln-badge-red">6 unread</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <a class="flex items-center gap-1.5 text-[12px]" style="color:var(--ink-faint)" href="../notification-settings/index.html">
+          <i data-lucide="settings" class="w-3.5 h-3.5"></i> Manage Notifications
+        </a>
+      </div>
+    </header>
+
+    <div class="ln-content max-w-3xl">
+
+      <!-- Tabs -->
+      <div class="flex items-center gap-6 border-b mb-5" style="border-color:var(--border)">
+        <div class="ln-tab active"><i data-lucide="activity" class="w-3.5 h-3.5"></i> Activity</div>
+        <div class="ln-tab"><i data-lucide="bookmark" class="w-3.5 h-3.5"></i> Bookmarks</div>
+        <div class="ln-tab"><i data-lucide="archive" class="w-3.5 h-3.5"></i> Archive</div>
+        <div class="ln-tab"><i data-lucide="at-sign" class="w-3.5 h-3.5"></i> @Mentioned</div>
+      </div>
+
+      <!-- Category filter -->
+      <div class="flex items-center gap-2 mb-4">
+        <span class="ln-chip active">All</span>
+        <span class="ln-chip">Assignee</span>
+        <span class="ln-chip">Notes</span>
+        <span class="ln-chip">Mentions</span>
+        <span class="ln-chip">State</span>
+      </div>
+
+      <!-- Notification list -->
+      <div class="ln-card p-2">
+
+        <div class="notif-row unread">
+          <span class="notif-dot"></span>
+          <div class="flex-1 min-w-0">
+            <span style="color:var(--ink)">Maya Torres mentioned you on</span>
+            <span class="font-medium" style="color:var(--ink)">Review tunnel-clearance calculations from vendor</span>
+          </div>
+          <span class="font-mono-label text-[10px] flex-shrink-0 mt-0.5" style="color:var(--ink-faint)">Sep 13, 4:02 PM</span>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="bookmark" class="w-3.5 h-3.5" style="color:var(--orange-light); fill:var(--orange-light)"></i></button>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="archive" class="w-3.5 h-3.5"></i></button>
+        </div>
+
+        <div class="notif-row unread">
+          <span class="notif-dot"></span>
+          <div class="flex-1 min-w-0">
+            <span style="color:var(--ink)">Priya Shah assigned you to</span>
+            <span class="font-medium" style="color:var(--ink)">Confirm signage vendor contract terms</span>
+          </div>
+          <span class="font-mono-label text-[10px] flex-shrink-0 mt-0.5" style="color:var(--ink-faint)">Sep 13, 11:20 AM</span>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="bookmark" class="w-3.5 h-3.5"></i></button>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="archive" class="w-3.5 h-3.5"></i></button>
+        </div>
+
+        <div class="notif-row unread">
+          <span class="notif-dot"></span>
+          <div class="flex-1 min-w-0">
+            <span style="color:var(--ink)">Maya Torres changed the state of</span>
+            <span class="font-medium" style="color:var(--ink)">Draft revised platform edge drawings</span>
+          </div>
+          <span class="font-mono-label text-[10px] flex-shrink-0 mt-0.5" style="color:var(--ink-faint)">Sep 12, 5:47 PM</span>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="bookmark" class="w-3.5 h-3.5"></i></button>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="archive" class="w-3.5 h-3.5"></i></button>
+        </div>
+
+        <div class="notif-row unread">
+          <span class="notif-dot"></span>
+          <div class="flex-1 min-w-0">
+            <span style="color:var(--ink)">Due date approaching for</span>
+            <span class="font-medium" style="color:var(--ink)">Finalize Q3 rail-safety deck for client review</span>
+          </div>
+          <span class="font-mono-label text-[10px] flex-shrink-0 mt-0.5" style="color:var(--ink-faint)">Sep 12, 8:00 AM</span>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="bookmark" class="w-3.5 h-3.5"></i></button>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="archive" class="w-3.5 h-3.5"></i></button>
+        </div>
+
+        <div class="notif-row">
+          <span class="notif-dot"></span>
+          <div class="flex-1 min-w-0">
+            <span style="color:var(--ink-muted)">Riya Kapoor added a note on</span>
+            <span class="font-medium" style="color:var(--ink-muted)">Source replacement bearings for Unit 4</span>
+          </div>
+          <span class="font-mono-label text-[10px] flex-shrink-0 mt-0.5" style="color:var(--ink-faint)">Sep 10, 2:15 PM</span>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="bookmark" class="w-3.5 h-3.5"></i></button>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="archive" class="w-3.5 h-3.5"></i></button>
+        </div>
+
+        <div class="notif-row">
+          <span class="notif-dot"></span>
+          <div class="flex-1 min-w-0">
+            <span style="color:var(--ink-muted)">Priya Shah removed you from</span>
+            <span class="font-medium" style="color:var(--ink-muted)">Compare vendor quotes for platform sealant</span>
+          </div>
+          <span class="font-mono-label text-[10px] flex-shrink-0 mt-0.5" style="color:var(--ink-faint)">Sep 8, 9:32 AM</span>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="bookmark" class="w-3.5 h-3.5"></i></button>
+          <button class="ln-icon-btn" style="width:26px;height:26px"><i data-lucide="archive" class="w-3.5 h-3.5"></i></button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

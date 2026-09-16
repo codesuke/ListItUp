@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Tasks Dashboard — ListItUp design mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<link rel="stylesheet" href="../shared/theme.css" />
+<style>
+  body { background: var(--bg-0); }
+  .widget-title { font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+  .stat-num { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+</style>
+</head>
+<body>
+
+<div class="ln-shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="ln-sidebar">
+    <div class="ln-workspace-switcher mb-2">
+      <div class="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold" style="background:var(--orange); color:#1a0800; font-family:var(--font-mono);">AS</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[13px] font-semibold truncate" style="color:var(--ink)">Acme Studio</div>
+        <div class="font-mono-label text-[9px]" style="color:var(--ink-faint)">Workspace</div>
+      </div>
+      <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5" style="color:var(--ink-faint)"></i>
+    </div>
+
+    <nav class="mt-2">
+      <div class="ln-nav-item"><i data-lucide="home"></i> Home</div>
+      <div class="ln-nav-item active"><i data-lucide="list-checks"></i> My Tasks</div>
+      <div class="ln-nav-item"><i data-lucide="bell"></i> Updates <span class="ln-nav-badge">6</span></div>
+    </nav>
+
+    <div class="ln-nav-section-label flex items-center gap-1 cursor-pointer">
+      <i data-lucide="chevron-right" class="w-3 h-3"></i> Personal Space
+    </div>
+
+    <div class="mt-auto pt-4 border-t" style="border-color:var(--border)">
+      <div class="ln-nav-item"><div class="ln-avatar" style="background:var(--blue)">RK</div> Riya Kapoor</div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="ln-main">
+    <header class="ln-topbar">
+      <div class="flex items-center gap-2">
+        <span class="text-[13px] font-semibold" style="color:var(--ink)">My Tasks</span>
+        <span class="ln-badge ln-badge-muted">Across all Workspaces</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="ln-icon-btn"><i data-lucide="search"></i></button>
+        <button class="ln-icon-btn"><i data-lucide="bell"></i></button>
+      </div>
+    </header>
+
+    <div class="ln-content">
+
+      <!-- View tabs -->
+      <div class="flex items-center gap-6 border-b mb-5" style="border-color:var(--border)">
+        <div class="ln-tab"><i data-lucide="list" class="w-3.5 h-3.5"></i> List</div>
+        <div class="ln-tab"><i data-lucide="columns-3" class="w-3.5 h-3.5"></i> Board</div>
+        <div class="ln-tab"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Calendar</div>
+        <div class="ln-tab"><i data-lucide="paperclip" class="w-3.5 h-3.5"></i> Files</div>
+        <div class="ln-tab active"><i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i> Dashboard</div>
+      </div>
+
+      <!-- Count widgets -->
+      <div class="grid grid-cols-4 gap-4 mb-5">
+        <div class="ln-card p-4">
+          <div class="widget-title mb-2">Total Assigned</div>
+          <div class="stat-num" style="color:var(--ink)">23</div>
+        </div>
+        <div class="ln-card p-4">
+          <div class="widget-title mb-2">Completed</div>
+          <div class="stat-num" style="color:var(--green)">11</div>
+        </div>
+        <div class="ln-card p-4">
+          <div class="widget-title mb-2">Incomplete</div>
+          <div class="stat-num" style="color:var(--ink)">12</div>
+        </div>
+        <div class="ln-card p-4">
+          <div class="widget-title mb-2">Overdue</div>
+          <div class="stat-num" style="color:var(--red)">3</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-5">
+
+        <!-- Breakdown by State -->
+        <div class="ln-card p-5">
+          <div class="widget-title mb-4">Breakdown by State</div>
+          <div class="flex flex-col gap-3">
+            <div>
+              <div class="flex justify-between text-[12px] mb-1"><span style="color:var(--ink-muted)">To Do</span><span style="color:var(--ink-faint)">7</span></div>
+              <div class="h-1.5 rounded-full" style="background:var(--bg-4)"><div class="h-1.5 rounded-full" style="width:30%;background:var(--ink-faint)"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-[12px] mb-1"><span style="color:var(--ink-muted)">In Progress</span><span style="color:var(--ink-faint)">4</span></div>
+              <div class="h-1.5 rounded-full" style="background:var(--bg-4)"><div class="h-1.5 rounded-full" style="width:17%;background:var(--blue)"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-[12px] mb-1"><span style="color:var(--ink-muted)">Blocked</span><span style="color:var(--ink-faint)">1</span></div>
+              <div class="h-1.5 rounded-full" style="background:var(--bg-4)"><div class="h-1.5 rounded-full" style="width:4%;background:var(--amber)"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-[12px] mb-1"><span style="color:var(--ink-muted)">Complete</span><span style="color:var(--ink-faint)">11</span></div>
+              <div class="h-1.5 rounded-full" style="background:var(--bg-4)"><div class="h-1.5 rounded-full" style="width:48%;background:var(--green)"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Breakdown by Workspace -->
+        <div class="ln-card p-5">
+          <div class="widget-title mb-4">Breakdown by Workspace</div>
+          <div class="flex flex-col gap-3">
+            <div>
+              <div class="flex justify-between text-[12px] mb-1"><span style="color:var(--ink-muted)">Acme Studio</span><span style="color:var(--ink-faint)">14</span></div>
+              <div class="h-1.5 rounded-full" style="background:var(--bg-4)"><div class="h-1.5 rounded-full" style="width:61%;background:var(--orange)"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-[12px] mb-1"><span style="color:var(--ink-muted)">North Line Co-op</span><span style="color:var(--ink-faint)">6</span></div>
+              <div class="h-1.5 rounded-full" style="background:var(--bg-4)"><div class="h-1.5 rounded-full" style="width:26%;background:var(--orange)"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-[12px] mb-1"><span style="color:var(--ink-muted)">Personal Space</span><span style="color:var(--ink-faint)">3</span></div>
+              <div class="h-1.5 rounded-full" style="background:var(--bg-4)"><div class="h-1.5 rounded-full" style="width:13%;background:var(--orange)"></div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <p class="text-[11.5px] mt-4" style="color:var(--ink-faint)">A trimmed personal Dashboard — counts and breakdowns only, scoped to Items assigned to you across every Workspace and your Personal Space.</p>
+
+    </div>
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>
