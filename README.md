@@ -138,7 +138,7 @@ Check status any time with `docker compose ps`, and logs with `docker compose lo
 2. Set the build context to `client/`.
 3. Provision (or point at) a PostgreSQL instance and set `DATABASE_URL` accordingly.
 4. Copy the remaining variables from [`client/.env.example`](client/.env.example) into Dokploy's environment settings: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and the `SMTP_*` variables.
-5. Deploy. Dokploy handles applying migrations and restarting the container.
+5. Deploy. The container runs `prisma migrate deploy` against `DATABASE_URL` on every start, before the server boots; if a migration fails, the container exits instead of serving against a stale schema.
 
 ### Option C — Local development
 
