@@ -19,6 +19,7 @@ const TEST_FILES = [
   "lib/auth/auth-email-request-limits.integration.test.ts",
   "lib/auth/auth-email-delivery-failure.integration.test.ts",
   "lib/workspace/workspace-provisioning.test.ts",
+  "lib/workspace/demo-workspace.test.ts",
   "lib/workspace/workspace-ownership.test.ts",
   "lib/workspace/default-workspace.test.ts",
   "lib/workspace/workspace-peer-comparison.test.ts",

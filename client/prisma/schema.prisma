@@ -113,6 +113,11 @@ model Workspace {
   // workspace-level, changeable only by a Workspace Owner or Admin
   // (lib/workspace/workspace-peer-comparison.ts).
   peerComparisonEnabled  Boolean               @default(false)
+  // A pre-filled Workspace every User is provisioned alongside their
+  // Personal Space so they have real-looking content to explore before
+  // creating anything of their own (lib/workspace/demo-workspace.ts).
+  // Always kind: SHARED — a Demo Workspace is a normal shared Workspace.
+  isDemo                 Boolean               @default(false)
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
   lists                  List[]

@@ -37,6 +37,7 @@ import {
   resendVerificationEmailIfAllowed,
 } from "@/lib/auth/verification-resend";
 import { provisionPersonalWorkspace } from "@/lib/workspace/workspace-provisioning";
+import { provisionDemoWorkspace } from "@/lib/workspace/demo-workspace";
 import {
   GENERIC_EMAIL_REQUEST_LIMIT_MESSAGE,
   type EmailRequestRateLimiter,
@@ -316,6 +317,7 @@ export function createAuth(
         create: {
           after: async (session) => {
             await provisionPersonalWorkspace(database, session.userId);
+            await provisionDemoWorkspace(database, session.userId);
           },
         },
       },

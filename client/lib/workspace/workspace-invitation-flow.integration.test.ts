@@ -300,6 +300,13 @@ async function run() {
     await prisma.workspaceMember.deleteMany({ where: { workspaceId } });
     await prisma.workspaceInvitation.deleteMany({ where: { workspaceId } });
     await prisma.workspace.deleteMany({ where: { id: workspaceId } });
+    // Signing in also auto-provisions a Personal Space and a Demo
+    // Workspace (lib/auth/auth-core.ts's session.create hook) — delete
+    // those too so hard-deleting the User below doesn't hit Item's
+    // immutable creatorId foreign key.
+    await prisma.workspace.deleteMany({
+      where: { members: { some: { userId: { in: [ownerId, ...testUserIds] }, role: "OWNER" } } },
+    });
     await prisma.user.deleteMany({
       where: { id: { in: [ownerId, ...testUserIds] } },
     });

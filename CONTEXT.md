@@ -104,6 +104,10 @@ _Avoid_: Personal Workspace, personal workspace, private space
 A shared operating space where two or more Users collaborate on Lists. A User may create or join multiple Workspaces.
 _Avoid_: Dashboard, tenant, organization, personal space, project space
 
+**Demo Workspace**:
+A pre-filled Workspace provisioned automatically alongside a User's Personal Space after verified first sign-in, giving them real-looking Lists, Items, and teammates to explore before creating anything of their own. Functionally an ordinary Workspace (a User may edit or leave it like any other); distinguished only by having been auto-provisioned with sample content rather than by any different capability.
+_Avoid_: Sample workspace, tutorial, onboarding workspace
+
 **Workspace Owner**:
 The sole User with ultimate authority over a Workspace. Cannot be removed, demoted, or modified by any other User, and can only transfer ownership explicitly. Has implicit access to every List in the Workspace, including private ones.
 _Avoid_: Admin, superuser, account holder

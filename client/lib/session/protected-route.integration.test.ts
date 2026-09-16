@@ -117,6 +117,13 @@ async function run() {
   try {
     await testUnverifiedVisitorRedirectsAndReturnsToOriginalUrlAfterVerifying();
   } finally {
+    // Completing verification also auto-provisions a Personal Space and a
+    // Demo Workspace (lib/auth/auth-core.ts's session.create hook) —
+    // delete those too so hard-deleting the User below doesn't hit Item's
+    // immutable creatorId foreign key.
+    await prisma.workspace.deleteMany({
+      where: { members: { some: { user: { email: { in: testEmails } }, role: "OWNER" } } },
+    });
     await prisma.user.deleteMany({ where: { email: { in: testEmails } } });
     await prisma.verificationEmailThrottle.deleteMany({
       where: { identifier: { in: testEmails } },
