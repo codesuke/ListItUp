@@ -21,7 +21,7 @@
   <div class="max-w-5xl mx-auto px-8 py-14">
     <div class="font-mono-label text-[11px] mb-3" style="color:var(--orange-light)">ListItUp · Design Mocks</div>
     <h1 class="text-[30px] font-semibold tracking-tight mb-2" style="color:var(--ink)">Page mockups awaiting review</h1>
-    <p class="text-[13.5px] max-w-xl mb-8" style="color:var(--ink-muted)">Static HTML/Tailwind prototypes, one folder per page, styled from <code class="font-mono-label normal-case" style="color:var(--ink)">DESIGN.md</code>. Home, My Tasks, List View (including the Item detail drawer), and List Dashboard (all widgets, #51 + #54–58) are now fully wired into <code class="font-mono-label normal-case" style="color:var(--ink)">client/app/</code>. Calendar View, My Tasks Dashboard, and Updates (both its inbox and notification-settings screens) are mocked but not yet built.</p>
+    <p class="text-[13.5px] max-w-xl mb-8" style="color:var(--ink-muted)">Static HTML/Tailwind prototypes, one folder per page, styled from <code class="font-mono-label normal-case" style="color:var(--ink)">DESIGN.md</code>. Every mock below — Home, My Tasks, List View (including the Item detail drawer), List Dashboard (all widgets, #51 + #54–58), Calendar View (#32), My Tasks Dashboard (#52), Updates (#49), and Manage Notifications (#48) — is now fully wired into <code class="font-mono-label normal-case" style="color:var(--ink)">client/app/</code>.</p>
 
     <a class="mock-card block mb-10" href="mother/index.html">
       <div class="ln-card p-6" style="border-color:var(--orange); background:linear-gradient(135deg, var(--bg-2), var(--bg-3))">
@@ -88,15 +88,12 @@
           <div class="text-[12.5px]" style="color:var(--ink-muted)">Counts, breakdowns, heatmap, progress, contribution map, radar, peer comparison — #51, #54–58</div>
         </div>
       </a>
-    </div>
 
-    <div class="font-mono-label text-[11px] mb-4" style="color:var(--ink-faint)">Mocked — not built yet</div>
-    <div class="grid grid-cols-2 gap-5">
       <a class="mock-card" href="calendar-view/index.html">
         <div class="ln-card">
           <div class="flex items-center justify-between mb-3">
             <i data-lucide="calendar" class="w-5 h-5" style="color:var(--orange-light)"></i>
-            <span class="ln-badge ln-badge-muted">Mock only</span>
+            <span class="ln-badge ln-badge-blue">Wired — app/workspaces/.../lists/[listId]</span>
           </div>
           <div class="text-[15px] font-semibold mb-1" style="color:var(--ink)">Calendar View</div>
           <div class="text-[12.5px]" style="color:var(--ink-muted)">A List's Calendar tab — month grid, per-day Item chips — #32</div>
@@ -107,7 +104,7 @@
         <div class="ln-card">
           <div class="flex items-center justify-between mb-3">
             <i data-lucide="bar-chart-3" class="w-5 h-5" style="color:var(--orange-light)"></i>
-            <span class="ln-badge ln-badge-muted">Mock only</span>
+            <span class="ln-badge ln-badge-blue">Wired — app/my-tasks</span>
           </div>
           <div class="text-[15px] font-semibold mb-1" style="color:var(--ink)">My Tasks Dashboard</div>
           <div class="text-[12.5px]" style="color:var(--ink-muted)">Trimmed personal Dashboard — counts + state/Workspace breakdowns — #52</div>
@@ -118,7 +115,7 @@
         <div class="ln-card">
           <div class="flex items-center justify-between mb-3">
             <i data-lucide="bell" class="w-5 h-5" style="color:var(--orange-light)"></i>
-            <span class="ln-badge ln-badge-muted">Mock only</span>
+            <span class="ln-badge ln-badge-blue">Wired — app/updates</span>
           </div>
           <div class="text-[15px] font-semibold mb-1" style="color:var(--ink)">Updates</div>
           <div class="text-[12.5px]" style="color:var(--ink-muted)">Activity, Bookmarks, Archive, @Mentioned tabs — #49</div>
@@ -129,7 +126,7 @@
         <div class="ln-card">
           <div class="flex items-center justify-between mb-3">
             <i data-lucide="settings" class="w-5 h-5" style="color:var(--orange-light)"></i>
-            <span class="ln-badge ln-badge-muted">Mock only</span>
+            <span class="ln-badge ln-badge-blue">Wired — app/settings/notifications</span>
           </div>
           <div class="text-[15px] font-semibold mb-1" style="color:var(--ink)">Manage Notifications</div>
           <div class="text-[12.5px]" style="color:var(--ink-muted)">Per-category notification toggles, linked from Updates — #48</div>
