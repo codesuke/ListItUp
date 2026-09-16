@@ -211,6 +211,26 @@ async function run() {
       assert.equal(data.fileEntries.length, 1);
       assert.equal(data.fileEntries[0].fileName, "brief.pdf");
       assert.equal(data.fileEntries[0].sourceWorkspaceName, "Marketing");
+
+      // Dashboard (#52) — counts/breakdowns computed from the same
+      // effective-access Item set as List/Board/Calendar/Files above.
+      assert.deepEqual(data.dashboard.counts, { total: 3, completed: 0, incomplete: 3, overdue: 0 });
+      assert.deepEqual(
+        data.dashboard.byState.map((entry) => [entry.label, entry.count]),
+        [
+          ["To Do", 2],
+          ["In Progress", 0],
+          ["Blocked", 1],
+          ["Complete", 0],
+        ]
+      );
+      assert.deepEqual(
+        data.dashboard.byWorkspace.map((entry) => [entry.label, entry.count]),
+        [
+          ["Marketing", 2],
+          ["Personal Space", 1],
+        ]
+      );
     }
   } finally {
     const listIds = (

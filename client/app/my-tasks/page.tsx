@@ -25,6 +25,7 @@ import { requireAuthenticatedSession } from "@/lib/session/require-authenticated
 import { completeMyTaskItemAction, moveMyTaskItemAction, quickAddItemAction } from "./actions";
 import { BoardView } from "./BoardView";
 import { CalendarView } from "./CalendarView";
+import { DashboardView } from "./DashboardView";
 import { FilesView } from "./FilesView";
 import { MyTasksList } from "./MyTasksList";
 import { loadMyTasksPageData, type MyTasksFilterWorkspace } from "./page-data";
@@ -69,10 +70,6 @@ function isTabKey(value: string): value is TabKey {
 }
 
 // Dashboard is this spec's deliberately reserved placeholder — its content
-// ships with the Reports & Analytics spec, matching the reservation
-// pattern already used for the List page's Dashboard/Messages tabs (#43).
-const DASHBOARD_NOTE = "Reserved — Dashboard content ships with the Reports & Analytics spec.";
-
 function myTasksHref(query: Query): string {
   const params = new URLSearchParams();
   if (query.workspace) params.set("workspace", query.workspace);
@@ -359,9 +356,7 @@ export default async function MyTasksPage({ searchParams }: Props) {
             ) : activeTab === "files" ? (
               <FilesView entries={data.fileEntries} />
             ) : (
-              <div className="mt-10 rounded-[12px] border border-dashed border-[#232323] px-4 py-16 text-center text-sm text-[#5a5a56]">
-                {DASHBOARD_NOTE}
-              </div>
+              <DashboardView {...data.dashboard} />
             )}
           </div>
         </main>

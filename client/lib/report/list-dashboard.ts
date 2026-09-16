@@ -14,10 +14,15 @@ export type ItemCounts = {
   overdue: number;
 };
 
+// Narrower than DashboardItem — only state/dueDate are read below, which
+// lets callers with a different Item shape (e.g. My Tasks' MyTaskItem,
+// #52) reuse this without carrying List Dashboard-only fields.
+type CountableItem = { state: ItemState; dueDate: Date | null };
+
 // Incomplete is everything not Complete (To Do/In Progress/Blocked all
 // count); Overdue only counts a past due date on an Item that isn't
 // already Complete (#51).
-export function computeItemCounts(items: DashboardItem[], now: Date): ItemCounts {
+export function computeItemCounts(items: CountableItem[], now: Date): ItemCounts {
   const completed = items.filter((item) => item.state === "COMPLETE").length;
   const overdue = items.filter(
     (item) => item.state !== "COMPLETE" && item.dueDate !== null && item.dueDate.getTime() < now.getTime()
@@ -66,7 +71,7 @@ const STATE_BREAKDOWN_ORDER: { key: ItemState; label: string }[] = [
   { key: "COMPLETE", label: "Complete" },
 ];
 
-export function breakdownByState(items: DashboardItem[]): StateBreakdownEntry[] {
+export function breakdownByState(items: { state: ItemState }[]): StateBreakdownEntry[] {
   const countsByState = new Map<ItemState, number>();
   for (const item of items) {
     countsByState.set(item.state, (countsByState.get(item.state) ?? 0) + 1);

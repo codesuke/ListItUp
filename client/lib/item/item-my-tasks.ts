@@ -258,6 +258,33 @@ export function buildMyTasksSmartSections<
   }));
 }
 
+export type WorkspaceBreakdownEntry = { sourceWorkspaceId: string; label: string; count: number };
+
+// Dashboard's cross-Workspace analog of List Dashboard's Breakdown by
+// Section (design-mocks/my-tasks-dashboard, #52) — My Tasks spans every
+// Workspace a User belongs to rather than one List's Sections, so it
+// groups by source Workspace instead. Ordered by count descending so the
+// busiest Workspace reads first.
+export function breakdownByWorkspace<
+  T extends { sourceWorkspaceId: string; sourceWorkspaceKind: WorkspaceKind; sourceWorkspaceName: string },
+>(items: T[]): WorkspaceBreakdownEntry[] {
+  const entriesByWorkspaceId = new Map<string, WorkspaceBreakdownEntry>();
+  for (const item of items) {
+    const existing = entriesByWorkspaceId.get(item.sourceWorkspaceId);
+    if (existing) {
+      existing.count += 1;
+      continue;
+    }
+    entriesByWorkspaceId.set(item.sourceWorkspaceId, {
+      sourceWorkspaceId: item.sourceWorkspaceId,
+      label: myTaskWorkspaceLabel(item),
+      count: 1,
+    });
+  }
+
+  return [...entriesByWorkspaceId.values()].sort((a, b) => b.count - a.count);
+}
+
 export type MyTaskBadgeTone = "red" | "amber" | "green" | "blue" | "muted";
 export type MyTaskBadge = { tone: MyTaskBadgeTone; label: string };
 

@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import {
+  breakdownByWorkspace,
   buildMyTasksSmartSections,
   groupMyTasksItems,
   loadMyTasksItems,
@@ -7,6 +8,7 @@ import {
   type MyTasksGroup,
   type MyTasksGroupBy,
   type MyTasksSortBy,
+  type WorkspaceBreakdownEntry,
 } from "@/lib/item/item-my-tasks";
 import {
   groupMyTasksForBoard,
@@ -21,8 +23,20 @@ import {
   type MyTasksCalendarCell,
 } from "@/lib/item/item-my-tasks-calendar";
 import { buildMyTasksFileEntries, type MyTasksFileEntry } from "@/lib/item/item-my-tasks-files";
+import { breakdownByState, computeItemCounts, type ItemCounts, type StateBreakdownEntry } from "@/lib/report/list-dashboard";
 
 export type MyTasksFilterWorkspace = { id: string; name: string; isPersonal: boolean };
+
+// Dashboard tab (#52) — a trimmed personal Dashboard: counts and
+// breakdowns only, scoped to the same Item set as every other My Tasks
+// view (design-mocks/my-tasks-dashboard). No heatmap/donut/contribution/
+// peer-comparison — those are List Dashboard-specific (#51/#54-58) and
+// don't apply to a cross-Workspace personal view.
+export type MyTasksDashboardData = {
+  counts: ItemCounts;
+  byState: StateBreakdownEntry[];
+  byWorkspace: WorkspaceBreakdownEntry[];
+};
 
 export type MyTasksPageData = {
   groups: MyTasksGroup<MyTaskItem>[];
@@ -33,14 +47,16 @@ export type MyTasksPageData = {
   search: string;
   sortBy: MyTasksSortBy;
   groupBy: MyTasksGroupBy;
-  // Board/Calendar/Files (#43) — computed here, not in page.tsx, matching
-  // the List page-data.ts convention so a Server Component smoke test can
-  // assert on the same data the views render without touching JSX.
+  // Board/Calendar/Files/Dashboard (#43, #52) — computed here, not in
+  // page.tsx, matching the List page-data.ts convention so a Server
+  // Component smoke test can assert on the same data the views render
+  // without touching JSX.
   boardGroupBy: MyTasksBoardGroupBy;
   boardColumns: MyTasksBoardColumn[];
   calendarMonth: string;
   calendarCells: MyTasksCalendarCell[];
   fileEntries: MyTasksFileEntry[];
+  dashboard: MyTasksDashboardData;
 };
 
 // Kept separate from the page component (same rationale as the List page's
@@ -117,5 +133,10 @@ export async function loadMyTasksPageData(
     calendarMonth: formatCalendarMonthParam(calendarMonthStart),
     calendarCells: buildMyTasksCalendarGrid(items, calendarMonthStart),
     fileEntries: buildMyTasksFileEntries(items),
+    dashboard: {
+      counts: computeItemCounts(items, now),
+      byState: breakdownByState(items),
+      byWorkspace: breakdownByWorkspace(items),
+    },
   };
 }
