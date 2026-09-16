@@ -31,6 +31,8 @@ const TEST_FILES = [
   "lib/item/item-my-tasks-board.test.ts",
   "lib/item/item-my-tasks-calendar.test.ts",
   "lib/item/item-my-tasks-files.test.ts",
+  "lib/calendar/month-grid.test.ts",
+  "lib/list/list-calendar.test.ts",
   "lib/auth/magic-link-tokens.test.ts",
   "lib/auth/password-reset-tokens.test.ts",
   "lib/session/callback-url.test.ts",

@@ -1,82 +1,13 @@
 import type { MyTaskItem } from "@/lib/item/item-my-tasks";
+import { buildMonthGrid, type MonthGridCell } from "@/lib/calendar/month-grid";
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+export { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/calendar/month-grid";
 
-// Grid cell keys and Item due dates are compared by UTC calendar day so a
-// midnight-UTC dueDate lands in the same cell regardless of the server's
-// local timezone.
-function toDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
+export type MyTasksCalendarCell = MonthGridCell<MyTaskItem>;
 
-export type MyTasksCalendarCell = {
-  date: Date;
-  inCurrentMonth: boolean;
-  items: MyTaskItem[];
-};
-
-// Places assigned Items on the day of their due date (#43) — the List
-// page's own Calendar (#32) hasn't shipped yet, so there's no existing
-// List-page precedent to match here. Items with no due date have no day to
-// render on and are excluded entirely, the same choice #33's Timeline view
-// already made for the same reason.
-//
-// Pure — the grid-building and day-bucketing shape is unit tested directly
-// without a database. `monthStart` must be UTC-midnight on the 1st of the
-// month being viewed.
+// Places assigned Items on the day of their due date (#43) — the month-grid
+// math itself lives in lib/calendar/month-grid.ts, shared with the List
+// page's own Calendar (#32).
 export function buildMyTasksCalendarGrid(items: MyTaskItem[], monthStart: Date): MyTasksCalendarCell[] {
-  const year = monthStart.getUTCFullYear();
-  const month = monthStart.getUTCMonth();
-
-  const itemsByDay = new Map<string, MyTaskItem[]>();
-  for (const item of items) {
-    if (!item.dueDate) continue;
-    const key = toDateKey(item.dueDate);
-    const bucket = itemsByDay.get(key) ?? [];
-    bucket.push(item);
-    itemsByDay.set(key, bucket);
-  }
-
-  const firstOfMonth = new Date(Date.UTC(year, month, 1));
-  const gridStart = new Date(firstOfMonth.getTime() - firstOfMonth.getUTCDay() * MS_PER_DAY);
-
-  const lastOfMonth = new Date(Date.UTC(year, month + 1, 0));
-  const gridEnd = new Date(lastOfMonth.getTime() + (6 - lastOfMonth.getUTCDay()) * MS_PER_DAY);
-
-  const cells: MyTasksCalendarCell[] = [];
-  for (let time = gridStart.getTime(); time <= gridEnd.getTime(); time += MS_PER_DAY) {
-    const date = new Date(time);
-    cells.push({
-      date,
-      inCurrentMonth: date.getUTCMonth() === month,
-      items: itemsByDay.get(toDateKey(date)) ?? [],
-    });
-  }
-  return cells;
-}
-
-// Parses the Calendar tab's `?month=YYYY-MM` query param into a UTC
-// month-start Date, falling back to the current month for anything
-// missing or malformed — same defensive-parse posture as the List page's
-// tab-key guard.
-export function parseCalendarMonth(value: string | undefined, now: Date): Date {
-  const match = value?.match(/^(\d{4})-(\d{2})$/);
-  if (!match) {
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  }
-  const year = Number(match[1]);
-  const monthIndex = Number(match[2]) - 1;
-  if (monthIndex < 0 || monthIndex > 11) {
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  }
-  return new Date(Date.UTC(year, monthIndex, 1));
-}
-
-export function formatCalendarMonthParam(monthStart: Date): string {
-  const month = String(monthStart.getUTCMonth() + 1).padStart(2, "0");
-  return `${monthStart.getUTCFullYear()}-${month}`;
-}
-
-export function addCalendarMonths(monthStart: Date, delta: number): Date {
-  return new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + delta, 1));
+  return buildMonthGrid(items, monthStart);
 }

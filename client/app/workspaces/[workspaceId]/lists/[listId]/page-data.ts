@@ -1,4 +1,5 @@
 import type { ItemPriority, ItemState, ListStatus, PrismaClient } from "@/generated/prisma/client";
+import { buildMonthGrid, parseCalendarMonth, type MonthGridCell } from "@/lib/calendar/month-grid";
 import { groupItemsForBoard, isValidBoardGroupBy, type BoardColumn, type BoardItem } from "@/lib/list/list-board";
 import { buildFilesViewEntries, type FilesViewEntry } from "@/lib/list/list-files";
 import { getListRoles, type ListRoles } from "@/lib/list/list-roles";
@@ -102,6 +103,10 @@ export type ListPageData = {
   // Files view (#22) — every Attachment across the List's Items, newest
   // first.
   filesViewEntries: FilesViewEntry[];
+  // Calendar tab (#32) — the viewed month's grid, built over the same
+  // active (non-Archived) Items as the rest of the page. Items with no due
+  // date don't appear on any day.
+  calendarCells: MonthGridCell<ItemSummary>[];
   // Dashboard tab's widgets (#51, #54-#58) — computed over the same active
   // (non-Archived) Items as the rest of the page, not a separate query.
   dashboard: {
@@ -127,9 +132,9 @@ export type ListPageData = {
 // while everything testable lives here on an injected PrismaClient.
 export async function loadListPageData(
   database: PrismaClient,
-  input: { userId: string; workspaceId: string; listId: string; now?: Date }
+  input: { userId: string; workspaceId: string; listId: string; now?: Date; calendarMonth?: string }
 ): Promise<ListPageData | null> {
-  const { userId, workspaceId, listId, now = new Date() } = input;
+  const { userId, workspaceId, listId, now = new Date(), calendarMonth } = input;
 
   const list = await database.list.findUnique({ where: { id: listId } });
   if (!list || list.workspaceId !== workspaceId) {
@@ -278,6 +283,9 @@ export async function loadListPageData(
     canTogglePeerComparison: access === "ADMIN",
   };
 
+  const calendarMonthStart = parseCalendarMonth(calendarMonth, now);
+  const calendarCells = buildMonthGrid(items.map(toItemSummary), calendarMonthStart);
+
   const filesViewEntries = buildFilesViewEntries(
     items.map((item) => ({
       id: item.id,
@@ -318,6 +326,7 @@ export async function loadListPageData(
     assignableMembers,
     timelineItems,
     filesViewEntries,
+    calendarCells,
     dashboard,
   };
 }

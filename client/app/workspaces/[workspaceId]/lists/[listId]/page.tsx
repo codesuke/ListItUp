@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/calendar/month-grid";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 
@@ -37,6 +38,7 @@ import {
   updateListDescriptionAction,
 } from "./actions";
 import { BoardView } from "./BoardView";
+import { CalendarView } from "./CalendarView";
 import { DashboardTab } from "./DashboardTab";
 import { FilesView } from "./FilesView";
 import { loadListPageData, type ListPageData } from "./page-data";
@@ -45,7 +47,7 @@ import { TimelineView } from "./TimelineView";
 
 type Props = {
   params: Promise<{ workspaceId: string; listId: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; month?: string }>;
 };
 
 type TabKey =
@@ -86,14 +88,13 @@ function isTabKey(value: string): value is TabKey {
   return TAB_KEYS.includes(value);
 }
 
-// Calendar ships in its own ticket (#32). Messages is this spec's
-// deliberately reserved placeholder (v2 Chat/VC work). Dashboard shipped
-// in full across #51 and #54-#58.
+// Messages is this spec's deliberately reserved placeholder (v2 Chat/VC
+// work). Dashboard shipped in full across #51 and #54-#58; Calendar
+// shipped in #32.
 const TAB_NOTES: Record<
-  Exclude<TabKey, "overview" | "list" | "board" | "timeline" | "files" | "dashboard">,
+  Exclude<TabKey, "overview" | "list" | "board" | "calendar" | "timeline" | "files" | "dashboard">,
   string
 > = {
-  calendar: "Calendar view ships in its own ticket (#32).",
   messages: "Reserved — Messages ships with the v2 Chat/VC system.",
 };
 
@@ -101,6 +102,10 @@ function tabHref(workspaceId: string, listId: string, tab: TabKey): string {
   return tab === "overview"
     ? `/workspaces/${workspaceId}/lists/${listId}`
     : `/workspaces/${workspaceId}/lists/${listId}?tab=${tab}`;
+}
+
+function calendarMonthHref(workspaceId: string, listId: string, month: string): string {
+  return `/workspaces/${workspaceId}/lists/${listId}?tab=calendar&month=${month}`;
 }
 
 function RolesColumn({
@@ -263,14 +268,37 @@ export default async function ListPage({ params, searchParams }: Props) {
   const { workspaceId, listId } = await params;
   const query = await searchParams;
   const session = await requireAuthenticatedSession(`/workspaces/${workspaceId}/lists/${listId}`);
+  const now = new Date();
 
-  const data = await loadListPageData(prisma, { userId: session.user.id, workspaceId, listId });
+  const data = await loadListPageData(prisma, {
+    userId: session.user.id,
+    workspaceId,
+    listId,
+    now,
+    calendarMonth: query.month,
+  });
 
   if (!data) {
     notFound();
   }
 
   const activeTab: TabKey = query.tab && isTabKey(query.tab) ? query.tab : "overview";
+  const calendarMonthStart = parseCalendarMonth(query.month, now);
+  const calendarMonthLabel = calendarMonthStart.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  const prevCalendarMonthHref = calendarMonthHref(
+    workspaceId,
+    listId,
+    formatCalendarMonthParam(addCalendarMonths(calendarMonthStart, -1))
+  );
+  const nextCalendarMonthHref = calendarMonthHref(
+    workspaceId,
+    listId,
+    formatCalendarMonthParam(addCalendarMonths(calendarMonthStart, 1))
+  );
   const boundUpdateDescription = updateListDescriptionAction.bind(null, workspaceId, listId);
   const boundAddMember = addListMemberAction.bind(null, workspaceId, listId);
   const boundRemoveMember = (userId: string) => removeListMemberAction.bind(null, workspaceId, listId, userId);
@@ -392,6 +420,16 @@ export default async function ListPage({ params, searchParams }: Props) {
             boundSetGroupBy={boundSetBoardGroupBy}
             boundMoveItem={boundMoveItem}
             boundRestoreItem={boundRestoreItem}
+          />
+        ) : activeTab === "calendar" ? (
+          <CalendarView
+            cells={data.calendarCells}
+            monthLabel={calendarMonthLabel}
+            prevHref={prevCalendarMonthHref}
+            nextHref={nextCalendarMonthHref}
+            workspaceId={workspaceId}
+            listId={listId}
+            now={now}
           />
         ) : activeTab === "timeline" ? (
           <TimelineView items={data.timelineItems} workspaceId={workspaceId} listId={listId} />
