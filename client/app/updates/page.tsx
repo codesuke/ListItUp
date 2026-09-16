@@ -1,8 +1,12 @@
-import { Settings } from "lucide-react";
+import { Activity, Archive, AtSign, Bookmark, Settings } from "lucide-react";
+import { notFound } from "next/navigation";
 
+import { AppShell } from "@/components/workspace/AppShell";
+import { StatusBadge } from "@/components/workspace/StatusBadge";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 import type { ActivityCategory } from "@/lib/notification/notification-inbox";
+import { resolveDefaultWorkspaceId } from "@/lib/workspace/default-workspace";
 
 import { NotificationList } from "./NotificationList";
 import { archiveNotificationAction, openNotificationAction, toggleBookmarkAction } from "./actions";
@@ -17,17 +21,15 @@ const CATEGORY_LABEL: Record<ActivityCategory, string> = {
 
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as ActivityCategory[];
 
-function isActivityCategory(
-  value: string | undefined
-): value is ActivityCategory {
+function isActivityCategory(value: string | undefined): value is ActivityCategory {
   return value !== undefined && (CATEGORIES as string[]).includes(value);
 }
 
-const TABS: { key: UpdatesTab; label: string }[] = [
-  { key: "activity", label: "Activity" },
-  { key: "bookmarks", label: "Bookmarks" },
-  { key: "archive", label: "Archive" },
-  { key: "mentioned", label: "@Mentioned" },
+const TABS: { key: UpdatesTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: "activity", label: "Activity", icon: Activity },
+  { key: "bookmarks", label: "Bookmarks", icon: Bookmark },
+  { key: "archive", label: "Archive", icon: Archive },
+  { key: "mentioned", label: "@Mentioned", icon: AtSign },
 ];
 
 const TAB_KEYS: readonly string[] = TABS.map((tab) => tab.key);
@@ -43,11 +45,13 @@ const EMPTY_MESSAGE: Record<UpdatesTab, string> = {
   mentioned: "No mentions yet.",
 };
 
-type Query = { tab?: string; category?: string };
+const CHIP_BASE =
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] tracking-[0.04em]";
+const CHIP_ACTIVE = `${CHIP_BASE} border-[#ff6b4a] bg-[#ff6b4a24] text-[#ff8a70]`;
+const CHIP_INACTIVE = `${CHIP_BASE} border-[#333333] bg-[#1a1a1a] text-[#8f8f8a] hover:text-[#e5e5e0]`;
 
-type Props = {
-  searchParams: Promise<Query>;
-};
+type Query = { tab?: string; category?: string };
+type Props = { searchParams: Promise<Query> };
 
 function updatesHref(query: Query): string {
   const params = new URLSearchParams();
@@ -63,6 +67,18 @@ export default async function UpdatesPage({ searchParams }: Props) {
   const tab: UpdatesTab = query.tab && isTabKey(query.tab) ? query.tab : "activity";
   const category = tab === "activity" && isActivityCategory(query.category) ? query.category : undefined;
 
+  const defaultWorkspaceId = await resolveDefaultWorkspaceId(prisma, session.user.id);
+  if (!defaultWorkspaceId) {
+    notFound();
+  }
+  const shellWorkspace = await prisma.workspace.findUnique({
+    where: { id: defaultWorkspaceId },
+    select: { name: true, kind: true },
+  });
+  if (!shellWorkspace) {
+    notFound();
+  }
+
   const data = await loadUpdatesPageData(prisma, { userId: session.user.id, tab, category });
 
   const boundOpen = (notificationId: string, itemHref: string) =>
@@ -71,93 +87,71 @@ export default async function UpdatesPage({ searchParams }: Props) {
   const boundArchive = (notificationId: string) => archiveNotificationAction.bind(null, notificationId);
 
   return (
-    <main className="min-h-screen bg-[#080808] px-6 py-12 text-neutral-300">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <span className="h-px w-14 bg-[#ff6b4a]" />
-            <span className="font-mono text-xs uppercase tracking-[0.24em] text-[#ff6b4a]">
-              {"// Updates"}
-            </span>
+    <AppShell
+      currentWorkspaceId={defaultWorkspaceId}
+      currentWorkspaceName={shellWorkspace.kind === "PERSONAL" ? "Personal Space" : shellWorkspace.name}
+      currentUserName={session.user.name}
+      userId={session.user.id}
+    >
+      <div className="flex min-h-screen flex-col">
+        <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-[#232323] bg-[#0d0d0d] px-7">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-[#e5e5e0]">Updates</span>
+            {data.unreadCount > 0 && <StatusBadge tone="red">{data.unreadCount} unread</StatusBadge>}
           </div>
           <a
             href="/settings/notifications"
-            className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300"
+            className="flex items-center gap-1.5 text-[12px] text-[#8f8f8a] hover:text-[#e5e5e0]"
           >
-            <Settings
-              className="h-3.5 w-3.5"
-              strokeWidth={1.7}
-              aria-hidden="true"
-            />
+            <Settings className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
             Manage Notifications
           </a>
-        </div>
+        </header>
 
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-light text-white">Updates</h1>
-          {data.unreadCount > 0 && (
-            <span className="rounded-full bg-[#ff6b4a] px-2 py-0.5 text-xs font-medium text-[#1a0a05]">
-              {data.unreadCount} unread
-            </span>
-          )}
-        </div>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-neutral-400">
-          Assignee changes, Notes, state changes, and Mentions that affect you,
-          newest first.
-        </p>
+        <main className="flex-1 bg-[#080808] px-10 pb-16 pt-8">
+          <div className="mx-auto max-w-3xl">
+            <nav className="mb-5 flex flex-wrap items-center gap-6 border-b border-[#232323]">
+              {TABS.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <a
+                    key={t.key}
+                    href={updatesHref({ tab: t.key === "activity" ? undefined : t.key })}
+                    className={
+                      tab === t.key
+                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-[#e5e5e0]"
+                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-[#8f8f8a] hover:text-[#e5e5e0]"
+                    }
+                  >
+                    <Icon className="h-3.5 w-3.5" /> {t.label}
+                  </a>
+                );
+              })}
+            </nav>
 
-        <nav className="mt-6 flex flex-wrap items-center gap-6 border-b border-neutral-800 text-sm">
-          {TABS.map((t) => (
-            <a
-              key={t.key}
-              href={updatesHref({ tab: t.key === "activity" ? undefined : t.key })}
-              className={
-                tab === t.key
-                  ? "border-b-2 border-[#ff6b4a] pb-3 text-white"
-                  : "pb-3 text-neutral-500 hover:text-neutral-300"
-              }
-            >
-              {t.label}
-            </a>
-          ))}
-        </nav>
+            {tab === "activity" && (
+              <div className="mb-5 flex flex-wrap items-center gap-2">
+                <a href={updatesHref({})} className={!category ? CHIP_ACTIVE : CHIP_INACTIVE}>
+                  All
+                </a>
+                {CATEGORIES.map((c) => (
+                  <a key={c} href={updatesHref({ category: c })} className={category === c ? CHIP_ACTIVE : CHIP_INACTIVE}>
+                    {CATEGORY_LABEL[c]}
+                  </a>
+                ))}
+              </div>
+            )}
 
-        {tab === "activity" && (
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <a
-              href={updatesHref({})}
-              className={
-                !category
-                  ? "rounded-full border border-[#ff6b4a] px-3 py-1 text-xs text-[#ff8a70]"
-                  : "rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-400 hover:text-neutral-200"
-              }
-            >
-              All
-            </a>
-            {CATEGORIES.map((c) => (
-              <a
-                key={c}
-                href={updatesHref({ category: c })}
-                className={
-                  category === c
-                    ? "rounded-full border border-[#ff6b4a] px-3 py-1 text-xs text-[#ff8a70]"
-                    : "rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-400 hover:text-neutral-200"
-                }
-              >
-                {CATEGORY_LABEL[c]}
-              </a>
-            ))}
+            <NotificationList
+              notifications={data.notifications}
+              emptyMessage={EMPTY_MESSAGE[tab]}
+              boundOpen={boundOpen}
+              boundToggleBookmark={boundToggleBookmark}
+              boundArchive={boundArchive}
+            />
           </div>
-        )}
-
-        <NotificationList
-          notifications={data.notifications}
-          emptyMessage={EMPTY_MESSAGE[tab]}
-          boundOpen={boundOpen}
-          boundToggleBookmark={boundToggleBookmark}
-          boundArchive={boundArchive}
-        />
+        </main>
       </div>
-    </main>
+    </AppShell>
   );
 }
