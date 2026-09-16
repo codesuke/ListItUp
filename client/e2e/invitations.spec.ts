@@ -46,7 +46,7 @@ test("a new User signs up from an invitation link and lands in the invited Works
     await expect(page).toHaveURL(/verify-email/);
 
     // Verifying an invitation-bound sign-up must return the User straight
-    // to the invitation, not the default My Tasks destination.
+    // to the invitation, not the default Home destination.
     await page.goto(await waitForMailpitLink(user.email));
     await expect(page).toHaveURL(/accept-invitation/);
     await expect(

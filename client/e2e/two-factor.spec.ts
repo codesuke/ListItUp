@@ -1,6 +1,10 @@
 import { expect, test } from "./support/fixtures";
 
-import { signUpAndVerify, uniqueTestUser } from "./support/auth-flows";
+import {
+  WORKSPACE_HOME_URL,
+  signUpAndVerify,
+  uniqueTestUser,
+} from "./support/auth-flows";
 import { pageAlert } from "./support/locators";
 import { waitForMailpitLink } from "./support/mailpit";
 import { currentTotpCode, enrollTwoFactorViaUI } from "./support/two-factor";
@@ -57,7 +61,7 @@ test("a 2FA-enabled User is challenged at sign-in, and password reset still requ
     .getByLabel("Authenticator code")
     .fill(await currentTotpCode(secret));
   await page.getByRole("button", { name: "Verify" }).click();
-  await expect(page).toHaveURL(/my-tasks/);
+  await expect(page).toHaveURL(WORKSPACE_HOME_URL);
 
   // Resetting the password must not skip the 2FA challenge on the next sign-in.
   await context.clearCookies();
@@ -85,5 +89,5 @@ test("a 2FA-enabled User is challenged at sign-in, and password reset still requ
   await expect(page.getByLabel("Recovery code")).toBeVisible();
   await page.getByLabel("Recovery code").fill(backupCodes[0]);
   await page.getByRole("button", { name: "Verify" }).click();
-  await expect(page).toHaveURL(/my-tasks/);
+  await expect(page).toHaveURL(WORKSPACE_HOME_URL);
 });

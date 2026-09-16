@@ -1,9 +1,14 @@
 import { expect, test } from "./support/fixtures";
 
-import { signUp, signUpAndVerify, uniqueTestUser } from "./support/auth-flows";
+import {
+  WORKSPACE_HOME_URL,
+  signUp,
+  signUpAndVerify,
+  uniqueTestUser,
+} from "./support/auth-flows";
 import { knownMailpitMessageIds, waitForMailpitLink } from "./support/mailpit";
 
-test("a User can sign up, verify through Mailpit, and reach My Tasks", async ({
+test("a User can sign up, verify through Mailpit, and reach Home", async ({
   page,
 }) => {
   const user = uniqueTestUser("browser");
@@ -12,7 +17,7 @@ test("a User can sign up, verify through Mailpit, and reach My Tasks", async ({
   await expect(page).toHaveURL(/verify-email/);
 
   await page.goto(await waitForMailpitLink(user.email));
-  await expect(page).toHaveURL(/my-tasks/);
+  await expect(page).toHaveURL(WORKSPACE_HOME_URL);
 });
 
 test("a verified User can sign in with a password and a Mailpit magic link", async ({
@@ -22,14 +27,14 @@ test("a verified User can sign in with a password and a Mailpit magic link", asy
   const user = uniqueTestUser("browser-sign-in");
 
   await signUpAndVerify(page, user);
-  await expect(page).toHaveURL(/my-tasks/);
+  await expect(page).toHaveURL(WORKSPACE_HOME_URL);
 
   await context.clearCookies();
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(user.email);
   await page.getByRole("textbox", { name: "Password" }).fill(user.password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/my-tasks/);
+  await expect(page).toHaveURL(WORKSPACE_HOME_URL);
 
   await context.clearCookies();
   await page.goto("/sign-in");
@@ -44,5 +49,5 @@ test("a verified User can sign in with a password and a Mailpit magic link", asy
     "sign-in link is on its way"
   );
   await page.goto(await waitForMailpitLink(user.email, knownMessageIds));
-  await expect(page).toHaveURL(/my-tasks/);
+  await expect(page).toHaveURL(WORKSPACE_HOME_URL);
 });

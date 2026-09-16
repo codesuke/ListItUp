@@ -10,6 +10,10 @@ export interface TestUser {
 
 const DEFAULT_PASSWORD = "a-long-browser-password";
 
+// With no explicit callbackURL, auth flows land on "/", which redirects a
+// signed-in User to the Home of their default Workspace.
+export const WORKSPACE_HOME_URL = /\/workspaces\/[0-9a-f-]+$/;
+
 export function uniqueTestUser(
   prefix: string,
   password = DEFAULT_PASSWORD

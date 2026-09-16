@@ -1,6 +1,6 @@
 import { expect, test } from "./support/fixtures";
 
-import { uniqueTestUser } from "./support/auth-flows";
+import { WORKSPACE_HOME_URL, uniqueTestUser } from "./support/auth-flows";
 import { pageAlert } from "./support/locators";
 import { waitForMailpitLink } from "./support/mailpit";
 
@@ -25,7 +25,7 @@ test("a User is told to retry when the password reset email cannot be delivered"
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/verify-email/);
   await page.goto(await waitForMailpitLink(user.email));
-  await expect(page).toHaveURL(/my-tasks/);
+  await expect(page).toHaveURL(WORKSPACE_HOME_URL);
 
   // Now exercise the broken-SMTP server for the actual scenario under test.
   await page.context().clearCookies();
