@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Check,
   ChevronDown,
@@ -106,7 +107,7 @@ function ItemRow({
     >
       <CompleteToggle checked={item.state === "COMPLETE"} itemId={item.id} boundComplete={boundComplete} />
       {!indented && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: STATE_DOT_COLOR[item.state] }} />}
-      <a
+      <Link
         href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
         className={`min-w-0 flex-1 truncate text-[13.5px] hover:underline ${
           item.state === "COMPLETE" ? "text-[#5a5a56] line-through" : "text-[#e5e5e0]"
@@ -114,7 +115,7 @@ function ItemRow({
       >
         {item.hasParent && <span className="mr-1 text-[#5a5a56]">↳</span>}
         {item.title}
-      </a>
+      </Link>
       {item.priority !== "NORMAL" && (
         <span className="whitespace-nowrap font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.04em] text-[#8f8f8a]">
           {PRIORITY_LABEL[item.priority]}
@@ -154,12 +155,12 @@ function ArchivedItemRow({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-[8px] px-2.5 py-2">
-      <a
+      <Link
         href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
         className="min-w-0 flex-1 truncate text-[13.5px] text-[#8f8f8a] hover:text-[#e5e5e0] hover:underline"
       >
         {item.title}
-      </a>
+      </Link>
       <form action={boundRestore}>
         <input type="hidden" name="itemId" value={item.id} />
         <button

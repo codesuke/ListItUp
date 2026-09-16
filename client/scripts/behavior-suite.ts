@@ -23,6 +23,7 @@ const TEST_FILES = [
   "lib/workspace/default-workspace.test.ts",
   "lib/workspace/workspace-peer-comparison.test.ts",
   "app/workspaces/[workspaceId]/lists/[listId]/page.smoke.test.tsx",
+  "app/workspaces/[workspaceId]/lists/[listId]/items/[itemId]/page.smoke.test.tsx",
   "app/workspaces/[workspaceId]/layout.smoke.test.tsx",
   "app/my-tasks/page.smoke.test.tsx",
   "lib/item/item-my-tasks.test.ts",
