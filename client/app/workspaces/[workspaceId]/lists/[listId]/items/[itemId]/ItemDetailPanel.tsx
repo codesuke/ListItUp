@@ -13,11 +13,11 @@ const FIELD_LABEL_CLASS =
 const CHIP_CLASS =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2.5 py-1 text-[12px] text-ink-muted";
 const SMALL_ICON_BTN_CLASS =
-  "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink";
+  "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink";
 const INPUT_CLASS =
-  "rounded-[6px] border border-line-strong bg-surface-3 px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none";
+  "rounded-[6px] border border-line-strong bg-surface-3 px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none";
 const GHOST_BUTTON_CLASS =
-  "rounded-[6px] border border-line-strong px-3 py-1.5 text-[12.5px] text-ink-muted hover:border-[#ff6b4a] hover:text-ink";
+  "rounded-[6px] border border-line-strong px-3 py-1.5 text-[12.5px] text-ink-muted transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink";
 const SECTION_CLASS = "flex flex-col gap-2";
 
 const STATE_LABEL: Record<string, string> = {
@@ -93,7 +93,7 @@ export function ItemDetailPanel({
       {data.parent && (
         <Link
           href={`/workspaces/${workspaceId}/lists/${listId}/items/${data.parent.id}`}
-          className="-mb-2 text-[12px] text-ink-faint hover:text-ink-muted"
+          className="-mb-2 text-[12px] text-ink-faint transition-colors duration-150 hover:text-ink-muted"
         >
           ↑ {data.parent.title}
         </Link>
@@ -139,7 +139,7 @@ export function ItemDetailPanel({
           </div>
           <button
             type="submit"
-            className="self-start rounded-[6px] bg-[#ff6b4a] px-3 py-1.5 text-[12.5px] font-semibold text-[#1a0800] hover:bg-[#ff8a70]"
+            className="self-start rounded-[6px] bg-[#ff6b4a] px-3 py-1.5 text-[12.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
           >
             Save
           </button>
@@ -198,7 +198,7 @@ export function ItemDetailPanel({
                   <button
                     type="submit"
                     aria-label={`Remove ${assignee.name}`}
-                    className="text-[12px] text-ink-faint hover:text-[#ff8a70]"
+                    className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]"
                   >
                     ×
                   </button>
@@ -256,7 +256,7 @@ export function ItemDetailPanel({
               {label.name}
               {data.canEdit && (
                 <form action={boundRemoveLabel(label.id)}>
-                  <button type="submit" className="text-ink-faint hover:text-[#ff8a70]">
+                  <button type="submit" className="text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
                     ×
                   </button>
                 </form>
@@ -322,7 +322,7 @@ export function ItemDetailPanel({
                       className={INPUT_CLASS}
                     />
                   )}
-                  <button type="submit" className="text-[12px] text-ink-faint hover:text-[#ff8a70]">
+                  <button type="submit" className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
                     Save
                   </button>
                 </form>
@@ -375,13 +375,13 @@ export function ItemDetailPanel({
               <span className="text-ink-muted">Blocked by</span>
               <Link
                 href={`/workspaces/${workspaceId}/lists/${blocker.listId}/items/${blocker.id}`}
-                className="min-w-0 flex-1 truncate text-ink hover:underline"
+                className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
               >
                 {blocker.title}
               </Link>
               {data.canEdit && (
                 <form action={boundRemoveDependency(blocker.id, data.itemId)}>
-                  <button type="submit" className="text-[12px] text-ink-faint hover:text-[#ff8a70]">
+                  <button type="submit" className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
                     Remove
                   </button>
                 </form>
@@ -394,13 +394,13 @@ export function ItemDetailPanel({
               <span className="text-ink-muted">Blocks</span>
               <Link
                 href={`/workspaces/${workspaceId}/lists/${blocked.listId}/items/${blocked.id}`}
-                className="min-w-0 flex-1 truncate text-ink hover:underline"
+                className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
               >
                 {blocked.title}
               </Link>
               {data.canEdit && (
                 <form action={boundRemoveDependency(data.itemId, blocked.id)}>
-                  <button type="submit" className="text-[12px] text-ink-faint hover:text-[#ff8a70]">
+                  <button type="submit" className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
                     Remove
                   </button>
                 </form>
@@ -457,7 +457,7 @@ export function ItemDetailPanel({
             <li key={attachment.id} className="flex items-center justify-between gap-2 text-[13px]">
               <a
                 href={`/api/workspaces/${workspaceId}/lists/${listId}/items/${data.itemId}/attachments/${attachment.id}`}
-                className="min-w-0 flex-1 truncate text-ink hover:underline"
+                className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
               >
                 {attachment.fileName}
               </a>
@@ -563,7 +563,7 @@ export function ItemDetailPanel({
             <li key={child.id}>
               <Link
                 href={`/workspaces/${workspaceId}/lists/${listId}/items/${child.id}`}
-                className="text-[13px] text-ink hover:underline"
+                className="text-[13px] text-ink transition-colors duration-150 hover:underline"
               >
                 ↳ {child.title}
               </Link>

@@ -43,13 +43,13 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-canvas px-6 py-12 text-ink">
-      <div className="mx-auto max-w-2xl">
+    <main className="min-h-screen bg-canvas px-6 py-12 text-ink animate-in fade-in duration-200">
+      <div className="mx-auto max-w-3xl">
         <div className="mb-8 flex items-center gap-4">
           <span className="h-px w-14 bg-[#ff6b4a]" />
           <a
             href={`/workspaces/${workspaceId}/lists/${listId}?tab=list`}
-            className="font-mono text-xs uppercase tracking-[0.24em] text-[#ff6b4a] hover:text-[#ff8a70]"
+            className="font-mono text-xs uppercase tracking-[0.24em] text-[#ff6b4a] transition-colors duration-150 hover:text-[#ff8a70]"
           >
             {"// " + data.listName}
           </a>
