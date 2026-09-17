@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+
+import { ROOT_METADATA, VIEWPORT } from "@/lib/seo/site-metadata";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,10 +15,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "ListItUp",
-  description: "Capture quickly. Organize clearly. Return to what matters.",
-};
+export const metadata = ROOT_METADATA;
+export const viewport = VIEWPORT;
 
 export default function RootLayout({
   children,

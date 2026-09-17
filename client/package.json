@@ -23,6 +23,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx scripts/behavior-suite.ts && tsx components/auth/AuthStatusPane.test.ts",
     "test:browser": "playwright test",
+    "test:seo": "tsx lib/seo/site-metadata.test.ts",
     "test:auth": "tsx lib/auth/auth-config.test.ts && tsx lib/auth/verification-resend.test.ts && tsx lib/workspace/workspace-provisioning.test.ts && tsx lib/workspace/workspace-ownership.test.ts && tsx lib/auth/magic-link-tokens.test.ts && tsx lib/auth/password-reset-tokens.test.ts && tsx lib/session/callback-url.test.ts && tsx lib/session/protected-route.test.ts && tsx lib/two-factor/two-factor-verification.test.ts && tsx lib/auth/pending-email-change.test.ts && tsx lib/auth/auth.integration.test.ts && tsx lib/auth/sign-in.integration.test.ts && tsx lib/session/protected-route.integration.test.ts && tsx lib/auth/password-reset.integration.test.ts && tsx lib/two-factor/two-factor.integration.test.ts && tsx lib/auth/security-settings.integration.test.ts && tsx lib/two-factor/two-factor-management.integration.test.ts && tsx lib/workspace/workspace-invitations.test.ts && tsx lib/workspace/workspace-invitation-flow.integration.test.ts && tsx \"app/workspaces/[workspaceId]/layout.smoke.test.tsx\"",
     "test:mail": "tsx lib/mailer/email-templates/render.test.ts && tsx lib/mailer/email-templates/templates.test.ts && tsx lib/mailer/mailer-core.test.ts",
     "test:permissions": "tsx lib/permissions/list-access.test.ts && tsx lib/permissions/item-access.test.ts",

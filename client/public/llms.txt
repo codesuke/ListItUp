@@ -1,0 +1,23 @@
+# ListItUp
+
+> ListItUp is a calm, practical list-making and work-coordination app for turning scattered intentions into clear, usable structure.
+
+## Product
+
+- Website: https://listitup.virtunode.tech/
+- Source: https://github.com/codesuke/ListItUp
+- License: MIT
+
+ListItUp supports private Personal Spaces and shared Workspaces. Users capture Items into Lists, organize them with Sections, coordinate responsibility with Assignees, and track work through list, board, calendar, timeline, files, and dashboard views.
+
+## Canonical terminology
+
+- List: a named container for related Items.
+- Item: an entry inside a List that may represent a task, idea, product, note, or decision candidate.
+- Personal Space: a private, single-member operating space.
+- Workspace: a shared operating space for collaborating on Lists.
+- My Tasks: a unified view of Items assigned to the current User across Workspaces.
+
+## Brand promise
+
+From scattered to sorted, without making organization feel like a second job.
