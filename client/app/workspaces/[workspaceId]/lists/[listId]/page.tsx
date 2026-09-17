@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
-import { ThemeToggle } from "@/components/theme-toggle";
 import { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/calendar/month-grid";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
@@ -343,7 +342,6 @@ export default async function ListPage({ params, searchParams }: Props) {
           >
             <Download className="h-3.5 w-3.5" /> Export CSV
           </button>
-          <ThemeToggle />
           <button
             type="button"
             aria-label="List settings"

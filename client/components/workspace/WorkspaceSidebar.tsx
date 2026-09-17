@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Bell, ChevronDown, ChevronRight, ChevronsUpDown, Home, LayoutList, ListChecks } from "lucide-react";
 
 import type { WorkspaceNavEntry } from "@/app/workspaces/[workspaceId]/layout-data";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type WorkspaceSidebarProps = {
   currentWorkspaceId: string;
@@ -195,6 +196,7 @@ export function WorkspaceSidebar({
           {initialsFromName(currentUserName)}
         </span>
         <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-ink-muted">{currentUserName}</span>
+        <ThemeToggle />
       </div>
     </aside>
   );
