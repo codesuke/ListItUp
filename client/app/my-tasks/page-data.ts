@@ -26,10 +26,12 @@ import { buildMyTasksFileEntries, type MyTasksFileEntry } from "@/lib/item/item-
 import {
   breakdownByState,
   buildCompletionOverTime,
+  buildPersonalContributionByList,
   computeItemCounts,
   computeProgressPercent,
   type CompletionOverTimePoint,
   type ItemCounts,
+  type ListContributionEntry,
   type StateBreakdownEntry,
 } from "@/lib/report/list-dashboard";
 
@@ -39,18 +41,26 @@ export type MyTasksFilterWorkspace = { id: string; name: string; isPersonal: boo
 // (app/workspaces/.../page-data.ts) so the two surfaces read consistently.
 const COMPLETION_OVER_TIME_DAYS = 14;
 
-// Dashboard tab (#46, #49) — a trimmed personal Dashboard: counts,
-// breakdowns, Completion-Over-Time, and the Progress graph, scoped to the
-// same Item set as every other My Tasks view (design-mocks/my-tasks-
-// dashboard). No heatmap/donut/contribution/radar/peer-comparison — those
-// ship as separate widgets and don't all apply to a cross-Workspace
-// personal view.
+// Dashboard tab (#46, #49, #50) — a trimmed personal Dashboard: counts,
+// breakdowns, Completion-Over-Time, the Progress graph, and a personal
+// Contribution Map (design-mocks/my-tasks-dashboard). Unlike List/Board/
+// Calendar/Files, which respect the includeCompleted/includeArchived
+// toggles so a User can hide clutter from their working view, the
+// Dashboard's own metrics are inherently about completed work (completion
+// rate, progress-toward-done, completion trend) and would always read as
+// zero if they stayed scoped to those toggles' default-hidden state — so
+// Dashboard data is computed from its own always-includeCompleted fetch
+// below, matching how List Dashboard's page-data.ts always sees a List's
+// Complete Items regardless of the List view's own filters. No heatmap/
+// radar/peer-comparison — those are List Dashboard-specific or still-open
+// widgets.
 export type MyTasksDashboardData = {
   counts: ItemCounts;
   byState: StateBreakdownEntry[];
   byList: ListBreakdownEntry[];
   completionOverTime: CompletionOverTimePoint[];
   progressPercent: number;
+  contributionByList: ListContributionEntry[];
 };
 
 export type MyTasksPageData = {
@@ -106,7 +116,7 @@ export async function loadMyTasksPageData(
     calendarMonth: rawCalendarMonth,
   } = input;
 
-  const [items, memberships] = await Promise.all([
+  const [items, dashboardItems, memberships] = await Promise.all([
     loadMyTasksItems(database, {
       userId,
       sourceWorkspaceId,
@@ -116,6 +126,10 @@ export async function loadMyTasksPageData(
       sortBy,
       now,
     }),
+    // Always includeCompleted, never includeArchived or search-filtered —
+    // see the MyTasksDashboardData comment above for why the Dashboard
+    // can't reuse the toggle-filtered `items` above.
+    loadMyTasksItems(database, { userId, sourceWorkspaceId, includeCompleted: true, now }),
     database.workspaceMember.findMany({
       where: { userId },
       include: { workspace: true },
@@ -126,7 +140,7 @@ export async function loadMyTasksPageData(
   const boardGroupBy: MyTasksBoardGroupBy =
     rawBoardGroupBy && isValidMyTasksBoardGroupBy(rawBoardGroupBy) ? rawBoardGroupBy : "STATE";
   const calendarMonthStart = parseCalendarMonth(rawCalendarMonth, now);
-  const counts = computeItemCounts(items, now);
+  const dashboardCounts = computeItemCounts(dashboardItems, now);
 
   return {
     // groupBy "NONE" (the default) renders the mock's smart sections
@@ -150,11 +164,12 @@ export async function loadMyTasksPageData(
     calendarCells: buildMyTasksCalendarGrid(items, calendarMonthStart),
     fileEntries: buildMyTasksFileEntries(items),
     dashboard: {
-      counts,
-      byState: breakdownByState(items),
-      byList: breakdownByList(items),
-      completionOverTime: buildCompletionOverTime(items, now, COMPLETION_OVER_TIME_DAYS),
-      progressPercent: computeProgressPercent(counts),
+      counts: dashboardCounts,
+      byState: breakdownByState(dashboardItems),
+      byList: breakdownByList(dashboardItems),
+      completionOverTime: buildCompletionOverTime(dashboardItems, now, COMPLETION_OVER_TIME_DAYS),
+      progressPercent: computeProgressPercent(dashboardCounts),
+      contributionByList: buildPersonalContributionByList(dashboardItems),
     },
   };
 }

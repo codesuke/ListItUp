@@ -222,6 +222,38 @@ export function buildContributionMap(
     .sort((a, b) => b.completionRatePercent - a.completionRatePercent);
 }
 
+export type ListContributionEntry = { listId: string; label: string; completionRatePercent: number };
+
+type ListContributionItem = { listId: string; listName: string; state: ItemState };
+
+// Personal Contribution Map (My Tasks, #50): "how consistently is work
+// being moved forward" has no other-User axis on My Tasks — a User only
+// ever sees their own assigned Items there (docs/QnA/reports-analytics-
+// scope.md Q17) — so this breaks the same normalized completion-rate
+// metric (assigned vs. completed) down per source List instead of per
+// Member, showing where the User follows through consistently vs. not.
+// Never another User's data: the caller only ever passes the current
+// User's own My Tasks Item set. Lists with zero assigned Items are
+// excluded entirely, not shown at 0%, matching buildContributionMap.
+export function buildPersonalContributionByList(items: ListContributionItem[]): ListContributionEntry[] {
+  const byListId = new Map<string, { label: string; assigned: number; completed: number }>();
+
+  for (const item of items) {
+    const entry = byListId.get(item.listId) ?? { label: item.listName, assigned: 0, completed: 0 };
+    entry.assigned += 1;
+    if (item.state === "COMPLETE") entry.completed += 1;
+    byListId.set(item.listId, entry);
+  }
+
+  return [...byListId.entries()]
+    .map(([listId, { label, assigned, completed }]) => ({
+      listId,
+      label,
+      completionRatePercent: Math.round((completed / assigned) * 100),
+    }))
+    .sort((a, b) => b.completionRatePercent - a.completionRatePercent);
+}
+
 export type AttentionAxis = "TO_DO" | "BLOCKED" | "OVERDUE" | "DONE";
 
 const ATTENTION_AXES: readonly AttentionAxis[] = ["TO_DO", "BLOCKED", "OVERDUE", "DONE"];

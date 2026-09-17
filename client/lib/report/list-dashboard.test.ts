@@ -7,6 +7,7 @@ import {
   buildCompletionHeatmap,
   buildCompletionOverTime,
   buildContributionMap,
+  buildPersonalContributionByList,
   computeItemCounts,
   computeProgressPercent,
 } from "./list-dashboard";
@@ -200,6 +201,30 @@ function assignedItem(overrides: {
   assert.deepEqual(buildContributionMap(items, members), [
     { userId: "riya", name: "Riya Kapoor", completionRatePercent: 67 },
     { userId: "maya", name: "Maya Torres", completionRatePercent: 33 },
+  ]);
+}
+
+// buildPersonalContributionByList: My Tasks' personal-only analog of
+// buildContributionMap, broken down per source List instead of per Member
+// (#50). The fixture gives "Marketing" 20 raw assigned Items (5 completed)
+// and "Personal Space" only 2 (both completed) — a raw-count-proportional
+// chart would rank Marketing above Personal Space, but the normalized
+// completion rate ranks Personal Space's 100% ahead of Marketing's 25%,
+// proving the returned metric is a rate, not proportional to raw count.
+{
+  const marketingItems = Array.from({ length: 20 }, (_, index) => ({
+    listId: "marketing",
+    listName: "Marketing List",
+    state: index < 5 ? ("COMPLETE" as const) : ("TO_DO" as const),
+  }));
+  const personalItems = [
+    { listId: "personal", listName: "Personal Space List", state: "COMPLETE" as const },
+    { listId: "personal", listName: "Personal Space List", state: "COMPLETE" as const },
+  ];
+
+  assert.deepEqual(buildPersonalContributionByList([...marketingItems, ...personalItems]), [
+    { listId: "personal", label: "Personal Space List", completionRatePercent: 100 },
+    { listId: "marketing", label: "Marketing List", completionRatePercent: 25 },
   ]);
 }
 

@@ -240,6 +240,49 @@ async function run() {
       // Dashboard, applied to the User's cross-Workspace assigned set.
       assert.equal(data.dashboard.progressPercent, 0);
     }
+
+    // Contribution Map (#50) — personal-only, broken down per source List
+    // rather than per Member, using a normalized completion rate rather
+    // than raw counts. Called with no includeCompleted flag (the List/
+    // Board/Calendar/Files default) to prove the Dashboard's own metrics
+    // always see Complete Items regardless of that toggle.
+    {
+      const userId = await createUser();
+      const workspaceA = await createWorkspaceWithList("Marketing");
+      await joinWorkspace(workspaceA.workspaceId, workspaceA.listId, userId);
+      const workspaceB = await createWorkspaceWithList("Engineering");
+      await joinWorkspace(workspaceB.workspaceId, workspaceB.listId, userId);
+
+      const doneInA = await prisma.item.create({
+        data: { id: randomUUID(), listId: workspaceA.listId, creatorId: userId, title: "Shipped A", state: "COMPLETE" },
+      });
+      await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId: doneInA.id, userId } });
+      const pendingInA = await prisma.item.create({
+        data: { id: randomUUID(), listId: workspaceA.listId, creatorId: userId, title: "Pending A" },
+      });
+      await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId: pendingInA.id, userId } });
+
+      const doneInB = await prisma.item.create({
+        data: { id: randomUUID(), listId: workspaceB.listId, creatorId: userId, title: "Shipped B", state: "COMPLETE" },
+      });
+      await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId: doneInB.id, userId } });
+
+      // A second User with their own Item in the same List — never
+      // assigned to the first User, so must never affect their rates.
+      const otherUserId = await createUser();
+      await joinWorkspace(workspaceA.workspaceId, workspaceA.listId, otherUserId);
+      const otherPendingInA = await prisma.item.create({
+        data: { id: randomUUID(), listId: workspaceA.listId, creatorId: otherUserId, title: "Other's pending A" },
+      });
+      await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId: otherPendingInA.id, userId: otherUserId } });
+
+      const data = await loadMyTasksPageData(prisma, { userId });
+
+      assert.deepEqual(data.dashboard.contributionByList, [
+        { listId: workspaceB.listId, label: "Engineering List", completionRatePercent: 100 },
+        { listId: workspaceA.listId, label: "Marketing List", completionRatePercent: 50 },
+      ]);
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

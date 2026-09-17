@@ -6,8 +6,11 @@ import type { CompletionOverTimePoint } from "@/lib/report/list-dashboard";
 export const DASHBOARD_CARD_CLASS = "rounded-[12px] border border-line bg-surface-2";
 export const DASHBOARD_WIDGET_TITLE_CLASS =
   "font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.1em] text-ink-faint";
-const WHY_TAG_CLASS = "font-[family-name:var(--font-mono-label)] text-[9.5px] tracking-[0.06em] text-ink-faint";
-const EMPTY_STATE_CLASS = "text-sm text-ink-faint";
+export const DASHBOARD_WHY_TAG_CLASS =
+  "font-[family-name:var(--font-mono-label)] text-[9.5px] tracking-[0.06em] text-ink-faint";
+export const DASHBOARD_EMPTY_STATE_CLASS = "text-sm text-ink-faint";
+const WHY_TAG_CLASS = DASHBOARD_WHY_TAG_CLASS;
+const EMPTY_STATE_CLASS = DASHBOARD_EMPTY_STATE_CLASS;
 
 export function CountTile({ label, value, valueColor }: { label: string; value: number; valueColor?: string }) {
   return (
