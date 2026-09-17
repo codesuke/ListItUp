@@ -1,6 +1,7 @@
 import { Users } from "lucide-react";
 
 import {
+  AttentionImbalanceWidget,
   BreakdownWidget,
   CompletionOverTimeWidget,
   CountTile,
@@ -10,7 +11,6 @@ import {
 } from "@/components/workspace/DashboardWidgets";
 import { MemberAvatar } from "@/components/workspace/MemberAvatar";
 import type {
-  AttentionAxis,
   AttentionImbalanceEntry,
   CompletionOverTimePoint,
   ContributionEntry,
@@ -101,92 +101,6 @@ function ContributionMapWidget({ entries }: { entries: ContributionEntry[] }) {
       <div className="mt-4 text-[11px] text-ink-faint">
         Completion rate = Items completed ÷ Items assigned. Never a raw count.
       </div>
-    </div>
-  );
-}
-
-const RADAR_AXES: readonly AttentionAxis[] = ["TO_DO", "BLOCKED", "OVERDUE", "DONE"];
-const RADAR_AXIS_VECTOR: Record<AttentionAxis, { dx: number; dy: number }> = {
-  TO_DO: { dx: 0, dy: -1 },
-  BLOCKED: { dx: 1, dy: 0 },
-  OVERDUE: { dx: 0, dy: 1 },
-  DONE: { dx: -1, dy: 0 },
-};
-const RADAR_CENTER = 90;
-const RADAR_MAX_RADIUS = 70;
-const RADAR_RING_RADII = [70, 52, 34];
-const RADAR_MEMBER_COLORS = ["#ff6b4a", "#5b9dff", "#3ecf8e", "#f5b642"];
-
-function radarPoint(axis: AttentionAxis, ratio: number): string {
-  const { dx, dy } = RADAR_AXIS_VECTOR[axis];
-  return `${RADAR_CENTER + dx * RADAR_MAX_RADIUS * ratio},${RADAR_CENTER + dy * RADAR_MAX_RADIUS * ratio}`;
-}
-
-function radarRingPoints(radius: number): string {
-  return RADAR_AXES.map((axis) => radarPoint(axis, radius / RADAR_MAX_RADIUS)).join(" ");
-}
-
-function AttentionImbalanceWidget({ entries }: { entries: AttentionImbalanceEntry[] }) {
-  return (
-    <div className={`${CARD_CLASS} p-5`}>
-      <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Attention Imbalance</div>
-      <div className={`${WHY_TAG_CLASS} mb-2`}>Where is attention skewed across the List&apos;s people</div>
-      {entries.length === 0 ? (
-        <p className={EMPTY_STATE_CLASS}>No assigned Items yet.</p>
-      ) : (
-        <div className="flex items-center gap-4">
-          <svg width="180" height="180" viewBox="0 0 180 180" className="flex-shrink-0">
-            {RADAR_RING_RADII.map((radius) => (
-              <polygon key={radius} points={radarRingPoints(radius)} fill="none" stroke="#232323" strokeWidth="1" />
-            ))}
-            <line
-              x1={RADAR_CENTER}
-              y1={RADAR_CENTER - RADAR_MAX_RADIUS}
-              x2={RADAR_CENTER}
-              y2={RADAR_CENTER + RADAR_MAX_RADIUS}
-              stroke="#232323"
-              strokeWidth="1"
-            />
-            <line
-              x1={RADAR_CENTER - RADAR_MAX_RADIUS}
-              y1={RADAR_CENTER}
-              x2={RADAR_CENTER + RADAR_MAX_RADIUS}
-              y2={RADAR_CENTER}
-              stroke="#232323"
-              strokeWidth="1"
-            />
-            {entries.map((entry, index) => {
-              const color = RADAR_MEMBER_COLORS[index % RADAR_MEMBER_COLORS.length]!;
-              const points = RADAR_AXES.map((axis) => radarPoint(axis, entry.normalized[axis])).join(" ");
-              return <polygon key={entry.userId} points={points} fill={`${color}2e`} stroke={color} strokeWidth="2" />;
-            })}
-            <text x={RADAR_CENTER} y="12" textAnchor="middle" fontSize="9" fill="#8f8f8a">
-              TO DO
-            </text>
-            <text x="172" y={RADAR_CENTER + 3} textAnchor="end" fontSize="9" fill="#8f8f8a">
-              BLOCKED
-            </text>
-            <text x={RADAR_CENTER} y="174" textAnchor="middle" fontSize="9" fill="#8f8f8a">
-              OVERDUE
-            </text>
-            <text x="8" y={RADAR_CENTER + 3} textAnchor="start" fontSize="9" fill="#8f8f8a">
-              DONE
-            </text>
-          </svg>
-          <div className="flex flex-col gap-2">
-            {entries.map((entry, index) => (
-              <div key={entry.userId} className="flex items-center gap-2 text-[12px] text-ink">
-                <span
-                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                  style={{ backgroundColor: RADAR_MEMBER_COLORS[index % RADAR_MEMBER_COLORS.length] }}
-                />
-                {entry.name}
-              </div>
-            ))}
-            <div className="mt-1 text-[11px] text-ink-faint">Normalized per Member, not raw count.</div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -324,7 +238,17 @@ export function DashboardTab({
 
       <div className="grid grid-cols-2 gap-5">
         <ContributionMapWidget entries={contributionMap} />
-        <AttentionImbalanceWidget entries={attentionImbalance} />
+        <AttentionImbalanceWidget
+          title="Attention Imbalance"
+          whyTag="Where is attention skewed across the List's people"
+          entries={attentionImbalance.map((entry) => ({
+            key: entry.userId,
+            name: entry.name,
+            normalized: entry.normalized,
+          }))}
+          emptyMessage="No assigned Items yet."
+          footnote="Normalized per Member, not raw count."
+        />
       </div>
 
       <PeerComparisonCard

@@ -1,6 +1,7 @@
 import { ListChecks } from "lucide-react";
 
 import {
+  AttentionImbalanceWidget,
   BreakdownWidget,
   CompletionOverTimeWidget,
   CountTile,
@@ -60,11 +61,11 @@ function PersonalContributionWidget({ entries }: { entries: ListContributionEntr
 }
 
 // A trimmed personal Dashboard (design-mocks/my-tasks-dashboard, #46, #49,
-// #50) — counts, breakdowns, Completion-Over-Time, the Progress graph, and
-// a personal Contribution Map, scoped to Items assigned to the User across
-// every Workspace and their Personal Space. No heatmap/radar/peer-
-// comparison: those are separate, still-open or List Dashboard-specific
-// widgets.
+// #50, #51) — counts, breakdowns, Completion-Over-Time, the Progress graph,
+// a personal Contribution Map, and the personal Attention Imbalance radar,
+// scoped to Items assigned to the User across every Workspace and their
+// Personal Space. No heatmap/peer-comparison: those are separate,
+// List Dashboard-specific widgets.
 export function DashboardView({
   counts,
   byState,
@@ -72,6 +73,7 @@ export function DashboardView({
   completionOverTime,
   progressPercent,
   contributionByList,
+  attentionImbalance,
 }: MyTasksDashboardData) {
   return (
     <div className="mt-6 flex flex-col gap-5">
@@ -104,14 +106,22 @@ export function DashboardView({
         <ProgressDonutWidget percent={progressPercent} />
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-3 gap-5">
         <CompletionOverTimeWidget points={completionOverTime} />
         <PersonalContributionWidget entries={contributionByList} />
+        <AttentionImbalanceWidget
+          title="Attention Imbalance"
+          whyTag="Where your own attention is skewed"
+          entries={counts.total > 0 ? [{ key: "me", name: "You", normalized: attentionImbalance }] : []}
+          emptyMessage="No assigned Items yet."
+          footnote="Normalized against your own busiest state — never anyone else's data."
+        />
       </div>
 
       <p className="text-[11.5px] text-ink-faint">
-        A trimmed personal Dashboard — counts, breakdowns, completion trend, overall progress, and your own
-        contribution pace, scoped to Items assigned to you across every Workspace and your Personal Space.
+        A trimmed personal Dashboard — counts, breakdowns, completion trend, overall progress, your own contribution
+        pace, and where your own attention is skewed, scoped to Items assigned to you across every Workspace and
+        your Personal Space.
       </p>
     </div>
   );

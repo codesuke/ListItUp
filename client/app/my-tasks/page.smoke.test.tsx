@@ -239,6 +239,15 @@ async function run() {
       // Progress graph (#49) — same computeProgressPercent as List
       // Dashboard, applied to the User's cross-Workspace assigned set.
       assert.equal(data.dashboard.progressPercent, 0);
+
+      // Attention Imbalance radar (#51) — personal-only, normalized against
+      // the User's own busiest axis: 2 raw To Do Items is the busiest axis
+      // here, so it reaches 1; the 1 raw Blocked Item normalizes to 0.5.
+      // Nothing overdue (the dated Item's due date is in the future) or
+      // Complete in this fixture, so both stay 0 — and there is no other
+      // User's data anywhere in the shape, since the query is scoped to
+      // this User's own assigned Items across Workspaces.
+      assert.deepEqual(data.dashboard.attentionImbalance, { TO_DO: 1, BLOCKED: 0.5, OVERDUE: 0, DONE: 0 });
     }
 
     // Contribution Map (#50) — personal-only, broken down per source List

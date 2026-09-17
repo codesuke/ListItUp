@@ -316,3 +316,35 @@ export function buildAttentionImbalance(
       return { userId: member.userId, name: member.name, normalized };
     });
 }
+
+export type PersonalAttentionImbalance = Record<AttentionAxis, number>;
+
+type PersonalAttentionItem = { state: ItemState; dueDate: Date | null };
+
+// Personal Attention Imbalance (My Tasks, #51): the same "where is attention
+// piling up" question buildAttentionImbalance answers per Member, with no
+// other-User axis on My Tasks (docs/QnA/reports-analytics-scope.md) — each
+// axis is normalized against the User's own busiest axis (0..1) instead of
+// a busiest-Member comparison, so the shape reads as the User's own skew
+// rather than a raw count.
+export function buildPersonalAttentionImbalance(
+  items: PersonalAttentionItem[],
+  now: Date
+): PersonalAttentionImbalance {
+  const raw = emptyAxisCounts();
+  for (const item of items) {
+    if (item.state === "TO_DO") raw.TO_DO += 1;
+    if (item.state === "BLOCKED") raw.BLOCKED += 1;
+    if (item.state === "COMPLETE") raw.DONE += 1;
+    if (item.state !== "COMPLETE" && item.dueDate !== null && item.dueDate.getTime() < now.getTime()) {
+      raw.OVERDUE += 1;
+    }
+  }
+
+  const maxAxisCount = Math.max(...ATTENTION_AXES.map((axis) => raw[axis]));
+  const normalized = emptyAxisCounts();
+  for (const axis of ATTENTION_AXES) {
+    normalized[axis] = maxAxisCount === 0 ? 0 : raw[axis] / maxAxisCount;
+  }
+  return normalized;
+}

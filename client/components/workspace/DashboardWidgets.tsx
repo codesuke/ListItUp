@@ -1,4 +1,4 @@
-import type { CompletionOverTimePoint } from "@/lib/report/list-dashboard";
+import type { AttentionAxis, CompletionOverTimePoint } from "@/lib/report/list-dashboard";
 
 // Shared by List Dashboard (app/workspaces/.../DashboardTab.tsx) and My
 // Tasks Dashboard (app/my-tasks/page.tsx, #52) so the count-tile/breakdown
@@ -176,6 +176,111 @@ export function CompletionOverTimeWidget({ points }: { points: CompletionOverTim
             ))}
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+// Radar Chart (#51): one shape per series (a List Member, or the single
+// "You" series on My Tasks) across the same four attention axes. Shared so
+// both Dashboards render off the identical SVG geometry — only the series
+// list, title, and framing copy differ between the per-Member and
+// personal-only callers.
+export type RadarChartEntry = { key: string; name: string; normalized: Record<AttentionAxis, number> };
+
+const RADAR_AXES: readonly AttentionAxis[] = ["TO_DO", "BLOCKED", "OVERDUE", "DONE"];
+const RADAR_AXIS_VECTOR: Record<AttentionAxis, { dx: number; dy: number }> = {
+  TO_DO: { dx: 0, dy: -1 },
+  BLOCKED: { dx: 1, dy: 0 },
+  OVERDUE: { dx: 0, dy: 1 },
+  DONE: { dx: -1, dy: 0 },
+};
+const RADAR_CENTER = 90;
+const RADAR_MAX_RADIUS = 70;
+const RADAR_RING_RADII = [70, 52, 34];
+const RADAR_SERIES_COLORS = ["#ff6b4a", "#5b9dff", "#3ecf8e", "#f5b642"];
+
+function radarPoint(axis: AttentionAxis, ratio: number): string {
+  const { dx, dy } = RADAR_AXIS_VECTOR[axis];
+  return `${RADAR_CENTER + dx * RADAR_MAX_RADIUS * ratio},${RADAR_CENTER + dy * RADAR_MAX_RADIUS * ratio}`;
+}
+
+function radarRingPoints(radius: number): string {
+  return RADAR_AXES.map((axis) => radarPoint(axis, radius / RADAR_MAX_RADIUS)).join(" ");
+}
+
+export function AttentionImbalanceWidget({
+  title,
+  whyTag,
+  entries,
+  emptyMessage,
+  footnote,
+}: {
+  title: string;
+  whyTag: string;
+  entries: RadarChartEntry[];
+  emptyMessage: string;
+  footnote: string;
+}) {
+  return (
+    <div className={`${DASHBOARD_CARD_CLASS} p-5`}>
+      <div className={`${DASHBOARD_WIDGET_TITLE_CLASS} mb-1`}>{title}</div>
+      <div className={`${WHY_TAG_CLASS} mb-2`}>{whyTag}</div>
+      {entries.length === 0 ? (
+        <p className={EMPTY_STATE_CLASS}>{emptyMessage}</p>
+      ) : (
+        <div className="flex items-center gap-4">
+          <svg width="180" height="180" viewBox="0 0 180 180" className="flex-shrink-0">
+            {RADAR_RING_RADII.map((radius) => (
+              <polygon key={radius} points={radarRingPoints(radius)} fill="none" stroke="#232323" strokeWidth="1" />
+            ))}
+            <line
+              x1={RADAR_CENTER}
+              y1={RADAR_CENTER - RADAR_MAX_RADIUS}
+              x2={RADAR_CENTER}
+              y2={RADAR_CENTER + RADAR_MAX_RADIUS}
+              stroke="#232323"
+              strokeWidth="1"
+            />
+            <line
+              x1={RADAR_CENTER - RADAR_MAX_RADIUS}
+              y1={RADAR_CENTER}
+              x2={RADAR_CENTER + RADAR_MAX_RADIUS}
+              y2={RADAR_CENTER}
+              stroke="#232323"
+              strokeWidth="1"
+            />
+            {entries.map((entry, index) => {
+              const color = RADAR_SERIES_COLORS[index % RADAR_SERIES_COLORS.length]!;
+              const points = RADAR_AXES.map((axis) => radarPoint(axis, entry.normalized[axis])).join(" ");
+              return <polygon key={entry.key} points={points} fill={`${color}2e`} stroke={color} strokeWidth="2" />;
+            })}
+            <text x={RADAR_CENTER} y="12" textAnchor="middle" fontSize="9" fill="#8f8f8a">
+              TO DO
+            </text>
+            <text x="172" y={RADAR_CENTER + 3} textAnchor="end" fontSize="9" fill="#8f8f8a">
+              BLOCKED
+            </text>
+            <text x={RADAR_CENTER} y="174" textAnchor="middle" fontSize="9" fill="#8f8f8a">
+              OVERDUE
+            </text>
+            <text x="8" y={RADAR_CENTER + 3} textAnchor="start" fontSize="9" fill="#8f8f8a">
+              DONE
+            </text>
+          </svg>
+          <div className="flex flex-col gap-2">
+            {entries.map((entry, index) => (
+              <div key={entry.key} className="flex items-center gap-2 text-[12px] text-ink">
+                <span
+                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: RADAR_SERIES_COLORS[index % RADAR_SERIES_COLORS.length] }}
+                />
+                {entry.name}
+              </div>
+            ))}
+            <div className="mt-1 text-[11px] text-ink-faint">{footnote}</div>
+          </div>
+        </div>
       )}
     </div>
   );

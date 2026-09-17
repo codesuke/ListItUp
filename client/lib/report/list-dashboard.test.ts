@@ -7,6 +7,7 @@ import {
   buildCompletionHeatmap,
   buildCompletionOverTime,
   buildContributionMap,
+  buildPersonalAttentionImbalance,
   buildPersonalContributionByList,
   computeItemCounts,
   computeProgressPercent,
@@ -250,6 +251,32 @@ function assignedItem(overrides: {
     { userId: "riya", name: "Riya Kapoor", normalized: { TO_DO: 0, BLOCKED: 1, OVERDUE: 0, DONE: 0 } },
     { userId: "maya", name: "Maya Torres", normalized: { TO_DO: 1, BLOCKED: 0.5, OVERDUE: 1, DONE: 1 } },
   ]);
+}
+
+// buildPersonalAttentionImbalance: My Tasks' personal-only analog of
+// buildAttentionImbalance — no other-User axis, so each axis is normalized
+// against the User's own busiest axis instead of a busiest-Member
+// comparison. 3 raw To Do Items is the User's busiest axis, so it reaches 1;
+// Blocked/Overdue/Done each have 1 raw Item and normalize to 1/3.
+{
+  const items = [
+    item({ state: "TO_DO" }),
+    item({ state: "TO_DO" }),
+    item({ state: "TO_DO", dueDate: new Date("2026-09-01") }), // overdue
+    item({ state: "BLOCKED" }),
+    item({ state: "COMPLETE" }),
+  ];
+
+  assert.deepEqual(buildPersonalAttentionImbalance(items, NOW), {
+    TO_DO: 1,
+    BLOCKED: 1 / 3,
+    OVERDUE: 1 / 3,
+    DONE: 1 / 3,
+  });
+}
+
+{
+  assert.deepEqual(buildPersonalAttentionImbalance([], NOW), { TO_DO: 0, BLOCKED: 0, OVERDUE: 0, DONE: 0 });
 }
 
 console.log("list dashboard test passed");

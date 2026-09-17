@@ -26,12 +26,14 @@ import { buildMyTasksFileEntries, type MyTasksFileEntry } from "@/lib/item/item-
 import {
   breakdownByState,
   buildCompletionOverTime,
+  buildPersonalAttentionImbalance,
   buildPersonalContributionByList,
   computeItemCounts,
   computeProgressPercent,
   type CompletionOverTimePoint,
   type ItemCounts,
   type ListContributionEntry,
+  type PersonalAttentionImbalance,
   type StateBreakdownEntry,
 } from "@/lib/report/list-dashboard";
 
@@ -41,19 +43,19 @@ export type MyTasksFilterWorkspace = { id: string; name: string; isPersonal: boo
 // (app/workspaces/.../page-data.ts) so the two surfaces read consistently.
 const COMPLETION_OVER_TIME_DAYS = 14;
 
-// Dashboard tab (#46, #49, #50) — a trimmed personal Dashboard: counts,
-// breakdowns, Completion-Over-Time, the Progress graph, and a personal
-// Contribution Map (design-mocks/my-tasks-dashboard). Unlike List/Board/
-// Calendar/Files, which respect the includeCompleted/includeArchived
-// toggles so a User can hide clutter from their working view, the
-// Dashboard's own metrics are inherently about completed work (completion
-// rate, progress-toward-done, completion trend) and would always read as
-// zero if they stayed scoped to those toggles' default-hidden state — so
-// Dashboard data is computed from its own always-includeCompleted fetch
-// below, matching how List Dashboard's page-data.ts always sees a List's
-// Complete Items regardless of the List view's own filters. No heatmap/
-// radar/peer-comparison — those are List Dashboard-specific or still-open
-// widgets.
+// Dashboard tab (#46, #49, #50, #51) — a trimmed personal Dashboard: counts,
+// breakdowns, Completion-Over-Time, the Progress graph, a personal
+// Contribution Map, and the personal Attention Imbalance radar
+// (design-mocks/my-tasks-dashboard). Unlike List/Board/Calendar/Files,
+// which respect the includeCompleted/includeArchived toggles so a User can
+// hide clutter from their working view, the Dashboard's own metrics are
+// inherently about completed work (completion rate, progress-toward-done,
+// completion trend) and would always read as zero if they stayed scoped to
+// those toggles' default-hidden state — so Dashboard data is computed from
+// its own always-includeCompleted fetch below, matching how List
+// Dashboard's page-data.ts always sees a List's Complete Items regardless
+// of the List view's own filters. No heatmap/peer-comparison — those are
+// List Dashboard-specific or still-open widgets.
 export type MyTasksDashboardData = {
   counts: ItemCounts;
   byState: StateBreakdownEntry[];
@@ -61,6 +63,7 @@ export type MyTasksDashboardData = {
   completionOverTime: CompletionOverTimePoint[];
   progressPercent: number;
   contributionByList: ListContributionEntry[];
+  attentionImbalance: PersonalAttentionImbalance;
 };
 
 export type MyTasksPageData = {
@@ -170,6 +173,7 @@ export async function loadMyTasksPageData(
       completionOverTime: buildCompletionOverTime(dashboardItems, now, COMPLETION_OVER_TIME_DAYS),
       progressPercent: computeProgressPercent(dashboardCounts),
       contributionByList: buildPersonalContributionByList(dashboardItems),
+      attentionImbalance: buildPersonalAttentionImbalance(dashboardItems, now),
     },
   };
 }
