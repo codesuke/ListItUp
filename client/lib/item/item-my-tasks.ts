@@ -29,6 +29,10 @@ export type MyTaskItem = {
   // across every assigned Item (#22-equivalent for My Tasks) — both views
   // read straight off this same fetch rather than issuing their own query.
   attachments: MyTaskAttachment[];
+  // Dashboard's Completion-Over-Time widget (#46) uses this as the same
+  // completion-timestamp approximation List Dashboard's does
+  // (lib/report/list-dashboard.ts) — Item has no dedicated completedAt.
+  updatedAt: Date;
 };
 
 // Shared by every My Tasks view (List row, Board card, Files entry) so the
@@ -258,31 +262,25 @@ export function buildMyTasksSmartSections<
   }));
 }
 
-export type WorkspaceBreakdownEntry = { sourceWorkspaceId: string; label: string; count: number };
+export type ListBreakdownEntry = { listId: string; label: string; count: number };
 
 // Dashboard's cross-Workspace analog of List Dashboard's Breakdown by
-// Section (design-mocks/my-tasks-dashboard, #52) — My Tasks spans every
-// Workspace a User belongs to rather than one List's Sections, so it
-// groups by source Workspace instead. Ordered by count descending so the
-// busiest Workspace reads first.
-export function breakdownByWorkspace<
-  T extends { sourceWorkspaceId: string; sourceWorkspaceKind: WorkspaceKind; sourceWorkspaceName: string },
->(items: T[]): WorkspaceBreakdownEntry[] {
-  const entriesByWorkspaceId = new Map<string, WorkspaceBreakdownEntry>();
+// Section (#46) — My Tasks spans every List across every Workspace a User
+// belongs to rather than one List's Sections, so it groups by source List
+// instead of Section. Ordered by count descending so the busiest List
+// reads first.
+export function breakdownByList<T extends { listId: string; listName: string }>(items: T[]): ListBreakdownEntry[] {
+  const entriesByListId = new Map<string, ListBreakdownEntry>();
   for (const item of items) {
-    const existing = entriesByWorkspaceId.get(item.sourceWorkspaceId);
+    const existing = entriesByListId.get(item.listId);
     if (existing) {
       existing.count += 1;
       continue;
     }
-    entriesByWorkspaceId.set(item.sourceWorkspaceId, {
-      sourceWorkspaceId: item.sourceWorkspaceId,
-      label: myTaskWorkspaceLabel(item),
-      count: 1,
-    });
+    entriesByListId.set(item.listId, { listId: item.listId, label: item.listName, count: 1 });
   }
 
-  return [...entriesByWorkspaceId.values()].sort((a, b) => b.count - a.count);
+  return [...entriesByListId.values()].sort((a, b) => b.count - a.count);
 }
 
 export type MyTaskBadgeTone = "red" | "amber" | "green" | "blue" | "muted";
@@ -334,6 +332,7 @@ function toMyTaskItem(
       uploaderName: attachment.uploader.name,
       createdAt: attachment.createdAt,
     })),
+    updatedAt: item.updatedAt,
   };
 }
 

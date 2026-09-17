@@ -1,4 +1,9 @@
-import { BreakdownWidget, CountTile, ProgressDonutWidget } from "@/components/workspace/DashboardWidgets";
+import {
+  BreakdownWidget,
+  CompletionOverTimeWidget,
+  CountTile,
+  ProgressDonutWidget,
+} from "@/components/workspace/DashboardWidgets";
 import type { MyTasksDashboardData } from "./page-data";
 
 const STATE_BAR_COLOR: Record<MyTasksDashboardData["byState"][number]["state"], string> = {
@@ -9,12 +14,18 @@ const STATE_BAR_COLOR: Record<MyTasksDashboardData["byState"][number]["state"], 
   ARCHIVED: "bg-[#525252]",
 };
 
-// A trimmed personal Dashboard (design-mocks/my-tasks-dashboard, #52) —
-// counts, breakdowns, and the Progress graph (#49) only, scoped to Items
-// assigned to the User across every Workspace and their Personal Space. No
-// heatmap/contribution/peer-comparison: those are List Dashboard-specific
-// (#51/#54-58).
-export function DashboardView({ counts, byState, byWorkspace, progressPercent }: MyTasksDashboardData) {
+// A trimmed personal Dashboard (design-mocks/my-tasks-dashboard, #46, #49) —
+// counts, breakdowns, Completion-Over-Time, and the Progress graph, scoped
+// to Items assigned to the User across every Workspace and their Personal
+// Space. No heatmap/donut/contribution/peer-comparison: those are
+// separate, still-open widgets, several List Dashboard-specific.
+export function DashboardView({
+  counts,
+  byState,
+  byList,
+  completionOverTime,
+  progressPercent,
+}: MyTasksDashboardData) {
   return (
     <div className="mt-6 flex flex-col gap-5">
       <div className="grid grid-cols-4 gap-4">
@@ -35,9 +46,9 @@ export function DashboardView({ counts, byState, byWorkspace, progressPercent }:
           }))}
         />
         <BreakdownWidget
-          title="Breakdown by Workspace"
+          title="Breakdown by List"
           total={counts.total}
-          entries={byWorkspace.map((entry) => ({
+          entries={byList.map((entry) => ({
             label: entry.label,
             count: entry.count,
             barColorClassName: "bg-[#ff6b4a]",
@@ -46,9 +57,11 @@ export function DashboardView({ counts, byState, byWorkspace, progressPercent }:
         <ProgressDonutWidget percent={progressPercent} />
       </div>
 
+      <CompletionOverTimeWidget points={completionOverTime} />
+
       <p className="text-[11.5px] text-ink-faint">
-        A trimmed personal Dashboard — counts, breakdowns, and overall progress, scoped to Items assigned to you
-        across every Workspace and your Personal Space.
+        A trimmed personal Dashboard — counts, breakdowns, completion trend, and overall progress, scoped to Items
+        assigned to you across every Workspace and your Personal Space.
       </p>
     </div>
   );

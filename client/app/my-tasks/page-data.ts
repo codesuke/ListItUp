@@ -1,14 +1,14 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import {
-  breakdownByWorkspace,
+  breakdownByList,
   buildMyTasksSmartSections,
   groupMyTasksItems,
   loadMyTasksItems,
+  type ListBreakdownEntry,
   type MyTaskItem,
   type MyTasksGroup,
   type MyTasksGroupBy,
   type MyTasksSortBy,
-  type WorkspaceBreakdownEntry,
 } from "@/lib/item/item-my-tasks";
 import {
   groupMyTasksForBoard,
@@ -25,23 +25,31 @@ import {
 import { buildMyTasksFileEntries, type MyTasksFileEntry } from "@/lib/item/item-my-tasks-files";
 import {
   breakdownByState,
+  buildCompletionOverTime,
   computeItemCounts,
   computeProgressPercent,
+  type CompletionOverTimePoint,
   type ItemCounts,
   type StateBreakdownEntry,
 } from "@/lib/report/list-dashboard";
 
 export type MyTasksFilterWorkspace = { id: string; name: string; isPersonal: boolean };
 
-// Dashboard tab (#52) — a trimmed personal Dashboard: counts, breakdowns,
-// and the Progress graph (#49), scoped to the same Item set as every other
-// My Tasks view (design-mocks/my-tasks-dashboard). No
-// heatmap/contribution/peer-comparison — those are List Dashboard-specific
-// (#51/#54-58) and don't apply to a cross-Workspace personal view.
+// Same window as List Dashboard's Completion Over Time widget
+// (app/workspaces/.../page-data.ts) so the two surfaces read consistently.
+const COMPLETION_OVER_TIME_DAYS = 14;
+
+// Dashboard tab (#46, #49) — a trimmed personal Dashboard: counts,
+// breakdowns, Completion-Over-Time, and the Progress graph, scoped to the
+// same Item set as every other My Tasks view (design-mocks/my-tasks-
+// dashboard). No heatmap/donut/contribution/radar/peer-comparison — those
+// ship as separate widgets and don't all apply to a cross-Workspace
+// personal view.
 export type MyTasksDashboardData = {
   counts: ItemCounts;
   byState: StateBreakdownEntry[];
-  byWorkspace: WorkspaceBreakdownEntry[];
+  byList: ListBreakdownEntry[];
+  completionOverTime: CompletionOverTimePoint[];
   progressPercent: number;
 };
 
@@ -144,7 +152,8 @@ export async function loadMyTasksPageData(
     dashboard: {
       counts,
       byState: breakdownByState(items),
-      byWorkspace: breakdownByWorkspace(items),
+      byList: breakdownByList(items),
+      completionOverTime: buildCompletionOverTime(items, now, COMPLETION_OVER_TIME_DAYS),
       progressPercent: computeProgressPercent(counts),
     },
   };

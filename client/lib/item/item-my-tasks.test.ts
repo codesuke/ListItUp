@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 import {
   applyMyTasksSort,
-  breakdownByWorkspace,
+  breakdownByList,
   buildMyTasksSmartSections,
   groupMyTasksItems,
   isItemOverdue,
@@ -218,33 +218,28 @@ assert.equal(
   );
 }
 
-// breakdownByWorkspace: one entry per source Workspace (Personal Space
-// labeled via myTaskWorkspaceLabel), ordered by count descending so the
-// Dashboard's busiest Workspace reads first (design-mocks/my-tasks-dashboard,
-// #52).
+// breakdownByList: one entry per source List (across every source
+// Workspace), ordered by count descending so the Dashboard's busiest List
+// reads first (design-mocks/my-tasks-dashboard, #46).
 {
-  const workspaceItem = (sourceWorkspaceId: string, sourceWorkspaceName: string, sourceWorkspaceKind: "SHARED" | "PERSONAL") => ({
-    sourceWorkspaceId,
-    sourceWorkspaceName,
-    sourceWorkspaceKind,
-  });
+  const listItem = (listId: string, listName: string) => ({ listId, listName });
 
   const items = [
-    workspaceItem("acme", "Acme Studio", "SHARED"),
-    workspaceItem("northline", "North Line Co-op", "SHARED"),
-    workspaceItem("acme", "Acme Studio", "SHARED"),
-    workspaceItem("personal", "Riya Kapoor", "PERSONAL"),
-    workspaceItem("acme", "Acme Studio", "SHARED"),
-    workspaceItem("northline", "North Line Co-op", "SHARED"),
+    listItem("backlog", "Backlog"),
+    listItem("inbox", "Inbox"),
+    listItem("backlog", "Backlog"),
+    listItem("groceries", "Groceries"),
+    listItem("backlog", "Backlog"),
+    listItem("inbox", "Inbox"),
   ];
 
-  assert.deepEqual(breakdownByWorkspace(items), [
-    { sourceWorkspaceId: "acme", label: "Acme Studio", count: 3 },
-    { sourceWorkspaceId: "northline", label: "North Line Co-op", count: 2 },
-    { sourceWorkspaceId: "personal", label: "Personal Space", count: 1 },
+  assert.deepEqual(breakdownByList(items), [
+    { listId: "backlog", label: "Backlog", count: 3 },
+    { listId: "inbox", label: "Inbox", count: 2 },
+    { listId: "groceries", label: "Groceries", count: 1 },
   ]);
 }
 
-assert.deepEqual(breakdownByWorkspace([]), []);
+assert.deepEqual(breakdownByList([]), []);
 
 console.log("item my-tasks test passed");

@@ -22,6 +22,7 @@ function item(overrides: Partial<MyTaskItem> & Pick<MyTaskItem, "id">): MyTaskIt
     sourceWorkspaceKind: "SHARED",
     blockerReason: null,
     attachments: [],
+    updatedAt: new Date("2026-09-01T00:00:00.000Z"),
     ...overrides,
   };
 }

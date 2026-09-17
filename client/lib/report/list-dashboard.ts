@@ -92,13 +92,23 @@ function toDateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+// Narrower than DashboardItem — only state/updatedAt are read below (same
+// rationale as CountableItem above), which lets callers with a different
+// Item shape (e.g. My Tasks' MyTaskItem, #46) reuse this without carrying
+// List Dashboard-only fields like sectionId.
+type CompletionTimelineItem = { state: ItemState; updatedAt: Date };
+
 // Item has no dedicated completion timestamp (schema.prisma) — this uses
 // updatedAt as an approximation of "when it was completed" for Items
 // currently Complete, the same kind of documented approximation Home's
 // assigned-by-me query makes (lib/item/item-assigned-by-me.ts). A running
 // cumulative total across a trailing window, carrying forward completions
 // from before the window starts (#51).
-export function buildCompletionOverTime(items: DashboardItem[], now: Date, days: number): CompletionOverTimePoint[] {
+export function buildCompletionOverTime(
+  items: CompletionTimelineItem[],
+  now: Date,
+  days: number
+): CompletionOverTimePoint[] {
   const completedCountsByDay = new Map<string, number>();
   for (const item of items) {
     if (item.state !== "COMPLETE") continue;
