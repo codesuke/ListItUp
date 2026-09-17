@@ -23,19 +23,26 @@ import {
   type MyTasksCalendarCell,
 } from "@/lib/item/item-my-tasks-calendar";
 import { buildMyTasksFileEntries, type MyTasksFileEntry } from "@/lib/item/item-my-tasks-files";
-import { breakdownByState, computeItemCounts, type ItemCounts, type StateBreakdownEntry } from "@/lib/report/list-dashboard";
+import {
+  breakdownByState,
+  computeItemCounts,
+  computeProgressPercent,
+  type ItemCounts,
+  type StateBreakdownEntry,
+} from "@/lib/report/list-dashboard";
 
 export type MyTasksFilterWorkspace = { id: string; name: string; isPersonal: boolean };
 
-// Dashboard tab (#52) — a trimmed personal Dashboard: counts and
-// breakdowns only, scoped to the same Item set as every other My Tasks
-// view (design-mocks/my-tasks-dashboard). No heatmap/donut/contribution/
-// peer-comparison — those are List Dashboard-specific (#51/#54-58) and
-// don't apply to a cross-Workspace personal view.
+// Dashboard tab (#52) — a trimmed personal Dashboard: counts, breakdowns,
+// and the Progress graph (#49), scoped to the same Item set as every other
+// My Tasks view (design-mocks/my-tasks-dashboard). No
+// heatmap/contribution/peer-comparison — those are List Dashboard-specific
+// (#51/#54-58) and don't apply to a cross-Workspace personal view.
 export type MyTasksDashboardData = {
   counts: ItemCounts;
   byState: StateBreakdownEntry[];
   byWorkspace: WorkspaceBreakdownEntry[];
+  progressPercent: number;
 };
 
 export type MyTasksPageData = {
@@ -111,6 +118,7 @@ export async function loadMyTasksPageData(
   const boardGroupBy: MyTasksBoardGroupBy =
     rawBoardGroupBy && isValidMyTasksBoardGroupBy(rawBoardGroupBy) ? rawBoardGroupBy : "STATE";
   const calendarMonthStart = parseCalendarMonth(rawCalendarMonth, now);
+  const counts = computeItemCounts(items, now);
 
   return {
     // groupBy "NONE" (the default) renders the mock's smart sections
@@ -134,9 +142,10 @@ export async function loadMyTasksPageData(
     calendarCells: buildMyTasksCalendarGrid(items, calendarMonthStart),
     fileEntries: buildMyTasksFileEntries(items),
     dashboard: {
-      counts: computeItemCounts(items, now),
+      counts,
       byState: breakdownByState(items),
       byWorkspace: breakdownByWorkspace(items),
+      progressPercent: computeProgressPercent(counts),
     },
   };
 }

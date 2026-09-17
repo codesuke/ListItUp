@@ -52,3 +52,40 @@ export function BreakdownWidget({
     </div>
   );
 }
+
+// Progress graph (#49): how close a List — or, on My Tasks, the User's
+// personal queue — is to done, aggregated only. Shared so both Dashboards
+// render the identical donut off the same computeProgressPercent output
+// (lib/report/list-dashboard.ts).
+export function ProgressDonutWidget({ percent }: { percent: number }) {
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - percent / 100);
+
+  return (
+    <div className={`${DASHBOARD_CARD_CLASS} flex flex-col items-center justify-center p-5`}>
+      <div className={`${DASHBOARD_WIDGET_TITLE_CLASS} mb-1 self-start`}>Progress</div>
+      <div className="mb-3 self-start font-[family-name:var(--font-mono-label)] text-[9.5px] tracking-[0.06em] text-ink-faint">
+        Toward fully done
+      </div>
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r={radius} fill="none" stroke="#202020" strokeWidth="10" />
+        <circle
+          cx="60"
+          cy="60"
+          r={radius}
+          fill="none"
+          stroke="#ff6b4a"
+          strokeWidth="10"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          transform="rotate(-90 60 60)"
+        />
+        <text x="60" y="66" textAnchor="middle" fontSize="24" fontWeight="700" fill="#e5e5e0">
+          {percent}%
+        </text>
+      </svg>
+    </div>
+  );
+}

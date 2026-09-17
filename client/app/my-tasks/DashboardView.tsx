@@ -1,4 +1,4 @@
-import { BreakdownWidget, CountTile } from "@/components/workspace/DashboardWidgets";
+import { BreakdownWidget, CountTile, ProgressDonutWidget } from "@/components/workspace/DashboardWidgets";
 import type { MyTasksDashboardData } from "./page-data";
 
 const STATE_BAR_COLOR: Record<MyTasksDashboardData["byState"][number]["state"], string> = {
@@ -10,10 +10,11 @@ const STATE_BAR_COLOR: Record<MyTasksDashboardData["byState"][number]["state"], 
 };
 
 // A trimmed personal Dashboard (design-mocks/my-tasks-dashboard, #52) —
-// counts and breakdowns only, scoped to Items assigned to the User across
-// every Workspace and their Personal Space. No heatmap/donut/contribution/
-// peer-comparison: those are List Dashboard-specific (#51/#54-58).
-export function DashboardView({ counts, byState, byWorkspace }: MyTasksDashboardData) {
+// counts, breakdowns, and the Progress graph (#49) only, scoped to Items
+// assigned to the User across every Workspace and their Personal Space. No
+// heatmap/contribution/peer-comparison: those are List Dashboard-specific
+// (#51/#54-58).
+export function DashboardView({ counts, byState, byWorkspace, progressPercent }: MyTasksDashboardData) {
   return (
     <div className="mt-6 flex flex-col gap-5">
       <div className="grid grid-cols-4 gap-4">
@@ -23,7 +24,7 @@ export function DashboardView({ counts, byState, byWorkspace }: MyTasksDashboard
         <CountTile label="Overdue" value={counts.overdue} valueColor="#f2545b" />
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-3 gap-5">
         <BreakdownWidget
           title="Breakdown by State"
           total={counts.total}
@@ -42,11 +43,12 @@ export function DashboardView({ counts, byState, byWorkspace }: MyTasksDashboard
             barColorClassName: "bg-[#ff6b4a]",
           }))}
         />
+        <ProgressDonutWidget percent={progressPercent} />
       </div>
 
       <p className="text-[11.5px] text-ink-faint">
-        A trimmed personal Dashboard — counts and breakdowns only, scoped to Items assigned to you across every
-        Workspace and your Personal Space.
+        A trimmed personal Dashboard — counts, breakdowns, and overall progress, scoped to Items assigned to you
+        across every Workspace and your Personal Space.
       </p>
     </div>
   );

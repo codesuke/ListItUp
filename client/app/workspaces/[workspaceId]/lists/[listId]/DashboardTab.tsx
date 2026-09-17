@@ -1,6 +1,12 @@
 import { Users } from "lucide-react";
 
-import { BreakdownWidget, CountTile, DASHBOARD_CARD_CLASS, DASHBOARD_WIDGET_TITLE_CLASS } from "@/components/workspace/DashboardWidgets";
+import {
+  BreakdownWidget,
+  CountTile,
+  DASHBOARD_CARD_CLASS,
+  DASHBOARD_WIDGET_TITLE_CLASS,
+  ProgressDonutWidget,
+} from "@/components/workspace/DashboardWidgets";
 import { MemberAvatar } from "@/components/workspace/MemberAvatar";
 import type {
   AttentionAxis,
@@ -25,37 +31,6 @@ const STATE_BAR_COLOR: Record<StateBreakdownEntry["state"], string> = {
   COMPLETE: "bg-[#3ecf8e]",
   ARCHIVED: "bg-[#525252]",
 };
-
-function ProgressDonutWidget({ percent }: { percent: number }) {
-  const radius = 50;
-  const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference * (1 - percent / 100);
-
-  return (
-    <div className={`${CARD_CLASS} flex flex-col items-center justify-center p-5`}>
-      <div className={`${WIDGET_TITLE_CLASS} mb-1 self-start`}>Progress</div>
-      <div className={`${WHY_TAG_CLASS} mb-3 self-start`}>Toward fully done</div>
-      <svg width="120" height="120" viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r={radius} fill="none" stroke="#202020" strokeWidth="10" />
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          stroke="#ff6b4a"
-          strokeWidth="10"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          transform="rotate(-90 60 60)"
-        />
-        <text x="60" y="66" textAnchor="middle" fontSize="24" fontWeight="700" fill="#e5e5e0">
-          {percent}%
-        </text>
-      </svg>
-    </div>
-  );
-}
 
 function formatAxisDate(dateKey: string): string {
   return new Date(`${dateKey}T00:00:00.000Z`).toLocaleDateString(undefined, {

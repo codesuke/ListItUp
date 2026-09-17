@@ -231,6 +231,9 @@ async function run() {
           ["Personal Space", 1],
         ]
       );
+      // Progress graph (#49) — same computeProgressPercent as List
+      // Dashboard, applied to the User's cross-Workspace assigned set.
+      assert.equal(data.dashboard.progressPercent, 0);
     }
   } finally {
     const listIds = (
