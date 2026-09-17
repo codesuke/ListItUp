@@ -102,7 +102,7 @@ pnpm test:auth     # authentication + workspace provisioning tests
 pnpm test:mail     # mailer/email template tests
 ```
 
-Run `pnpm lint` and `pnpm typecheck` before opening a PR — both are also enforced in CI (`.github/workflows/ci.yml`), alongside a production Docker build.
+Run `pnpm lint`, `pnpm typecheck`, and the relevant tests locally before committing. Automated GitHub checks are intentionally disabled during the current development stage.
 
 ## Coding Standards
 

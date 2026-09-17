@@ -13,12 +13,7 @@
   "bugs": {
     "url": "https://github.com/codesuke/ListItUp/issues"
   },
-  "scripts": {
-    "prepare": "husky"
-  },
   "devDependencies": {
-    "husky": "^9",
-    "lint-staged": "^15",
     "prettier": "^3"
   }
 }

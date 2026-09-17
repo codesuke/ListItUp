@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   // project, see client/playwright.config.ts) run against its own build
   // cache instead of racing the primary dev server over `.next`.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
-  // The repo root has its own pnpm-lock.yaml for tooling (husky, prettier),
+  // The repo root has its own pnpm-lock.yaml for formatting tooling,
   // which makes Next.js infer the wrong workspace root. Pin it to this app.
   turbopack: {
     root: path.join(__dirname),
