@@ -182,7 +182,7 @@ export function WorkspaceSidebar({
             onClick={() => setIsSwitcherOpen((open) => !open)}
             aria-expanded={isSwitcherOpen}
             aria-label="Switch Workspace"
-            className="flex w-full items-center gap-2.5 rounded-[8px] border border-sidebar-border bg-surface-2 px-2.5 py-2.5 text-left hover:border-line-strong hover:bg-surface-3"
+            className="flex w-full items-center gap-2.5 rounded-[8px] border border-sidebar-border bg-surface-2 px-2.5 py-2.5 text-left hover:border-line-strong hover:bg-surface-3 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0"
           >
             <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-[#ff6b4a] font-[family-name:var(--font-mono-label)] text-xs font-bold text-[#1a0800]">
               {initialsFromName(currentWorkspaceName)}

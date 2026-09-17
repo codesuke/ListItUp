@@ -197,19 +197,10 @@ export default async function MyTasksPage({ searchParams }: Props) {
               {scopeBadgeLabel}
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Search"
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
-            >
-              <Search className="h-[15px] w-[15px]" />
-            </button>
-            <GlobalHeaderActions
-              currentUserName={session.user.name}
-              unreadNotificationCount={unreadNotificationCount}
-            />
-          </div>
+          <GlobalHeaderActions
+            currentUserName={session.user.name}
+            unreadNotificationCount={unreadNotificationCount}
+          />
         </header>
 
         <main className="flex-1 bg-canvas px-10 pb-16 pt-8">

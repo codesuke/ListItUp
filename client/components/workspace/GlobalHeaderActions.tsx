@@ -1,10 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { initialsFromName } from "@/lib/utils";
+
+// Shared visual + interaction treatment for the square icon buttons in this
+// row (Search, Bell) so they read as one consistent group with ThemeToggle,
+// which carries the same classes itself.
+const ICON_BUTTON_CLASSES =
+  "flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1";
 
 export function GlobalHeaderActions({
   currentUserName,
@@ -14,7 +20,16 @@ export function GlobalHeaderActions({
   unreadNotificationCount: number;
 }) {
   return (
-    <div className="flex flex-shrink-0 items-center gap-1.5">
+    <div className="flex flex-shrink-0 items-center gap-2">
+      <button
+        type="button"
+        aria-label="Search"
+        title="Search — coming soon"
+        className={ICON_BUTTON_CLASSES}
+      >
+        <Search className="h-[15px] w-[15px]" />
+      </button>
+
       <ThemeToggle />
 
       <Link
@@ -24,7 +39,7 @@ export function GlobalHeaderActions({
             ? `${unreadNotificationCount} unread notifications`
             : "Updates"
         }
-        className="relative flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
+        className={`relative ${ICON_BUTTON_CLASSES}`}
       >
         <Bell className="h-[15px] w-[15px]" />
         {unreadNotificationCount > 0 && (
@@ -37,7 +52,7 @@ export function GlobalHeaderActions({
       <Link
         href="/profile"
         aria-label="View profile"
-        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-2 bg-[#5b9dff] font-[family-name:var(--font-mono-label)] text-[10px] font-bold text-[#1a0800] hover:opacity-90"
+        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-2 bg-[#5b9dff] font-[family-name:var(--font-mono-label)] text-[10px] font-bold text-[#1a0800] hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1"
       >
         {initialsFromName(currentUserName)}
       </Link>

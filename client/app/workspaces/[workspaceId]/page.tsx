@@ -1,7 +1,7 @@
-import { ChevronRight, Search } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
+import { HomeBreadcrumb } from "@/components/workspace/HomeBreadcrumb";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 
@@ -35,26 +35,11 @@ export default async function WorkspacePage({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
-        <div className="flex items-center gap-2">
-          <span className="font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.08em] text-ink-faint">
-            Workspace
-          </span>
-          <ChevronRight className="h-3 w-3 text-ink-faint" />
-          <span className="text-[13px] font-semibold text-ink">Home</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Search"
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
-          >
-            <Search className="h-[15px] w-[15px]" />
-          </button>
-          <GlobalHeaderActions
-            currentUserName={session.user.name}
-            unreadNotificationCount={data.unreadNotificationCount}
-          />
-        </div>
+        <HomeBreadcrumb />
+        <GlobalHeaderActions
+          currentUserName={session.user.name}
+          unreadNotificationCount={data.unreadNotificationCount}
+        />
       </header>
 
       <main className="flex-1 bg-canvas px-10 pb-16 pt-8">
