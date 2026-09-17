@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
 import { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/calendar/month-grid";
+import { countUnreadNotifications } from "@/lib/notification/notification-inbox";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 
@@ -270,13 +272,16 @@ export default async function ListPage({ params, searchParams }: Props) {
   const session = await requireAuthenticatedSession(`/workspaces/${workspaceId}/lists/${listId}`);
   const now = new Date();
 
-  const data = await loadListPageData(prisma, {
-    userId: session.user.id,
-    workspaceId,
-    listId,
-    now,
-    calendarMonth: query.month,
-  });
+  const [data, unreadNotificationCount] = await Promise.all([
+    loadListPageData(prisma, {
+      userId: session.user.id,
+      workspaceId,
+      listId,
+      now,
+      calendarMonth: query.month,
+    }),
+    countUnreadNotifications(prisma, session.user.id),
+  ]);
 
   if (!data) {
     notFound();
@@ -349,6 +354,10 @@ export default async function ListPage({ params, searchParams }: Props) {
           >
             <Settings className="h-[15px] w-[15px]" />
           </button>
+          <GlobalHeaderActions
+            currentUserName={session.user.name}
+            unreadNotificationCount={unreadNotificationCount}
+          />
         </div>
       </header>
 

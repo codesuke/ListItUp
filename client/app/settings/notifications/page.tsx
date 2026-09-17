@@ -2,6 +2,8 @@ import { ChevronRight } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { AppShell } from "@/components/workspace/AppShell";
+import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
+import { countUnreadNotifications } from "@/lib/notification/notification-inbox";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 import { resolveDefaultWorkspaceId } from "@/lib/workspace/default-workspace";
@@ -12,9 +14,10 @@ import { loadNotificationsPreferencesPageData } from "./page-data";
 export default async function NotificationsSettingsPage() {
   const session = await requireAuthenticatedSession("/settings/notifications");
 
-  const [data, workspaceId] = await Promise.all([
+  const [data, workspaceId, unreadNotificationCount] = await Promise.all([
     loadNotificationsPreferencesPageData(prisma, session.user.id),
     resolveDefaultWorkspaceId(prisma, session.user.id),
+    countUnreadNotifications(prisma, session.user.id),
   ]);
 
   if (!workspaceId) {
@@ -34,7 +37,6 @@ export default async function NotificationsSettingsPage() {
     <AppShell
       currentWorkspaceId={workspaceId}
       currentWorkspaceName={workspace.kind === "PERSONAL" ? "Personal Space" : workspace.name}
-      currentUserName={session.user.name}
       userId={session.user.id}
     >
       <div className="flex min-h-screen flex-col">
@@ -46,6 +48,10 @@ export default async function NotificationsSettingsPage() {
             <ChevronRight className="h-3 w-3 text-ink-faint" />
             <span className="text-[13px] font-semibold text-ink">Manage Notifications</span>
           </div>
+          <GlobalHeaderActions
+            currentUserName={session.user.name}
+            unreadNotificationCount={unreadNotificationCount}
+          />
         </header>
 
         <main className="flex-1 bg-canvas px-10 pb-16 pt-8">

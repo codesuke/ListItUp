@@ -20,13 +20,11 @@ const jetBrainsMono = JetBrains_Mono({ variable: "--font-mono-label", subsets: [
 export async function AppShell({
   currentWorkspaceId,
   currentWorkspaceName,
-  currentUserName,
   userId,
   children,
 }: {
   currentWorkspaceId: string;
   currentWorkspaceName: string;
-  currentUserName: string;
   userId: string;
   children: React.ReactNode;
 }) {
@@ -39,7 +37,6 @@ export async function AppShell({
       <WorkspaceSidebar
         currentWorkspaceId={currentWorkspaceId}
         currentWorkspaceName={currentWorkspaceName}
-        currentUserName={currentUserName}
         switchableWorkspaces={navData.switchableWorkspaces}
         personalSpace={navData.personalSpace}
         unreadNotificationCount={navData.unreadNotificationCount}

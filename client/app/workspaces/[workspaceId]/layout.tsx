@@ -27,7 +27,6 @@ export default async function WorkspaceLayout({
     <AppShell
       currentWorkspaceId={workspaceId}
       currentWorkspaceName={membership.workspace.name}
-      currentUserName={session.user.name}
       userId={session.user.id}
     >
       {children}

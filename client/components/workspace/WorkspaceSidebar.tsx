@@ -7,26 +7,16 @@ import { Bell, ChevronDown, ChevronRight, ChevronsUpDown, Home, LayoutList, List
 
 import type { WorkspaceNavEntry } from "@/app/workspaces/[workspaceId]/layout-data";
 import { Logo } from "@/components/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { initialsFromName } from "@/lib/utils";
 
 type WorkspaceSidebarProps = {
   currentWorkspaceId: string;
   currentWorkspaceName: string;
-  currentUserName: string;
   switchableWorkspaces: WorkspaceNavEntry[];
   personalSpace: WorkspaceNavEntry | null;
   unreadNotificationCount: number;
   lists: WorkspaceNavEntry[];
 };
-
-function initialsFromName(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return "?";
-  return words
-    .slice(0, 2)
-    .map((word) => word[0]!.toUpperCase())
-    .join("");
-}
 
 function NavLink({
   href,
@@ -67,7 +57,6 @@ function NavLink({
 export function WorkspaceSidebar({
   currentWorkspaceId,
   currentWorkspaceName,
-  currentUserName,
   switchableWorkspaces,
   personalSpace,
   unreadNotificationCount,
@@ -85,38 +74,8 @@ export function WorkspaceSidebar({
 
   return (
     <aside className="flex w-[264px] flex-shrink-0 flex-col gap-1 border-r border-line bg-surface-1 px-3 py-4">
-      <div className="mb-2 flex items-start justify-between gap-2">
+      <div className="mb-2">
         <Logo href={`/workspaces/${currentWorkspaceId}`} />
-
-        <div className="flex flex-shrink-0 flex-col items-end gap-2">
-          <Link
-            href="/profile"
-            aria-label="View profile"
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-2 bg-[#5b9dff] font-[family-name:var(--font-mono-label)] text-[10px] font-bold text-[#1a0800] hover:opacity-90"
-          >
-            {initialsFromName(currentUserName)}
-          </Link>
-
-          <div className="flex items-center gap-1.5">
-            <ThemeToggle />
-            <Link
-              href="/updates"
-              aria-label={
-                unreadNotificationCount > 0
-                  ? `${unreadNotificationCount} unread notifications`
-                  : "Updates"
-              }
-              className="relative flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
-            >
-              <Bell className="h-[15px] w-[15px]" />
-              {unreadNotificationCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff6b4a] px-1 font-[family-name:var(--font-mono-label)] text-[9px] font-bold text-[#1a0800]">
-                  {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
-                </span>
-              )}
-            </Link>
-          </div>
-        </div>
       </div>
 
       <nav className="flex flex-col gap-0.5">

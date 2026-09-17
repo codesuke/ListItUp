@@ -2,6 +2,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import { type AssignedByMeItem, loadAssignedByMeItems } from "@/lib/item/item-assigned-by-me";
 import { loadMyTasksItems, type MyTaskItem } from "@/lib/item/item-my-tasks";
 import { browseLists, type ListSummary } from "@/lib/list/list-browsing";
+import { countUnreadNotifications } from "@/lib/notification/notification-inbox";
 
 const WIDGET_PREVIEW_LIMIT = 5;
 
@@ -15,6 +16,7 @@ export type HomePageData = {
   myTasksPreview: MyTaskItem[];
   recentLists: RecentListSummary[];
   assignedByMe: AssignedByMeItem[];
+  unreadNotificationCount: number;
 };
 
 async function withItemStats(
@@ -65,10 +67,11 @@ export async function loadHomePageData(
   // Recent Lists orders by the List's own updatedAt (browseLists' existing
   // sort), not per-user visit recency — the domain model has no List-visit
   // tracking to draw on (docs/QnA/listitup-profile-and-home-surface.md §6).
-  const [myTasksItems, recentLists, assignedByMe] = await Promise.all([
+  const [myTasksItems, recentLists, assignedByMe, unreadNotificationCount] = await Promise.all([
     loadMyTasksItems(database, { userId, sourceWorkspaceId: workspaceId, now }),
     browseLists(database, { userId, workspaceId }),
     loadAssignedByMeItems(database, { userId, workspaceId, limit: WIDGET_PREVIEW_LIMIT }),
+    countUnreadNotifications(database, userId),
   ]);
 
   return {
@@ -76,5 +79,6 @@ export async function loadHomePageData(
     myTasksPreview: myTasksItems.slice(0, WIDGET_PREVIEW_LIMIT),
     recentLists: await withItemStats(database, recentLists.slice(0, WIDGET_PREVIEW_LIMIT)),
     assignedByMe,
+    unreadNotificationCount,
   };
 }

@@ -2,6 +2,7 @@ import { Activity, Archive, AtSign, Bookmark, Settings } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { AppShell } from "@/components/workspace/AppShell";
+import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
 import { StatusBadge } from "@/components/workspace/StatusBadge";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
@@ -90,7 +91,6 @@ export default async function UpdatesPage({ searchParams }: Props) {
     <AppShell
       currentWorkspaceId={defaultWorkspaceId}
       currentWorkspaceName={shellWorkspace.kind === "PERSONAL" ? "Personal Space" : shellWorkspace.name}
-      currentUserName={session.user.name}
       userId={session.user.id}
     >
       <div className="flex min-h-screen flex-col">
@@ -99,13 +99,19 @@ export default async function UpdatesPage({ searchParams }: Props) {
             <span className="text-[13px] font-semibold text-ink">Updates</span>
             {data.unreadCount > 0 && <StatusBadge tone="red">{data.unreadCount} unread</StatusBadge>}
           </div>
-          <a
-            href="/settings/notifications"
-            className="flex items-center gap-1.5 text-[12px] text-ink-muted hover:text-ink"
-          >
-            <Settings className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
-            Manage Notifications
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href="/settings/notifications"
+              className="flex items-center gap-1.5 text-[12px] text-ink-muted hover:text-ink"
+            >
+              <Settings className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
+              Manage Notifications
+            </a>
+            <GlobalHeaderActions
+              currentUserName={session.user.name}
+              unreadNotificationCount={data.unreadCount}
+            />
+          </div>
         </header>
 
         <main className="flex-1 bg-canvas px-10 pb-16 pt-8">

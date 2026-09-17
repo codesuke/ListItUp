@@ -1,6 +1,5 @@
 import {
   BarChart3,
-  Bell,
   Calendar as CalendarIcon,
   Columns3,
   Filter,
@@ -11,6 +10,7 @@ import {
 import { notFound } from "next/navigation";
 
 import { AppShell } from "@/components/workspace/AppShell";
+import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
 import { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/item/item-my-tasks-calendar";
 import type { MyTasksBoardGroupBy } from "@/lib/item/item-my-tasks-board";
 import {
@@ -19,6 +19,7 @@ import {
   type MyTasksGroupBy,
   type MyTasksSortBy,
 } from "@/lib/item/item-my-tasks";
+import { countUnreadNotifications } from "@/lib/notification/notification-inbox";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 
@@ -132,18 +133,21 @@ export default async function MyTasksPage({ searchParams }: Props) {
   const now = new Date();
   const activeTab: TabKey = query.tab && isTabKey(query.tab) ? query.tab : "list";
 
-  const data = await loadMyTasksPageData(prisma, {
-    userId: session.user.id,
-    sourceWorkspaceId,
-    includeCompleted,
-    includeArchived,
-    search,
-    sortBy,
-    groupBy,
-    now,
-    boardGroupBy: query.groupBy,
-    calendarMonth: query.month,
-  });
+  const [data, unreadNotificationCount] = await Promise.all([
+    loadMyTasksPageData(prisma, {
+      userId: session.user.id,
+      sourceWorkspaceId,
+      includeCompleted,
+      includeArchived,
+      search,
+      sortBy,
+      groupBy,
+      now,
+      boardGroupBy: query.groupBy,
+      calendarMonth: query.month,
+    }),
+    countUnreadNotifications(prisma, session.user.id),
+  ]);
 
   const shellWorkspace = resolveShellWorkspace(data.filterWorkspaces, data.selectedWorkspaceId);
   if (!shellWorkspace) {
@@ -183,7 +187,6 @@ export default async function MyTasksPage({ searchParams }: Props) {
     <AppShell
       currentWorkspaceId={shellWorkspace.id}
       currentWorkspaceName={shellWorkspace.isPersonal ? "Personal Space" : shellWorkspace.name}
-      currentUserName={session.user.name}
       userId={session.user.id}
     >
       <div className="flex min-h-screen flex-col">
@@ -202,13 +205,10 @@ export default async function MyTasksPage({ searchParams }: Props) {
             >
               <Search className="h-[15px] w-[15px]" />
             </button>
-            <a
-              href="/updates"
-              aria-label="Updates"
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
-            >
-              <Bell className="h-[15px] w-[15px]" />
-            </a>
+            <GlobalHeaderActions
+              currentUserName={session.user.name}
+              unreadNotificationCount={unreadNotificationCount}
+            />
           </div>
         </header>
 

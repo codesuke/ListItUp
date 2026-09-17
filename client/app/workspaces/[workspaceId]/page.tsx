@@ -1,6 +1,7 @@
-import { Bell, ChevronRight, Search } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 
@@ -49,13 +50,10 @@ export default async function WorkspacePage({
           >
             <Search className="h-[15px] w-[15px]" />
           </button>
-          <a
-            href="/updates"
-            aria-label="Updates"
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
-          >
-            <Bell className="h-[15px] w-[15px]" />
-          </a>
+          <GlobalHeaderActions
+            currentUserName={session.user.name}
+            unreadNotificationCount={data.unreadNotificationCount}
+          />
         </div>
       </header>
 
