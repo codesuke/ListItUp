@@ -12,7 +12,9 @@ export function Logo({ href }: { href: string }) {
         priority
         className="h-[30px] w-[30px]"
       />
-      <span className="text-[19px] font-semibold tracking-tight text-ink">ListItUp</span>
+      <span className="text-[19px] font-semibold tracking-tight text-ink group-data-[collapsible=icon]:hidden">
+        ListItUp
+      </span>
     </Link>
   );
 }

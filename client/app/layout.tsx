@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ROOT_METADATA, VIEWPORT } from "@/lib/seo/site-metadata";
 
 import "./globals.css";
@@ -31,7 +32,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="dark">
-          {children}
+          <TooltipProvider delay={200}>{children}</TooltipProvider>
         </ThemeProvider>
       </body>
     </html>
