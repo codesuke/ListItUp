@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/calendar/month-grid";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
@@ -121,17 +122,17 @@ function RolesColumn({
 }) {
   return (
     <div>
-      <div className="font-mono text-[11px] uppercase tracking-wider text-neutral-500">{title}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">{title}</div>
       {entries.length === 0 ? (
-        <div className="mt-2 text-sm text-neutral-600">No one yet.</div>
+        <div className="mt-2 text-sm text-ink-faint">No one yet.</div>
       ) : (
         <ul className="mt-2 flex flex-col gap-1.5">
           {entries.map((entry) => (
-            <li key={entry.userId} className="flex items-center justify-between gap-2 text-sm text-neutral-300">
+            <li key={entry.userId} className="flex items-center justify-between gap-2 text-sm text-ink">
               <span className="truncate">{entry.name}</span>
               {bindRemove && (
                 <form action={bindRemove(entry.userId)}>
-                  <button type="submit" className="text-xs text-neutral-600 hover:text-[#ff8a70]">
+                  <button type="submit" className="text-xs text-ink-faint hover:text-[#ff8a70]">
                     {removeLabel ?? "Remove"}
                   </button>
                 </form>
@@ -164,7 +165,7 @@ function OverviewTab({
   return (
     <div className="mt-6 flex flex-col gap-8">
       <div>
-        <div className="font-mono text-[11px] uppercase tracking-wider text-neutral-500">
+        <div className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
           Description
         </div>
         {canManage ? (
@@ -174,7 +175,7 @@ function OverviewTab({
               defaultValue={data.description ?? ""}
               placeholder="What is this List for?"
               rows={3}
-              className="w-full rounded-md border border-neutral-700 bg-[#141414] px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-[#ff6b4a] focus:outline-none"
+              className="w-full rounded-md border border-line-strong bg-surface-2 px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
             />
             <button
               type="submit"
@@ -184,17 +185,17 @@ function OverviewTab({
             </button>
           </form>
         ) : (
-          <p className="mt-2 text-sm text-neutral-400">
+          <p className="mt-2 text-sm text-ink-muted">
             {data.description || "No description yet."}
           </p>
         )}
       </div>
 
       <div>
-        <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-neutral-500">
+        <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-muted">
           Roles
         </div>
-        <div className="grid grid-cols-4 gap-6 rounded-lg border border-neutral-800 bg-[#0d0d0d] p-4">
+        <div className="grid grid-cols-4 gap-6 rounded-lg border border-line bg-surface-1 p-4">
           <RolesColumn title="Lead" entries={data.roles.leads} bindRemove={canManage ? boundRemoveMember : undefined} />
           <RolesColumn title="Member" entries={data.roles.members} bindRemove={canManage ? boundRemoveMember : undefined} />
           <RolesColumn title="Viewer" entries={data.roles.viewers} bindRemove={canManage ? boundRemoveMember : undefined} />
@@ -214,7 +215,7 @@ function OverviewTab({
                   name="userId"
                   required
                   defaultValue=""
-                  className="rounded-md border border-neutral-700 bg-[#141414] px-3 py-1.5 text-sm text-neutral-200"
+                  className="rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink"
                 >
                   <option value="" disabled>
                     Add a Workspace Member…
@@ -228,14 +229,14 @@ function OverviewTab({
                 <select
                   name="role"
                   defaultValue="MEMBER"
-                  className="rounded-md border border-neutral-700 bg-[#141414] px-3 py-1.5 text-sm text-neutral-200"
+                  className="rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink"
                 >
                   <option value="MEMBER">as Member</option>
                   <option value="VIEWER">as Viewer</option>
                 </select>
                 <button
                   type="submit"
-                  className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:border-[#ff6b4a] hover:text-white"
+                  className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink hover:border-[#ff6b4a] hover:text-ink"
                 >
                   Add
                 </button>
@@ -248,11 +249,11 @@ function OverviewTab({
                 name="email"
                 required
                 placeholder="Grant Guest access by email"
-                className="min-w-56 rounded-md border border-neutral-700 bg-[#141414] px-3 py-1.5 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-[#ff6b4a] focus:outline-none"
+                className="min-w-56 rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
               />
               <button
                 type="submit"
-                className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:border-[#ff6b4a] hover:text-white"
+                className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink hover:border-[#ff6b4a] hover:text-ink"
               >
                 Grant
               </button>
@@ -328,33 +329,34 @@ export default async function ListPage({ params, searchParams }: Props) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-[#232323] bg-[#0d0d0d] px-7">
+      <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
         <div className="flex min-w-0 items-center gap-2">
           <LayoutList className="h-4 w-4 flex-shrink-0 text-[#ff8a70]" />
-          <span className="truncate text-[13px] font-semibold text-[#e5e5e0]">{data.name}</span>
+          <span className="truncate text-[13px] font-semibold text-ink">{data.name}</span>
         </div>
         <div className="flex items-center gap-3">
           <button
             type="button"
             disabled
             title="Export CSV ships with the Reports & Analytics spec (ADR 0012)."
-            className="flex items-center gap-1.5 rounded-[6px] border border-[#333333] px-3 py-[7px] text-[13px] font-semibold text-[#8f8f8a] opacity-60"
+            className="flex items-center gap-1.5 rounded-[6px] border border-line-strong px-3 py-[7px] text-[13px] font-semibold text-ink-muted opacity-60"
           >
             <Download className="h-3.5 w-3.5" /> Export CSV
           </button>
+          <ThemeToggle />
           <button
             type="button"
             aria-label="List settings"
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-[#333333] bg-[#141414] text-[#8f8f8a] hover:bg-[#1a1a1a] hover:text-[#e5e5e0]"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
           >
             <Settings className="h-[15px] w-[15px]" />
           </button>
         </div>
       </header>
 
-      <main className="flex-1 bg-[#080808] px-10 pb-16 pt-8 text-neutral-300">
+      <main className="flex-1 bg-canvas px-10 pb-16 pt-8 text-ink">
         <div className="mx-auto max-w-6xl">
-          <nav className="mb-6 flex flex-wrap items-center gap-6 border-b border-[#232323]">
+          <nav className="mb-6 flex flex-wrap items-center gap-6 border-b border-line">
             {TABS.map((tab) => {
               const Icon = TAB_ICON[tab.key];
               const isDisabledTab = tab.key === "messages";
@@ -364,15 +366,15 @@ export default async function ListPage({ params, searchParams }: Props) {
                   href={tabHref(workspaceId, listId, tab.key)}
                   className={
                     isDisabledTab
-                      ? "flex cursor-default items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-[#5a5a56]"
+                      ? "flex cursor-default items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-faint"
                       : activeTab === tab.key
-                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-[#e5e5e0]"
-                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-[#8f8f8a] hover:text-[#e5e5e0]"
+                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-ink"
+                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted hover:text-ink"
                   }
                 >
                   <Icon className="h-3.5 w-3.5" /> {tab.label}
                   {isDisabledTab && (
-                    <span className="ml-1 rounded-[5px] bg-[#202020] px-[7px] py-[2px] font-[family-name:var(--font-mono-label)] text-[10px] font-semibold tracking-[0.05em] text-[#8f8f8a]">
+                    <span className="ml-1 rounded-[5px] bg-surface-4 px-[7px] py-[2px] font-[family-name:var(--font-mono-label)] text-[10px] font-semibold tracking-[0.05em] text-ink-muted">
                       v2
                     </span>
                   )}
@@ -450,7 +452,7 @@ export default async function ListPage({ params, searchParams }: Props) {
             boundTogglePeerComparison={boundTogglePeerComparison}
           />
         ) : (
-          <div className="mt-10 rounded-lg border border-dashed border-neutral-800 px-4 py-16 text-center text-sm text-neutral-600">
+          <div className="mt-10 rounded-lg border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
             {TAB_NOTES[activeTab]}
           </div>
         )}

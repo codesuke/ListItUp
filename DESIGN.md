@@ -56,7 +56,9 @@ Tags: dashboard, animated, canvas, dense interface, operational UI, lists, captu
 
 ## Overview
 
-ListItUp should use a focused, dark operational workspace style. The UI should feel structured, fast, and serious without becoming heavy. The interface should emphasize immediate capture, scannable lists, compact navigation groups, subtle borders, ambient motion, and clear hierarchy.
+ListItUp should use a focused, dark operational workspace style as its default. The UI should feel structured, fast, and serious without becoming heavy. The interface should emphasize immediate capture, scannable lists, compact navigation groups, subtle borders, ambient motion, and clear hierarchy.
+
+The operational app shell (everything under `AppShell` — Workspaces, Lists, My Tasks, Updates, Settings, Profile) also supports a light theme via a user-facing toggle (see ADR 0014). Dark stays the default and is the only theme the pre-authentication funnel (sign-in/up, password reset, email verification, invitations) renders in. Structural colors (canvas, surface, border, text) invert between themes via CSS tokens (`canvas`, `surface-1..4`, `line`, `line-strong`, `ink`, `ink-muted`, `ink-faint`); brand orange and status/priority colors stay constant across both.
 
 ## Composition
 

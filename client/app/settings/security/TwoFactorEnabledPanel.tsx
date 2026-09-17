@@ -11,11 +11,11 @@ import {
 } from "./actions";
 
 const inputWrapperClass =
-  "flex items-center border border-[#1a1a1a] bg-[#0d0d0d]/95 transition-colors group-hover:border-[#333333] group-focus-within:border-[#ff6b4a]";
+  "flex items-center border border-surface-3 bg-surface-1/95 transition-colors group-hover:border-line-strong group-focus-within:border-[#ff6b4a]";
 const inputClass =
-  "h-[58px] min-w-0 flex-1 bg-transparent px-4 text-sm text-white outline-none placeholder:text-neutral-700";
+  "h-[58px] min-w-0 flex-1 bg-transparent px-4 text-sm text-ink outline-none placeholder:text-ink-faint";
 const secondaryButtonClass =
-  "mt-2 inline-flex h-[58px] min-h-[58px] items-center justify-center gap-3 border border-[#1a1a1a] bg-[#0d0d0d]/95 px-6 py-4 text-sm text-neutral-300 transition-colors hover:border-[#333333] hover:text-white disabled:cursor-not-allowed disabled:opacity-50";
+  "mt-2 inline-flex h-[58px] min-h-[58px] items-center justify-center gap-3 border border-surface-3 bg-surface-1/95 px-6 py-4 text-sm text-ink transition-colors hover:border-line-strong hover:text-ink disabled:cursor-not-allowed disabled:opacity-50";
 const initialDisableTwoFactorState: DisableTwoFactorState = { status: "idle" };
 const initialRegenerateBackupCodesState: RegenerateBackupCodesState = {
   status: "idle",
@@ -34,7 +34,7 @@ export function TwoFactorEnabledPanel() {
 
   if (disableState.status === "success") {
     return (
-      <p className="text-sm text-neutral-300">
+      <p className="text-sm text-ink">
         Two-factor authentication is now disabled on your account.
       </p>
     );
@@ -42,27 +42,27 @@ export function TwoFactorEnabledPanel() {
 
   return (
     <div className="grid gap-8">
-      <p className="text-sm text-neutral-300">
+      <p className="text-sm text-ink">
         Two-factor authentication is enabled on your account.
       </p>
 
       <div>
-        <h3 className="mb-3 text-sm text-white">Recovery codes</h3>
+        <h3 className="mb-3 text-sm text-ink">Recovery codes</h3>
         {regenerateState.status === "success" ? (
-          <ul className="grid grid-cols-2 gap-2 border border-[#1a1a1a] bg-[#0d0d0d] p-4 font-mono text-sm text-neutral-300">
+          <ul className="grid grid-cols-2 gap-2 border border-surface-3 bg-surface-1 p-4 font-mono text-sm text-ink">
             {regenerateState.backupCodes.map((code) => (
               <li key={code}>{code}</li>
             ))}
           </ul>
         ) : (
           <form action={regenerateFormAction} className="grid gap-4">
-            <p className="text-sm text-neutral-400">
+            <p className="text-sm text-ink-muted">
               Generating new recovery codes invalidates your old ones.
             </p>
             <div className="group">
               <div className={inputWrapperClass}>
                 <LockKeyhole
-                  className="ml-4 h-5 w-5 text-neutral-600"
+                  className="ml-4 h-5 w-5 text-ink-faint"
                   strokeWidth={1.7}
                   aria-hidden="true"
                 />
@@ -94,21 +94,21 @@ export function TwoFactorEnabledPanel() {
         )}
       </div>
 
-      <div className="border-t border-[#1a1a1a] pt-8">
-        <h3 className="mb-3 text-sm text-white">
+      <div className="border-t border-surface-3 pt-8">
+        <h3 className="mb-3 text-sm text-ink">
           Disable two-factor authentication
         </h3>
         <form action={disableFormAction} className="grid gap-4">
           <div className="group">
             <label
               htmlFor="disable-password"
-              className="mb-3 block font-mono text-[11px] uppercase tracking-[0.22em] text-neutral-500"
+              className="mb-3 block font-mono text-[11px] uppercase tracking-[0.22em] text-ink-muted"
             >
               Password
             </label>
             <div className={inputWrapperClass}>
               <LockKeyhole
-                className="ml-4 h-5 w-5 text-neutral-600"
+                className="ml-4 h-5 w-5 text-ink-faint"
                 strokeWidth={1.7}
                 aria-hidden="true"
               />
@@ -126,13 +126,13 @@ export function TwoFactorEnabledPanel() {
           <div className="group">
             <label
               htmlFor="disable-code"
-              className="mb-3 block font-mono text-[11px] uppercase tracking-[0.22em] text-neutral-500"
+              className="mb-3 block font-mono text-[11px] uppercase tracking-[0.22em] text-ink-muted"
             >
               Two-factor or recovery code
             </label>
             <div className={inputWrapperClass}>
               <KeyRound
-                className="ml-4 h-5 w-5 text-neutral-600"
+                className="ml-4 h-5 w-5 text-ink-faint"
                 strokeWidth={1.7}
                 aria-hidden="true"
               />

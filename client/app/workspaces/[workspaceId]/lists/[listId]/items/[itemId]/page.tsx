@@ -43,7 +43,7 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-[#080808] px-6 py-12 text-neutral-300">
+    <main className="min-h-screen bg-canvas px-6 py-12 text-ink">
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 flex items-center gap-4">
           <span className="h-px w-14 bg-[#ff6b4a]" />

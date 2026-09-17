@@ -33,42 +33,42 @@ export default async function WorkspacePage({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-[#232323] bg-[#0d0d0d] px-7">
+      <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
         <div className="flex items-center gap-2">
-          <span className="font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.08em] text-[#5a5a56]">
+          <span className="font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.08em] text-ink-faint">
             Workspace
           </span>
-          <ChevronRight className="h-3 w-3 text-[#5a5a56]" />
-          <span className="text-[13px] font-semibold text-[#e5e5e0]">Home</span>
+          <ChevronRight className="h-3 w-3 text-ink-faint" />
+          <span className="text-[13px] font-semibold text-ink">Home</span>
         </div>
         <div className="flex items-center gap-3">
           <button
             type="button"
             aria-label="Search"
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-[#333333] bg-[#141414] text-[#8f8f8a] hover:bg-[#1a1a1a] hover:text-[#e5e5e0]"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
           >
             <Search className="h-[15px] w-[15px]" />
           </button>
           <a
             href="/updates"
             aria-label="Updates"
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-[#333333] bg-[#141414] text-[#8f8f8a] hover:bg-[#1a1a1a] hover:text-[#e5e5e0]"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
           >
             <Bell className="h-[15px] w-[15px]" />
           </a>
         </div>
       </header>
 
-      <main className="flex-1 bg-[#080808] px-10 pb-16 pt-8">
+      <main className="flex-1 bg-canvas px-10 pb-16 pt-8">
         <div className="mx-auto max-w-6xl">
           <div className="mb-10">
             <div className="mb-2 font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.08em] text-[#ff8a70]">
               {dateLabel}
             </div>
-            <h1 className="text-[32px] font-semibold tracking-tight text-[#e5e5e0]">
+            <h1 className="text-[32px] font-semibold tracking-tight text-ink">
               {greeting}, {session.user.name}
             </h1>
-            <p className="mt-1 text-[13px] text-[#8f8f8a]">
+            <p className="mt-1 text-[13px] text-ink-muted">
               {timeLabel} — {data.workspaceName}
             </p>
           </div>

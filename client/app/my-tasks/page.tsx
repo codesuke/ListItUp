@@ -88,7 +88,7 @@ function myTasksHref(query: Query): string {
 const CHIP_BASE =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] tracking-[0.04em]";
 const CHIP_ACTIVE = `${CHIP_BASE} border-[#ff6b4a] bg-[#ff6b4a24] text-[#ff8a70]`;
-const CHIP_INACTIVE = `${CHIP_BASE} border-[#333333] bg-[#1a1a1a] text-[#8f8f8a] hover:text-[#e5e5e0]`;
+const CHIP_INACTIVE = `${CHIP_BASE} border-line-strong bg-surface-3 text-ink-muted hover:text-ink`;
 
 const SORT_OPTIONS: { value: MyTasksSortBy; label: string }[] = [
   { value: "SMART", label: "Smart" },
@@ -187,10 +187,10 @@ export default async function MyTasksPage({ searchParams }: Props) {
       userId={session.user.id}
     >
       <div className="flex min-h-screen flex-col">
-        <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-[#232323] bg-[#0d0d0d] px-7">
+        <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-[#e5e5e0]">My Tasks</span>
-            <span className="whitespace-nowrap rounded-[5px] bg-[#202020] px-[7px] py-[2px] font-[family-name:var(--font-mono-label)] text-[10px] font-semibold tracking-[0.05em] text-[#8f8f8a]">
+            <span className="text-[13px] font-semibold text-ink">My Tasks</span>
+            <span className="whitespace-nowrap rounded-[5px] bg-surface-4 px-[7px] py-[2px] font-[family-name:var(--font-mono-label)] text-[10px] font-semibold tracking-[0.05em] text-ink-muted">
               {scopeBadgeLabel}
             </span>
           </div>
@@ -198,23 +198,23 @@ export default async function MyTasksPage({ searchParams }: Props) {
             <button
               type="button"
               aria-label="Search"
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-[#333333] bg-[#141414] text-[#8f8f8a] hover:bg-[#1a1a1a] hover:text-[#e5e5e0]"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
             >
               <Search className="h-[15px] w-[15px]" />
             </button>
             <a
               href="/updates"
               aria-label="Updates"
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-[#333333] bg-[#141414] text-[#8f8f8a] hover:bg-[#1a1a1a] hover:text-[#e5e5e0]"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
             >
               <Bell className="h-[15px] w-[15px]" />
             </a>
           </div>
         </header>
 
-        <main className="flex-1 bg-[#080808] px-10 pb-16 pt-8">
+        <main className="flex-1 bg-canvas px-10 pb-16 pt-8">
           <div className="mx-auto max-w-6xl">
-            <nav className="mb-5 flex flex-wrap items-center gap-6 border-b border-[#232323]">
+            <nav className="mb-5 flex flex-wrap items-center gap-6 border-b border-line">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -223,8 +223,8 @@ export default async function MyTasksPage({ searchParams }: Props) {
                     href={myTasksHref({ ...query, tab: tab.key === "list" ? undefined : tab.key })}
                     className={
                       activeTab === tab.key
-                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-[#e5e5e0]"
-                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-[#8f8f8a] hover:text-[#e5e5e0]"
+                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-ink"
+                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted hover:text-ink"
                     }
                   >
                     <Icon className="h-3.5 w-3.5" /> {tab.label}
@@ -273,22 +273,22 @@ export default async function MyTasksPage({ searchParams }: Props) {
                     <input type="hidden" name="archived" value={query.archived ?? ""} />
                     <input type="hidden" name="sort" value={sortBy} />
                     <input type="hidden" name="group" value={groupBy} />
-                    <div className="flex h-[30px] items-center gap-1.5 rounded-[6px] border border-[#333333] bg-[#141414] px-2.5">
-                      <Search className="h-3.5 w-3.5 flex-shrink-0 text-[#5a5a56]" />
+                    <div className="flex h-[30px] items-center gap-1.5 rounded-[6px] border border-line-strong bg-surface-2 px-2.5">
+                      <Search className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
                       <input
                         type="search"
                         name="q"
                         defaultValue={search}
                         aria-label="Search your Items"
                         placeholder="Search…"
-                        className="w-32 bg-transparent text-[12.5px] text-[#e5e5e0] outline-none placeholder:text-[#5a5a56]"
+                        className="w-32 bg-transparent text-[12.5px] text-ink outline-none placeholder:text-ink-faint"
                       />
                     </div>
                   </form>
                 </div>
 
                 <div className="mb-5 flex flex-wrap items-center gap-2">
-                  <span className="font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.08em] text-[#5a5a56]">
+                  <span className="font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.08em] text-ink-faint">
                     Sort:
                   </span>
                   {SORT_OPTIONS.map((option) => (
@@ -300,7 +300,7 @@ export default async function MyTasksPage({ searchParams }: Props) {
                       {option.label}
                     </a>
                   ))}
-                  <span className="ml-2 font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.08em] text-[#5a5a56]">
+                  <span className="ml-2 font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.08em] text-ink-faint">
                     Group:
                   </span>
                   {GROUP_OPTIONS.map((option) => (
@@ -323,7 +323,7 @@ export default async function MyTasksPage({ searchParams }: Props) {
                 />
 
                 {!includeCompleted && !includeArchived && (
-                  <p className="mt-3 text-[11.5px] text-[#5a5a56]">
+                  <p className="mt-3 text-[11.5px] text-ink-faint">
                     Complete and Archived items are hidden by default — use the filter chips above to reveal them.
                   </p>
                 )}
@@ -331,7 +331,7 @@ export default async function MyTasksPage({ searchParams }: Props) {
             ) : activeTab === "board" ? (
               <>
                 <div className="mb-5 flex flex-wrap items-center gap-2">
-                  <span className="font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.08em] text-[#5a5a56]">
+                  <span className="font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.08em] text-ink-faint">
                     Group by
                   </span>
                   {BOARD_GROUP_BY_OPTIONS.map((option) => (

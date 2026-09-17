@@ -76,7 +76,7 @@ function CompleteToggle({
       <button
         type="submit"
         aria-label="Mark complete"
-        className="h-4 w-4 flex-shrink-0 rounded-[5px] border-[1.5px] border-[#333333] transition-colors hover:border-[#ff6b4a]"
+        className="h-4 w-4 flex-shrink-0 rounded-[5px] border-[1.5px] border-line-strong transition-colors hover:border-[#ff6b4a]"
       />
     </form>
   );
@@ -99,13 +99,13 @@ function MyTaskRow({
   const badge = myTaskRowBadge(item, now);
 
   return (
-    <div className="flex items-center gap-3 rounded-[8px] px-2.5 py-[9px] transition-colors hover:bg-[#1a1a1a]">
+    <div className="flex items-center gap-3 rounded-[8px] px-2.5 py-[9px] transition-colors hover:bg-surface-3">
       <CompleteToggle canComplete={canComplete} boundComplete={boundComplete} />
-      <a href={myTaskItemHref(item, item.id)} className="min-w-0 flex-1 truncate text-[13.5px] text-[#e5e5e0] hover:underline">
-        {item.hasParent && <span className="mr-1 text-[#5a5a56]">↳</span>}
+      <a href={myTaskItemHref(item, item.id)} className="min-w-0 flex-1 truncate text-[13.5px] text-ink hover:underline">
+        {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
         {item.title}
       </a>
-      <span className="whitespace-nowrap rounded-full border border-[#333333] bg-[#1a1a1a] px-2 py-0.5 font-[family-name:var(--font-mono-label)] text-[10.5px] text-[#8f8f8a]">
+      <span className="whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2 py-0.5 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted">
         {myTaskWorkspaceLabel(item)}
       </span>
       <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: PRIORITY_DOT_COLOR[item.priority] }} />
@@ -139,14 +139,14 @@ export function MyTasksList({
 
   if (isEmpty) {
     return (
-      <div className="rounded-[12px] border border-dashed border-[#232323] px-4 py-16 text-center text-sm text-[#5a5a56]">
+      <div className="rounded-[12px] border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
         No Items here — you&apos;re all caught up.
       </div>
     );
   }
 
   return (
-    <div className="rounded-[12px] border border-[#232323] bg-[#141414] p-2">
+    <div className="rounded-[12px] border border-line bg-surface-2 p-2">
       {groups.map((group) => (
         <div key={group.key}>
           {group.label && <GroupHeader groupKey={group.key} label={group.label} />}

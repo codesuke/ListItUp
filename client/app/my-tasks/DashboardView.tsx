@@ -2,7 +2,7 @@ import { BreakdownWidget, CountTile } from "@/components/workspace/DashboardWidg
 import type { MyTasksDashboardData } from "./page-data";
 
 const STATE_BAR_COLOR: Record<MyTasksDashboardData["byState"][number]["state"], string> = {
-  TO_DO: "bg-[#5a5a56]",
+  TO_DO: "bg-ink-faint",
   IN_PROGRESS: "bg-[#5b9dff]",
   BLOCKED: "bg-[#f5b642]",
   COMPLETE: "bg-[#3ecf8e]",
@@ -44,7 +44,7 @@ export function DashboardView({ counts, byState, byWorkspace }: MyTasksDashboard
         />
       </div>
 
-      <p className="text-[11.5px] text-[#5a5a56]">
+      <p className="text-[11.5px] text-ink-faint">
         A trimmed personal Dashboard — counts and breakdowns only, scoped to Items assigned to you across every
         Workspace and your Personal Space.
       </p>

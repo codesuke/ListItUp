@@ -13,18 +13,18 @@ export function ItemDrawer({ sectionLabel, children }: { sectionLabel: string; c
 
   return (
     <aside
-      className="flex w-[380px] flex-shrink-0 flex-col overflow-y-auto border-l border-[#232323] bg-[#0d0d0d]"
+      className="flex w-[380px] flex-shrink-0 flex-col overflow-y-auto border-l border-line bg-surface-1"
       style={{ maxHeight: "100vh" }}
     >
-      <div className="flex flex-shrink-0 items-center justify-between border-b border-[#232323] p-5">
-        <span className="font-[family-name:var(--font-mono-label)] text-[10.5px] uppercase tracking-[0.08em] text-[#5a5a56]">
+      <div className="flex flex-shrink-0 items-center justify-between border-b border-line p-5">
+        <span className="font-[family-name:var(--font-mono-label)] text-[10.5px] uppercase tracking-[0.08em] text-ink-faint">
           {sectionLabel}
         </span>
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="Close"
-          className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] border border-[#333333] bg-[#141414] text-[#8f8f8a] hover:bg-[#1a1a1a] hover:text-[#e5e5e0]"
+          className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
         >
           <X className="h-3.5 w-3.5" />
         </button>

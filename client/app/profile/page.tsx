@@ -15,7 +15,7 @@ export default async function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080808] px-6 py-12 text-neutral-300">
+    <main className="min-h-screen bg-canvas px-6 py-12 text-ink">
       <div className="mx-auto max-w-xl">
         <div className="mb-8 flex items-center gap-4">
           <span className="h-px w-14 bg-[#ff6b4a]" />
@@ -24,7 +24,7 @@ export default async function ProfilePage() {
           </span>
         </div>
 
-        <h1 className="text-3xl font-light text-white">{data.name}</h1>
+        <h1 className="text-3xl font-light text-ink">{data.name}</h1>
 
         <div className="mt-8 flex items-center gap-4">
           {data.image ? (
@@ -34,26 +34,26 @@ export default async function ProfilePage() {
             <img
               src={data.image}
               alt=""
-              className="h-16 w-16 rounded-full border border-[#1a1a1a] object-cover"
+              className="h-16 w-16 rounded-full border border-surface-3 object-cover"
             />
           ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[#1a1a1a] bg-[#0d0d0d]">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-surface-3 bg-surface-1">
               <UserIcon
-                className="h-7 w-7 text-neutral-600"
+                className="h-7 w-7 text-ink-faint"
                 strokeWidth={1.7}
                 aria-hidden="true"
               />
             </div>
           )}
           {data.aboutMe ? (
-            <p className="max-w-sm text-sm leading-6 text-neutral-400">
+            <p className="max-w-sm text-sm leading-6 text-ink-muted">
               {data.aboutMe}
             </p>
           ) : null}
         </div>
 
-        <section className="mt-10 border-t border-[#1a1a1a] pt-10">
-          <h2 className="mb-4 text-lg font-light text-white">
+        <section className="mt-10 border-t border-surface-3 pt-10">
+          <h2 className="mb-4 text-lg font-light text-ink">
             Edit your profile
           </h2>
           <EditProfileForm

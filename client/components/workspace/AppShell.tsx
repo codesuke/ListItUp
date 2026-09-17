@@ -34,7 +34,7 @@ export async function AppShell({
 
   return (
     <div
-      className={`${inter.variable} ${jetBrainsMono.variable} flex min-h-screen bg-[#080808] font-[family-name:var(--font-display)]`}
+      className={`${inter.variable} ${jetBrainsMono.variable} flex min-h-screen bg-canvas font-[family-name:var(--font-display)]`}
     >
       <WorkspaceSidebar
         currentWorkspaceId={currentWorkspaceId}

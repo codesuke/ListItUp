@@ -48,7 +48,7 @@ const EMPTY_MESSAGE: Record<UpdatesTab, string> = {
 const CHIP_BASE =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] tracking-[0.04em]";
 const CHIP_ACTIVE = `${CHIP_BASE} border-[#ff6b4a] bg-[#ff6b4a24] text-[#ff8a70]`;
-const CHIP_INACTIVE = `${CHIP_BASE} border-[#333333] bg-[#1a1a1a] text-[#8f8f8a] hover:text-[#e5e5e0]`;
+const CHIP_INACTIVE = `${CHIP_BASE} border-line-strong bg-surface-3 text-ink-muted hover:text-ink`;
 
 type Query = { tab?: string; category?: string };
 type Props = { searchParams: Promise<Query> };
@@ -94,23 +94,23 @@ export default async function UpdatesPage({ searchParams }: Props) {
       userId={session.user.id}
     >
       <div className="flex min-h-screen flex-col">
-        <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-[#232323] bg-[#0d0d0d] px-7">
+        <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-[#e5e5e0]">Updates</span>
+            <span className="text-[13px] font-semibold text-ink">Updates</span>
             {data.unreadCount > 0 && <StatusBadge tone="red">{data.unreadCount} unread</StatusBadge>}
           </div>
           <a
             href="/settings/notifications"
-            className="flex items-center gap-1.5 text-[12px] text-[#8f8f8a] hover:text-[#e5e5e0]"
+            className="flex items-center gap-1.5 text-[12px] text-ink-muted hover:text-ink"
           >
             <Settings className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
             Manage Notifications
           </a>
         </header>
 
-        <main className="flex-1 bg-[#080808] px-10 pb-16 pt-8">
+        <main className="flex-1 bg-canvas px-10 pb-16 pt-8">
           <div className="mx-auto max-w-3xl">
-            <nav className="mb-5 flex flex-wrap items-center gap-6 border-b border-[#232323]">
+            <nav className="mb-5 flex flex-wrap items-center gap-6 border-b border-line">
               {TABS.map((t) => {
                 const Icon = t.icon;
                 return (
@@ -119,8 +119,8 @@ export default async function UpdatesPage({ searchParams }: Props) {
                     href={updatesHref({ tab: t.key === "activity" ? undefined : t.key })}
                     className={
                       tab === t.key
-                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-[#e5e5e0]"
-                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-[#8f8f8a] hover:text-[#e5e5e0]"
+                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-ink"
+                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted hover:text-ink"
                     }
                   >
                     <Icon className="h-3.5 w-3.5" /> {t.label}

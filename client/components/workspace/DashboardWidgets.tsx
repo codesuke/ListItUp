@@ -1,10 +1,10 @@
 // Shared by List Dashboard (app/workspaces/.../DashboardTab.tsx) and My
 // Tasks Dashboard (app/my-tasks/page.tsx, #52) so the count-tile/breakdown
 // card look stays identical across both without copy-adapting ~80 lines.
-export const DASHBOARD_CARD_CLASS = "rounded-[12px] border border-[#232323] bg-[#141414]";
+export const DASHBOARD_CARD_CLASS = "rounded-[12px] border border-line bg-surface-2";
 export const DASHBOARD_WIDGET_TITLE_CLASS =
-  "font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.1em] text-[#5a5a56]";
-const EMPTY_STATE_CLASS = "text-sm text-[#5a5a56]";
+  "font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.1em] text-ink-faint";
+const EMPTY_STATE_CLASS = "text-sm text-ink-faint";
 
 export function CountTile({ label, value, valueColor }: { label: string; value: number; valueColor?: string }) {
   return (
@@ -36,10 +36,10 @@ export function BreakdownWidget({
           {entries.map((entry) => (
             <div key={entry.label}>
               <div className="mb-1 flex justify-between text-[12px]">
-                <span className="text-[#8f8f8a]">{entry.label}</span>
-                <span className="text-[#5a5a56]">{entry.count}</span>
+                <span className="text-ink-muted">{entry.label}</span>
+                <span className="text-ink-faint">{entry.count}</span>
               </div>
-              <div className="h-1.5 rounded-full bg-[#202020]">
+              <div className="h-1.5 rounded-full bg-surface-4">
                 <div
                   className={`h-1.5 rounded-full ${entry.barColorClassName}`}
                   style={{ width: total > 0 ? `${(entry.count / total) * 100}%` : "0%" }}

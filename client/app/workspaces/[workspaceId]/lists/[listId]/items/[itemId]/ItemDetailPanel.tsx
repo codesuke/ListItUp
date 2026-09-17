@@ -9,15 +9,15 @@ import type { ItemDetailData } from "./page-data";
 import { StatePillControl } from "./StatePillControl";
 
 const FIELD_LABEL_CLASS =
-  "font-[family-name:var(--font-mono-label)] text-[10.5px] uppercase tracking-[0.08em] text-[#5a5a56]";
+  "font-[family-name:var(--font-mono-label)] text-[10.5px] uppercase tracking-[0.08em] text-ink-faint";
 const CHIP_CLASS =
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#333333] bg-[#1a1a1a] px-2.5 py-1 text-[12px] text-[#8f8f8a]";
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2.5 py-1 text-[12px] text-ink-muted";
 const SMALL_ICON_BTN_CLASS =
-  "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-[#333333] bg-[#141414] text-[#8f8f8a] hover:bg-[#1a1a1a] hover:text-[#e5e5e0]";
+  "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink";
 const INPUT_CLASS =
-  "rounded-[6px] border border-[#333333] bg-[#1a1a1a] px-2.5 py-1.5 text-[13px] text-[#e5e5e0] placeholder:text-[#5a5a56] focus:border-[#ff6b4a] focus:outline-none";
+  "rounded-[6px] border border-line-strong bg-surface-3 px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none";
 const GHOST_BUTTON_CLASS =
-  "rounded-[6px] border border-[#333333] px-3 py-1.5 text-[12.5px] text-[#8f8f8a] hover:border-[#ff6b4a] hover:text-[#e5e5e0]";
+  "rounded-[6px] border border-line-strong px-3 py-1.5 text-[12.5px] text-ink-muted hover:border-[#ff6b4a] hover:text-ink";
 const SECTION_CLASS = "flex flex-col gap-2";
 
 const STATE_LABEL: Record<string, string> = {
@@ -93,7 +93,7 @@ export function ItemDetailPanel({
       {data.parent && (
         <Link
           href={`/workspaces/${workspaceId}/lists/${listId}/items/${data.parent.id}`}
-          className="-mb-2 text-[12px] text-[#5a5a56] hover:text-[#8f8f8a]"
+          className="-mb-2 text-[12px] text-ink-faint hover:text-ink-muted"
         >
           ↑ {data.parent.title}
         </Link>
@@ -105,7 +105,7 @@ export function ItemDetailPanel({
             type="text"
             name="title"
             defaultValue={data.title}
-            className="w-full bg-transparent text-[17px] font-semibold leading-snug text-[#e5e5e0] focus:outline-none"
+            className="w-full bg-transparent text-[17px] font-semibold leading-snug text-ink focus:outline-none"
           />
           <div className="grid grid-cols-3 gap-3">
             <div>
@@ -145,7 +145,7 @@ export function ItemDetailPanel({
           </button>
         </form>
       ) : (
-        <h2 className="text-[17px] font-semibold leading-snug text-[#e5e5e0]">{data.title}</h2>
+        <h2 className="text-[17px] font-semibold leading-snug text-ink">{data.title}</h2>
       )}
 
       {/* State */}
@@ -153,7 +153,7 @@ export function ItemDetailPanel({
         <div className={FIELD_LABEL_CLASS}>State</div>
         {data.state === "ARCHIVED" ? (
           <div className="flex items-center gap-3">
-            <span className="text-[13px] text-[#e5e5e0]">Archived</span>
+            <span className="text-[13px] text-ink">Archived</span>
             {data.canEdit && (
               <form action={boundRestore}>
                 <button type="submit" className={GHOST_BUTTON_CLASS}>
@@ -176,7 +176,7 @@ export function ItemDetailPanel({
             </form>
           </div>
         ) : (
-          <span className="text-[13px] text-[#e5e5e0]">{STATE_LABEL[data.state]}</span>
+          <span className="text-[13px] text-ink">{STATE_LABEL[data.state]}</span>
         )}
         {data.state === "BLOCKED" && !data.canEdit && data.blockerReason && (
           <div className="rounded-[6px] border border-[#f5b64240] bg-[#f5b64214] px-2.5 py-2 text-[12.5px] text-[#f5b642]">
@@ -192,13 +192,13 @@ export function ItemDetailPanel({
           {data.assignees.map((assignee) => (
             <div key={assignee.userId} className="flex items-center gap-1.5">
               <MemberAvatar name={assignee.name} />
-              <span className="text-[13px] text-[#e5e5e0]">{assignee.name}</span>
+              <span className="text-[13px] text-ink">{assignee.name}</span>
               {data.canEdit && (
                 <form action={boundRemoveAssignee(assignee.userId)}>
                   <button
                     type="submit"
                     aria-label={`Remove ${assignee.name}`}
-                    className="text-[12px] text-[#5a5a56] hover:text-[#ff8a70]"
+                    className="text-[12px] text-ink-faint hover:text-[#ff8a70]"
                   >
                     ×
                   </button>
@@ -206,7 +206,7 @@ export function ItemDetailPanel({
               )}
             </div>
           ))}
-          {data.assignees.length === 0 && <span className="text-[13px] text-[#5a5a56]">No one yet.</span>}
+          {data.assignees.length === 0 && <span className="text-[13px] text-ink-faint">No one yet.</span>}
         </div>
         {data.canEdit && unassignedMembers.length > 0 && (
           <form action={boundAddAssignee} className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export function ItemDetailPanel({
         </div>
         <div>
           <div className={`${FIELD_LABEL_CLASS} mb-2`}>Due date</div>
-          <span className="text-[13px] text-[#e5e5e0]">
+          <span className="text-[13px] text-ink">
             {data.dueDate
               ? data.dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
               : "None"}
@@ -243,7 +243,7 @@ export function ItemDetailPanel({
         </div>
         <div>
           <div className={`${FIELD_LABEL_CLASS} mb-2`}>Created by</div>
-          <span className="text-[13px] text-[#e5e5e0]">{data.creatorName}</span>
+          <span className="text-[13px] text-ink">{data.creatorName}</span>
         </div>
       </div>
 
@@ -256,14 +256,14 @@ export function ItemDetailPanel({
               {label.name}
               {data.canEdit && (
                 <form action={boundRemoveLabel(label.id)}>
-                  <button type="submit" className="text-[#5a5a56] hover:text-[#ff8a70]">
+                  <button type="submit" className="text-ink-faint hover:text-[#ff8a70]">
                     ×
                   </button>
                 </form>
               )}
             </span>
           ))}
-          {data.labels.length === 0 && <span className="text-[13px] text-[#5a5a56]">None yet.</span>}
+          {data.labels.length === 0 && <span className="text-[13px] text-ink-faint">None yet.</span>}
           {data.canEdit && data.availableLabels.length > 0 && (
             <form action={boundApplyExistingLabel} className="flex items-center gap-1.5">
               <select name="labelId" required defaultValue="" className={INPUT_CLASS}>
@@ -298,7 +298,7 @@ export function ItemDetailPanel({
         <div className="flex flex-col gap-2">
           {data.customFieldDefinitions.map((definition) => (
             <div key={definition.id} className="flex items-center justify-between gap-3 text-[13px]">
-              <span className="text-[#8f8f8a]">{definition.name}</span>
+              <span className="text-ink-muted">{definition.name}</span>
               {data.canEdit ? (
                 <form action={boundSetCustomFieldValue(definition.id)} className="flex items-center gap-2">
                   {definition.type === "DROPDOWN" ? (
@@ -322,7 +322,7 @@ export function ItemDetailPanel({
                       className={INPUT_CLASS}
                     />
                   )}
-                  <button type="submit" className="text-[12px] text-[#5a5a56] hover:text-[#ff8a70]">
+                  <button type="submit" className="text-[12px] text-ink-faint hover:text-[#ff8a70]">
                     Save
                   </button>
                 </form>
@@ -331,7 +331,7 @@ export function ItemDetailPanel({
                   className={
                     definition.type === "DROPDOWN"
                       ? undefined
-                      : "font-[family-name:var(--font-mono-label)] text-[#e5e5e0]"
+                      : "font-[family-name:var(--font-mono-label)] text-ink"
                   }
                 >
                   {data.customFieldValues[definition.id] ?? "—"}
@@ -340,7 +340,7 @@ export function ItemDetailPanel({
             </div>
           ))}
           {data.customFieldDefinitions.length === 0 && (
-            <span className="text-[13px] text-[#5a5a56]">None defined yet.</span>
+            <span className="text-[13px] text-ink-faint">None defined yet.</span>
           )}
         </div>
         {data.canDefineCustomFields && (
@@ -371,17 +371,17 @@ export function ItemDetailPanel({
         <div className="flex flex-col gap-1">
           {data.blockedBy.map((blocker) => (
             <div key={blocker.id} className="flex items-center gap-2 py-1 text-[13px]">
-              <ArrowLeft className="h-3.5 w-3.5 flex-shrink-0 text-[#5a5a56]" />
-              <span className="text-[#8f8f8a]">Blocked by</span>
+              <ArrowLeft className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
+              <span className="text-ink-muted">Blocked by</span>
               <Link
                 href={`/workspaces/${workspaceId}/lists/${blocker.listId}/items/${blocker.id}`}
-                className="min-w-0 flex-1 truncate text-[#e5e5e0] hover:underline"
+                className="min-w-0 flex-1 truncate text-ink hover:underline"
               >
                 {blocker.title}
               </Link>
               {data.canEdit && (
                 <form action={boundRemoveDependency(blocker.id, data.itemId)}>
-                  <button type="submit" className="text-[12px] text-[#5a5a56] hover:text-[#ff8a70]">
+                  <button type="submit" className="text-[12px] text-ink-faint hover:text-[#ff8a70]">
                     Remove
                   </button>
                 </form>
@@ -390,17 +390,17 @@ export function ItemDetailPanel({
           ))}
           {data.blocking.map((blocked) => (
             <div key={blocked.id} className="flex items-center gap-2 py-1 text-[13px]">
-              <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-[#5a5a56]" />
-              <span className="text-[#8f8f8a]">Blocks</span>
+              <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
+              <span className="text-ink-muted">Blocks</span>
               <Link
                 href={`/workspaces/${workspaceId}/lists/${blocked.listId}/items/${blocked.id}`}
-                className="min-w-0 flex-1 truncate text-[#e5e5e0] hover:underline"
+                className="min-w-0 flex-1 truncate text-ink hover:underline"
               >
                 {blocked.title}
               </Link>
               {data.canEdit && (
                 <form action={boundRemoveDependency(data.itemId, blocked.id)}>
-                  <button type="submit" className="text-[12px] text-[#5a5a56] hover:text-[#ff8a70]">
+                  <button type="submit" className="text-[12px] text-ink-faint hover:text-[#ff8a70]">
                     Remove
                   </button>
                 </form>
@@ -408,7 +408,7 @@ export function ItemDetailPanel({
             </div>
           ))}
           {data.blockedBy.length === 0 && data.blocking.length === 0 && (
-            <span className="text-[13px] text-[#5a5a56]">None.</span>
+            <span className="text-[13px] text-ink-faint">None.</span>
           )}
         </div>
         {data.canEdit && (
@@ -457,16 +457,16 @@ export function ItemDetailPanel({
             <li key={attachment.id} className="flex items-center justify-between gap-2 text-[13px]">
               <a
                 href={`/api/workspaces/${workspaceId}/lists/${listId}/items/${data.itemId}/attachments/${attachment.id}`}
-                className="min-w-0 flex-1 truncate text-[#e5e5e0] hover:underline"
+                className="min-w-0 flex-1 truncate text-ink hover:underline"
               >
                 {attachment.fileName}
               </a>
-              <span className="flex-shrink-0 text-[11px] text-[#5a5a56]">
+              <span className="flex-shrink-0 text-[11px] text-ink-faint">
                 {formatAttachmentSize(attachment.sizeBytes)} · {attachment.uploaderName}
               </span>
             </li>
           ))}
-          {data.attachments.length === 0 && <li className="text-[13px] text-[#5a5a56]">None yet.</li>}
+          {data.attachments.length === 0 && <li className="text-[13px] text-ink-faint">None yet.</li>}
         </ul>
         {data.canEdit && (
           <form
@@ -479,7 +479,7 @@ export function ItemDetailPanel({
               type="file"
               name="file"
               required
-              className="flex-1 text-[12.5px] text-[#8f8f8a] file:mr-3 file:rounded-[6px] file:border file:border-[#333333] file:bg-[#1a1a1a] file:px-3 file:py-1.5 file:text-[12.5px] file:text-[#e5e5e0]"
+              className="flex-1 text-[12.5px] text-ink-muted file:mr-3 file:rounded-[6px] file:border file:border-line-strong file:bg-surface-3 file:px-3 file:py-1.5 file:text-[12.5px] file:text-ink"
             />
             <button type="submit" className={GHOST_BUTTON_CLASS}>
               Attach
@@ -495,14 +495,14 @@ export function ItemDetailPanel({
           {data.notes.map((note) => (
             <div key={note.id} className="flex gap-2">
               <MemberAvatar name={note.authorName} />
-              <div className="min-w-0 text-[13px] text-[#8f8f8a]">
-                <span className="font-medium text-[#e5e5e0]">{note.authorName}</span> — {note.body}
+              <div className="min-w-0 text-[13px] text-ink-muted">
+                <span className="font-medium text-ink">{note.authorName}</span> — {note.body}
                 {note.mentions.length > 0 && (
                   <span className="ml-1 text-[#ff8a70]">
                     {note.mentions.map((mention) => `@${mention.name}`).join(" ")}
                   </span>
                 )}
-                <div className="mt-0.5 text-[11px] text-[#5a5a56]">
+                <div className="mt-0.5 text-[11px] text-ink-faint">
                   {note.createdAt.toLocaleString(undefined, {
                     month: "short",
                     day: "numeric",
@@ -513,7 +513,7 @@ export function ItemDetailPanel({
               </div>
             </div>
           ))}
-          {data.notes.length === 0 && <span className="text-[13px] text-[#5a5a56]">None yet.</span>}
+          {data.notes.length === 0 && <span className="text-[13px] text-ink-faint">None yet.</span>}
         </div>
         {data.canEdit && (
           <form action={boundAddNote} className="flex flex-col gap-2">
@@ -521,7 +521,7 @@ export function ItemDetailPanel({
             {data.mentionCandidates.length > 0 && (
               <div className="flex flex-wrap gap-3">
                 {data.mentionCandidates.map((candidate) => (
-                  <label key={candidate.userId} className="flex items-center gap-1.5 text-[12px] text-[#8f8f8a]">
+                  <label key={candidate.userId} className="flex items-center gap-1.5 text-[12px] text-ink-muted">
                     <input type="checkbox" name="mentionedUserIds" value={candidate.userId} />@{candidate.name}
                   </label>
                 ))}
@@ -536,7 +536,7 @@ export function ItemDetailPanel({
 
       {/* Personal note */}
       {data.isAssignee && (
-        <div className="rounded-[8px] border border-dashed border-[#333333] bg-[#1a1a1a] p-3">
+        <div className="rounded-[8px] border border-dashed border-line-strong bg-surface-3 p-3">
           <div className={`${FIELD_LABEL_CLASS} mb-1.5 flex items-center gap-1.5`}>
             <Lock className="h-3 w-3" /> Personal note — only visible to you
           </div>
@@ -563,13 +563,13 @@ export function ItemDetailPanel({
             <li key={child.id}>
               <Link
                 href={`/workspaces/${workspaceId}/lists/${listId}/items/${child.id}`}
-                className="text-[13px] text-[#e5e5e0] hover:underline"
+                className="text-[13px] text-ink hover:underline"
               >
                 ↳ {child.title}
               </Link>
             </li>
           ))}
-          {data.children.length === 0 && <li className="text-[13px] text-[#5a5a56]">None yet.</li>}
+          {data.children.length === 0 && <li className="text-[13px] text-ink-faint">None yet.</li>}
         </ul>
         {data.canEdit && (
           <form action={boundAddChild} className="flex items-center gap-2">

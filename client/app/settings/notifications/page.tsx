@@ -38,22 +38,22 @@ export default async function NotificationsSettingsPage() {
       userId={session.user.id}
     >
       <div className="flex min-h-screen flex-col">
-        <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-[#232323] bg-[#0d0d0d] px-7">
+        <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
           <div className="flex items-center gap-2">
-            <a href="/updates" className="text-[13px] text-[#5a5a56] hover:text-[#8f8f8a]">
+            <a href="/updates" className="text-[13px] text-ink-faint hover:text-ink-muted">
               Updates
             </a>
-            <ChevronRight className="h-3 w-3 text-[#5a5a56]" />
-            <span className="text-[13px] font-semibold text-[#e5e5e0]">Manage Notifications</span>
+            <ChevronRight className="h-3 w-3 text-ink-faint" />
+            <span className="text-[13px] font-semibold text-ink">Manage Notifications</span>
           </div>
         </header>
 
-        <main className="flex-1 bg-[#080808] px-10 pb-16 pt-8">
+        <main className="flex-1 bg-canvas px-10 pb-16 pt-8">
           <div className="mx-auto max-w-xl">
-            <h1 className="mb-1.5 text-[22px] font-semibold tracking-tight text-[#e5e5e0]">
+            <h1 className="mb-1.5 text-[22px] font-semibold tracking-tight text-ink">
               Manage Notifications
             </h1>
-            <p className="mb-8 text-[13px] text-[#8f8f8a]">
+            <p className="mb-8 text-[13px] text-ink-muted">
               Choose which changes notify you. Turning a type off stops new notifications of
               that kind from being created for you.
             </p>

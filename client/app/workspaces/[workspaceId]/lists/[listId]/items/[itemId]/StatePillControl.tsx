@@ -67,7 +67,7 @@ export function StatePillControl({
             defaultValue={currentBlockerReason ?? ""}
             placeholder="Blocker reason (required)"
             required
-            className="rounded-[6px] border border-[#333333] bg-[#1a1a1a] px-3 py-2 text-[12.5px] text-[#e5e5e0] placeholder:text-[#5a5a56] focus:border-[#ff6b4a] focus:outline-none"
+            className="rounded-[6px] border border-line-strong bg-surface-3 px-3 py-2 text-[12.5px] text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
           />
           <button
             type="submit"

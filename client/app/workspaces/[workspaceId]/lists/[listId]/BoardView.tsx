@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 
+import { BlockerReasonDialog } from "@/components/board/BlockerReasonDialog";
+import { DraggableCard } from "@/components/board/DraggableCard";
+import { DroppableColumn } from "@/components/board/DroppableColumn";
 import type { BoardColumn, BoardItem } from "@/lib/list/list-board";
 
 import type { ItemSummary } from "./page-data";
@@ -42,7 +46,7 @@ function MoveControl({
       <select
         value={target}
         onChange={(event) => setTarget(event.target.value)}
-        className="rounded-md border border-neutral-700 bg-[#0d0d0d] px-2 py-1 text-xs text-neutral-300"
+        className="rounded-md border border-line-strong bg-surface-1 px-2 py-1 text-xs text-ink"
       >
         <option value="">Move to…</option>
         {otherColumns.map((column) => (
@@ -57,13 +61,13 @@ function MoveControl({
           value={blockerReason}
           onChange={(event) => setBlockerReason(event.target.value)}
           placeholder="Blocker reason (required)"
-          className="rounded-md border border-neutral-700 bg-[#0d0d0d] px-2 py-1 text-xs text-neutral-300 placeholder:text-neutral-600"
+          className="rounded-md border border-line-strong bg-surface-1 px-2 py-1 text-xs text-ink placeholder:text-ink-faint"
         />
       )}
       <button
         type="submit"
         disabled={!target || (needsBlockerReason && !blockerReason.trim())}
-        className="self-start text-xs text-neutral-500 hover:text-[#ff8a70] disabled:cursor-not-allowed disabled:opacity-40"
+        className="self-start text-xs text-ink-muted hover:text-[#ff8a70] disabled:cursor-not-allowed disabled:opacity-40"
       >
         Move
       </button>
@@ -93,19 +97,54 @@ export function BoardView({
   boundRestoreItem: (formData: FormData) => Promise<void>;
 }) {
   const [showArchived, setShowArchived] = useState(false);
+  const [activeItem, setActiveItem] = useState<BoardItem | null>(null);
+  const [pendingBlockerDrop, setPendingBlockerDrop] = useState<{ itemId: string; columnKey: string } | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  function findItem(itemId: string): { item: BoardItem; columnKey: string } | null {
+    for (const column of columns) {
+      const item = column.items.find((candidate) => candidate.id === itemId);
+      if (item) {
+        return { item, columnKey: column.key };
+      }
+    }
+    return null;
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveItem(null);
+    const { active, over } = event;
+    if (!over) {
+      return;
+    }
+
+    const itemId = String(active.id);
+    const targetColumnKey = String(over.id);
+    const found = findItem(itemId);
+    if (!found || found.columnKey === targetColumnKey) {
+      return;
+    }
+
+    if (groupBy === "STATE" && targetColumnKey === "BLOCKED") {
+      setPendingBlockerDrop({ itemId, columnKey: targetColumnKey });
+      return;
+    }
+
+    void boundMoveItem(itemId, targetColumnKey);
+  }
 
   return (
     <div className="mt-6">
       <div className="mb-4 flex flex-wrap items-center gap-3">
         {canManage && (
           <form action={boundSetGroupBy} className="flex items-center gap-2">
-            <label className="font-mono text-[11px] uppercase tracking-wider text-neutral-500">
+            <label className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
               Group by
             </label>
             <select
               name="groupBy"
               defaultValue={groupBy}
-              className="rounded-md border border-neutral-700 bg-[#141414] px-3 py-1.5 text-sm text-neutral-200"
+              className="rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink"
             >
               <option value="STATE">State</option>
               <option value="SECTION">Section</option>
@@ -113,7 +152,7 @@ export function BoardView({
             </select>
             <button
               type="submit"
-              className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:border-[#ff6b4a] hover:text-white"
+              className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink hover:border-[#ff6b4a] hover:text-ink"
             >
               Apply
             </button>
@@ -126,7 +165,7 @@ export function BoardView({
           className={
             showArchived
               ? "rounded-full border border-[#ff6b4a] px-3 py-1 text-xs text-[#ff8a70]"
-              : "rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-400 hover:text-neutral-200"
+              : "rounded-full border border-line-strong px-3 py-1 text-xs text-ink-muted hover:text-ink"
           }
         >
           Archived ({archivedItems.length})
@@ -134,20 +173,20 @@ export function BoardView({
       </div>
 
       {showArchived ? (
-        <div className="rounded-lg border border-neutral-800 bg-[#0d0d0d]">
-          <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-2">
-            <span className="text-sm font-semibold text-white">Archived</span>
-            <span className="font-mono text-xs text-neutral-600">{archivedItems.length}</span>
+        <div className="rounded-lg border border-line bg-surface-1">
+          <div className="flex items-center justify-between border-b border-line px-3 py-2">
+            <span className="text-sm font-semibold text-ink">Archived</span>
+            <span className="font-mono text-xs text-ink-faint">{archivedItems.length}</span>
           </div>
           <div className="flex flex-col gap-2 p-2">
             {archivedItems.length === 0 ? (
-              <div className="px-2 py-4 text-center text-xs text-neutral-600">No archived Items.</div>
+              <div className="px-2 py-4 text-center text-xs text-ink-faint">No archived Items.</div>
             ) : (
               archivedItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-2 rounded-md border border-neutral-800 bg-[#141414] p-2">
+                <div key={item.id} className="flex items-center gap-2 rounded-md border border-line bg-surface-2 p-2">
                   <a
                     href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-                    className="flex-1 truncate text-sm text-neutral-300 hover:text-white hover:underline"
+                    className="flex-1 truncate text-sm text-ink hover:text-ink hover:underline"
                   >
                     {item.title}
                   </a>
@@ -155,7 +194,7 @@ export function BoardView({
                     <input type="hidden" name="itemId" value={item.id} />
                     <button
                       type="submit"
-                      className="rounded-md border border-neutral-700 px-3 py-1 text-xs text-neutral-300 hover:border-[#ff6b4a] hover:text-white"
+                      className="rounded-md border border-line-strong px-3 py-1 text-xs text-ink hover:border-[#ff6b4a] hover:text-ink"
                     >
                       Restore
                     </button>
@@ -166,57 +205,81 @@ export function BoardView({
           </div>
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {columns.map((column) => (
-            <div key={column.key} className="w-64 flex-shrink-0 rounded-lg border border-neutral-800 bg-[#0d0d0d]">
-              <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-2">
-                <span className="text-sm font-semibold text-white">{column.label}</span>
-                <span className="font-mono text-xs text-neutral-600">{column.items.length}</span>
+        <DndContext
+          sensors={sensors}
+          onDragStart={(event) => setActiveItem(findItem(String(event.active.id))?.item ?? null)}
+          onDragCancel={() => setActiveItem(null)}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {columns.map((column) => (
+              <div key={column.key} className="w-64 flex-shrink-0 rounded-lg border border-line bg-surface-1">
+                <div className="flex items-center justify-between border-b border-line px-3 py-2">
+                  <span className="text-sm font-semibold text-ink">{column.label}</span>
+                  <span className="font-mono text-xs text-ink-faint">{column.items.length}</span>
+                </div>
+                <DroppableColumn id={column.key} className="flex min-h-16 flex-col gap-2 p-2">
+                  {column.items.map((item) => (
+                    <DraggableCard key={item.id} id={item.id} disabled={!canManage}>
+                      <a
+                        href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
+                        className="block text-sm text-ink hover:text-ink hover:underline"
+                      >
+                        {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
+                        {item.title}
+                      </a>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-ink-muted">
+                        {item.priority !== "NORMAL" && (
+                          <span className="font-mono uppercase">{PRIORITY_LABEL[item.priority]}</span>
+                        )}
+                        {item.dueDate && (
+                          <span className="font-mono">
+                            {new Date(item.dueDate).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        )}
+                        {item.assignees.length > 0 && (
+                          <span className="font-mono">{item.assignees.map((a) => a.name).join(", ")}</span>
+                        )}
+                      </div>
+                      {canManage && (
+                        <MoveControl
+                          item={item}
+                          columns={columns}
+                          currentColumnKey={column.key}
+                          groupBy={groupBy}
+                          boundMoveItem={boundMoveItem}
+                        />
+                      )}
+                    </DraggableCard>
+                  ))}
+                  {column.items.length === 0 && (
+                    <div className="px-2 py-4 text-center text-xs text-ink-faint">Empty</div>
+                  )}
+                </DroppableColumn>
               </div>
-              <div className="flex flex-col gap-2 p-2">
-                {column.items.map((item) => (
-                  <div key={item.id} className="rounded-md border border-neutral-800 bg-[#141414] p-2">
-                    <a
-                      href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-                      className="block text-sm text-neutral-200 hover:text-white hover:underline"
-                    >
-                      {item.hasParent && <span className="mr-1 text-neutral-600">↳</span>}
-                      {item.title}
-                    </a>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-neutral-500">
-                      {item.priority !== "NORMAL" && (
-                        <span className="font-mono uppercase">{PRIORITY_LABEL[item.priority]}</span>
-                      )}
-                      {item.dueDate && (
-                        <span className="font-mono">
-                          {new Date(item.dueDate).toLocaleDateString(undefined, {
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </span>
-                      )}
-                      {item.assignees.length > 0 && (
-                        <span className="font-mono">{item.assignees.map((a) => a.name).join(", ")}</span>
-                      )}
-                    </div>
-                    {canManage && (
-                      <MoveControl
-                        item={item}
-                        columns={columns}
-                        currentColumnKey={column.key}
-                        groupBy={groupBy}
-                        boundMoveItem={boundMoveItem}
-                      />
-                    )}
-                  </div>
-                ))}
-                {column.items.length === 0 && (
-                  <div className="px-2 py-4 text-center text-xs text-neutral-600">Empty</div>
-                )}
+            ))}
+          </div>
+          <DragOverlay>
+            {activeItem && (
+              <div className="w-64 rotate-2 rounded-md border border-line-strong bg-surface-2 p-2 shadow-2xl">
+                <span className="block text-sm text-ink">{activeItem.title}</span>
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      )}
+
+      {pendingBlockerDrop && (
+        <BlockerReasonDialog
+          onCancel={() => setPendingBlockerDrop(null)}
+          onConfirm={(reason) => {
+            void boundMoveItem(pendingBlockerDrop.itemId, pendingBlockerDrop.columnKey, reason);
+            setPendingBlockerDrop(null);
+          }}
+        />
       )}
     </div>
   );

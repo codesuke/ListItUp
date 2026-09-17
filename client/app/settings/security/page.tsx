@@ -21,7 +21,7 @@ export default async function SecuritySettingsPage() {
     .sort((a, b) => Number(b.isCurrent) - Number(a.isCurrent));
 
   return (
-    <main className="min-h-screen bg-[#080808] px-6 py-12 text-neutral-300">
+    <main className="min-h-screen bg-canvas px-6 py-12 text-ink">
       <div className="mx-auto max-w-xl">
         <div className="mb-8 flex items-center gap-4">
           <span className="h-px w-14 bg-[#ff6b4a]" />
@@ -30,23 +30,23 @@ export default async function SecuritySettingsPage() {
           </span>
         </div>
 
-        <h1 className="text-3xl font-light text-white">Security</h1>
+        <h1 className="text-3xl font-light text-ink">Security</h1>
 
         <section className="mt-10">
-          <h2 className="mb-4 text-lg font-light text-white">Password</h2>
+          <h2 className="mb-4 text-lg font-light text-ink">Password</h2>
           <PasswordSettings />
         </section>
 
-        <section className="mt-10 border-t border-[#1a1a1a] pt-10">
-          <h2 className="mb-4 text-lg font-light text-white">Email address</h2>
+        <section className="mt-10 border-t border-surface-3 pt-10">
+          <h2 className="mb-4 text-lg font-light text-ink">Email address</h2>
           <EmailSettings
             currentEmail={session.user.email}
             twoFactorEnabled={Boolean(session.user.twoFactorEnabled)}
           />
         </section>
 
-        <section className="mt-10 border-t border-[#1a1a1a] pt-10">
-          <h2 className="mb-4 text-lg font-light text-white">
+        <section className="mt-10 border-t border-surface-3 pt-10">
+          <h2 className="mb-4 text-lg font-light text-ink">
             Active sessions
           </h2>
           <SessionsList sessions={sessions} />
@@ -54,9 +54,9 @@ export default async function SecuritySettingsPage() {
 
         <section
           id="two-factor-section"
-          className="mt-10 border-t border-[#1a1a1a] pt-10"
+          className="mt-10 border-t border-surface-3 pt-10"
         >
-          <h2 className="mb-4 text-lg font-light text-white">
+          <h2 className="mb-4 text-lg font-light text-ink">
             Two-factor authentication
           </h2>
           <TwoFactorSettings

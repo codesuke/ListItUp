@@ -43,7 +43,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
   const boundCreate = createListAction.bind(null, workspaceId);
 
   return (
-    <main className="min-h-screen bg-[#080808] px-6 py-12 text-neutral-300">
+    <main className="min-h-screen bg-canvas px-6 py-12 text-ink">
       <div className="mx-auto max-w-4xl">
         <div className="mb-8 flex items-center gap-4">
           <span className="h-px w-14 bg-[#ff6b4a]" />
@@ -52,15 +52,15 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
           </span>
         </div>
 
-        <h1 className="text-3xl font-light text-white">Lists</h1>
+        <h1 className="text-3xl font-light text-ink">Lists</h1>
 
-        <nav className="mt-6 flex items-center gap-6 border-b border-neutral-800 text-sm">
+        <nav className="mt-6 flex items-center gap-6 border-b border-line text-sm">
           <a
             href={`/workspaces/${workspaceId}/lists`}
             className={
               archived
-                ? "pb-3 text-neutral-500 hover:text-neutral-300"
-                : "border-b-2 border-[#ff6b4a] pb-3 text-white"
+                ? "pb-3 text-ink-muted hover:text-ink"
+                : "border-b-2 border-[#ff6b4a] pb-3 text-ink"
             }
           >
             Lists
@@ -69,8 +69,8 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
             href={`/workspaces/${workspaceId}/lists?tab=archived`}
             className={
               archived
-                ? "border-b-2 border-[#ff6b4a] pb-3 text-white"
-                : "pb-3 text-neutral-500 hover:text-neutral-300"
+                ? "border-b-2 border-[#ff6b4a] pb-3 text-ink"
+                : "pb-3 text-ink-muted hover:text-ink"
             }
           >
             Archived
@@ -79,7 +79,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
 
         <form
           method="GET"
-          className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border border-neutral-800 bg-[#0d0d0d] p-4"
+          className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface-1 p-4"
         >
           {archived && <input type="hidden" name="tab" value="archived" />}
           <input
@@ -87,12 +87,12 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
             name="search"
             defaultValue={search ?? ""}
             placeholder="Search Lists by name"
-            className="min-w-48 flex-1 rounded-md border border-neutral-700 bg-[#141414] px-3 py-1.5 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-[#ff6b4a] focus:outline-none"
+            className="min-w-48 flex-1 rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
           />
           <select
             name="status"
             defaultValue={status ?? ""}
-            className="rounded-md border border-neutral-700 bg-[#141414] px-3 py-1.5 text-sm text-neutral-200"
+            className="rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink"
           >
             <option value="">All Statuses</option>
             {STATUS_OPTIONS.map((option) => (
@@ -104,7 +104,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
           <select
             name="member"
             defaultValue={memberFilter ?? ""}
-            className="rounded-md border border-neutral-700 bg-[#141414] px-3 py-1.5 text-sm text-neutral-200"
+            className="rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink"
           >
             <option value="">All Members</option>
             {workspaceMembers.map((member) => (
@@ -113,13 +113,13 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
               </option>
             ))}
           </select>
-          <label className="flex items-center gap-2 text-sm text-neutral-400">
+          <label className="flex items-center gap-2 text-sm text-ink-muted">
             <input type="checkbox" name="starred" value="true" defaultChecked={starredOnly} />
             Starred only
           </label>
           <button
             type="submit"
-            className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:border-[#ff6b4a] hover:text-white"
+            className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink hover:border-[#ff6b4a] hover:text-ink"
           >
             Apply
           </button>
@@ -132,7 +132,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
               name="name"
               placeholder="New List name"
               required
-              className="flex-1 rounded-md border border-neutral-700 bg-[#141414] px-3 py-1.5 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-[#ff6b4a] focus:outline-none"
+              className="flex-1 rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
             />
             <button
               type="submit"
@@ -147,7 +147,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
           {lists.map((list) => (
             <li
               key={list.id}
-              className="flex items-center gap-4 rounded-lg border border-neutral-800 bg-[#0d0d0d] px-4 py-3"
+              className="flex items-center gap-4 rounded-lg border border-line bg-surface-1 px-4 py-3"
             >
               <form action={boundToggleStarred.bind(null, list.id)}>
                 <button
@@ -156,7 +156,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
                   className={
                     list.isStarredByViewer
                       ? "text-[#ff8a70]"
-                      : "text-neutral-600 hover:text-neutral-400"
+                      : "text-ink-faint hover:text-ink-muted"
                   }
                 >
                   ★
@@ -167,17 +167,17 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
                 href={`/workspaces/${workspaceId}/lists/${list.id}`}
                 className="min-w-0 flex-1 hover:underline"
               >
-                <div className="truncate text-sm font-medium text-white">{list.name}</div>
+                <div className="truncate text-sm font-medium text-ink">{list.name}</div>
                 {list.description && (
-                  <div className="truncate text-xs text-neutral-500">{list.description}</div>
+                  <div className="truncate text-xs text-ink-muted">{list.description}</div>
                 )}
               </a>
 
-              <span className="rounded-full border border-neutral-700 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-neutral-400">
+              <span className="rounded-full border border-line-strong px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-muted">
                 {list.status.replaceAll("_", " ")}
               </span>
 
-              <span className="font-mono text-xs text-neutral-600">
+              <span className="font-mono text-xs text-ink-faint">
                 {list.memberCount} {list.memberCount === 1 ? "member" : "members"}
               </span>
 
@@ -185,7 +185,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
                 <form action={boundRestore.bind(null, list.id)}>
                   <button
                     type="submit"
-                    className="rounded-md border border-neutral-700 px-3 py-1 text-xs text-neutral-300 hover:border-[#ff6b4a] hover:text-white"
+                    className="rounded-md border border-line-strong px-3 py-1 text-xs text-ink hover:border-[#ff6b4a] hover:text-ink"
                   >
                     Restore
                   </button>
@@ -194,7 +194,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
                 <form action={boundArchive.bind(null, list.id)}>
                   <button
                     type="submit"
-                    className="rounded-md border border-neutral-700 px-3 py-1 text-xs text-neutral-300 hover:border-[#ff6b4a] hover:text-white"
+                    className="rounded-md border border-line-strong px-3 py-1 text-xs text-ink hover:border-[#ff6b4a] hover:text-ink"
                   >
                     Archive
                   </button>
@@ -204,7 +204,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
           ))}
 
           {lists.length === 0 && (
-            <li className="rounded-lg border border-dashed border-neutral-800 px-4 py-10 text-center text-sm text-neutral-600">
+            <li className="rounded-lg border border-dashed border-line px-4 py-10 text-center text-sm text-ink-faint">
               {archived ? "No archived Lists." : "No Lists match your filters yet."}
             </li>
           )}

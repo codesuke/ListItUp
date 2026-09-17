@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 
+import { BlockerReasonDialog } from "@/components/board/BlockerReasonDialog";
+import { DraggableCard } from "@/components/board/DraggableCard";
+import { DroppableColumn } from "@/components/board/DroppableColumn";
 import { myTaskItemHref, myTaskWorkspaceLabel, type MyTaskItem } from "@/lib/item/item-my-tasks";
 import type { MyTasksBoardColumn, MyTasksBoardGroupBy } from "@/lib/item/item-my-tasks-board";
 
@@ -41,7 +45,7 @@ function MoveControl({
       <select
         value={target}
         onChange={(event) => setTarget(event.target.value)}
-        className="rounded-md border border-neutral-700 bg-[#0d0d0d] px-2 py-1 text-xs text-neutral-300"
+        className="rounded-md border border-line-strong bg-surface-1 px-2 py-1 text-xs text-ink"
       >
         <option value="">Move to…</option>
         {otherColumns.map((column) => (
@@ -56,13 +60,13 @@ function MoveControl({
           value={blockerReason}
           onChange={(event) => setBlockerReason(event.target.value)}
           placeholder="Blocker reason (required)"
-          className="rounded-md border border-neutral-700 bg-[#0d0d0d] px-2 py-1 text-xs text-neutral-300 placeholder:text-neutral-600"
+          className="rounded-md border border-line-strong bg-surface-1 px-2 py-1 text-xs text-ink placeholder:text-ink-faint"
         />
       )}
       <button
         type="submit"
         disabled={!target || (needsBlockerReason && !blockerReason.trim())}
-        className="self-start text-xs text-neutral-500 hover:text-[#ff8a70] disabled:cursor-not-allowed disabled:opacity-40"
+        className="self-start text-xs text-ink-muted hover:text-[#ff8a70] disabled:cursor-not-allowed disabled:opacity-40"
       >
         Move
       </button>
@@ -84,62 +88,122 @@ export function BoardView({
   // (see moveMyTaskItemToColumn's WORKSPACE branch).
   const canMove = groupBy !== "WORKSPACE";
 
+  const [activeItem, setActiveItem] = useState<MyTaskItem | null>(null);
+  const [pendingBlockerDrop, setPendingBlockerDrop] = useState<{ itemId: string; columnKey: string } | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  function findItem(itemId: string): { item: MyTaskItem; columnKey: string } | null {
+    for (const column of columns) {
+      const item = column.items.find((candidate) => candidate.id === itemId);
+      if (item) {
+        return { item, columnKey: column.key };
+      }
+    }
+    return null;
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveItem(null);
+    const { active, over } = event;
+    if (!over) {
+      return;
+    }
+
+    const itemId = String(active.id);
+    const targetColumnKey = String(over.id);
+    const found = findItem(itemId);
+    if (!found || found.columnKey === targetColumnKey) {
+      return;
+    }
+
+    if (groupBy === "STATE" && targetColumnKey === "BLOCKED") {
+      setPendingBlockerDrop({ itemId, columnKey: targetColumnKey });
+      return;
+    }
+
+    void boundMoveItem(itemId, targetColumnKey);
+  }
+
   return (
     <div className="mt-4">
       {columns.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-neutral-800 px-4 py-16 text-center text-sm text-neutral-600">
+        <div className="rounded-lg border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
           No Items here — you&apos;re all caught up.
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {columns.map((column) => (
-            <div key={column.key} className="w-64 flex-shrink-0 rounded-lg border border-neutral-800 bg-[#0d0d0d]">
-              <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-2">
-                <span className="text-sm font-semibold text-white">{column.label}</span>
-                <span className="font-mono text-xs text-neutral-600">{column.items.length}</span>
-              </div>
-              <div className="flex flex-col gap-2 p-2">
-                {column.items.map((item) => (
-                  <div key={item.id} className="rounded-md border border-neutral-800 bg-[#141414] p-2">
-                    <a
-                      href={myTaskItemHref(item, item.id)}
-                      className="block text-sm text-neutral-200 hover:text-white hover:underline"
-                    >
-                      {item.hasParent && <span className="mr-1 text-neutral-600">↳</span>}
-                      {item.title}
-                    </a>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-neutral-500">
-                      <span className="font-mono uppercase tracking-wider">{myTaskWorkspaceLabel(item)}</span>
-                      {item.priority !== "NORMAL" && (
-                        <span className="font-mono uppercase">{PRIORITY_LABEL[item.priority]}</span>
+        <DndContext
+          sensors={sensors}
+          onDragStart={(event) => setActiveItem(findItem(String(event.active.id))?.item ?? null)}
+          onDragCancel={() => setActiveItem(null)}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {columns.map((column) => (
+              <div key={column.key} className="w-64 flex-shrink-0 rounded-lg border border-line bg-surface-1">
+                <div className="flex items-center justify-between border-b border-line px-3 py-2">
+                  <span className="text-sm font-semibold text-ink">{column.label}</span>
+                  <span className="font-mono text-xs text-ink-faint">{column.items.length}</span>
+                </div>
+                <DroppableColumn id={column.key} className="flex min-h-16 flex-col gap-2 p-2">
+                  {column.items.map((item) => (
+                    <DraggableCard key={item.id} id={item.id} disabled={!canMove}>
+                      <a
+                        href={myTaskItemHref(item, item.id)}
+                        className="block text-sm text-ink hover:text-ink hover:underline"
+                      >
+                        {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
+                        {item.title}
+                      </a>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-ink-muted">
+                        <span className="font-mono uppercase tracking-wider">{myTaskWorkspaceLabel(item)}</span>
+                        {item.priority !== "NORMAL" && (
+                          <span className="font-mono uppercase">{PRIORITY_LABEL[item.priority]}</span>
+                        )}
+                        {item.dueDate && (
+                          <span className="font-mono">
+                            {new Date(item.dueDate).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      {canMove && (
+                        <MoveControl
+                          item={item}
+                          columns={columns}
+                          currentColumnKey={column.key}
+                          groupBy={groupBy}
+                          boundMoveItem={boundMoveItem}
+                        />
                       )}
-                      {item.dueDate && (
-                        <span className="font-mono">
-                          {new Date(item.dueDate).toLocaleDateString(undefined, {
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </span>
-                      )}
-                    </div>
-                    {canMove && (
-                      <MoveControl
-                        item={item}
-                        columns={columns}
-                        currentColumnKey={column.key}
-                        groupBy={groupBy}
-                        boundMoveItem={boundMoveItem}
-                      />
-                    )}
-                  </div>
-                ))}
-                {column.items.length === 0 && (
-                  <div className="px-2 py-4 text-center text-xs text-neutral-600">Empty</div>
-                )}
+                    </DraggableCard>
+                  ))}
+                  {column.items.length === 0 && (
+                    <div className="px-2 py-4 text-center text-xs text-ink-faint">Empty</div>
+                  )}
+                </DroppableColumn>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <DragOverlay>
+            {activeItem && (
+              <div className="w-64 rotate-2 rounded-md border border-line-strong bg-surface-2 p-2 shadow-2xl">
+                <span className="block text-sm text-ink">{activeItem.title}</span>
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      )}
+
+      {pendingBlockerDrop && (
+        <BlockerReasonDialog
+          onCancel={() => setPendingBlockerDrop(null)}
+          onConfirm={(reason) => {
+            void boundMoveItem(pendingBlockerDrop.itemId, pendingBlockerDrop.columnKey, reason);
+            setPendingBlockerDrop(null);
+          }}
+        />
       )}
     </div>
   );

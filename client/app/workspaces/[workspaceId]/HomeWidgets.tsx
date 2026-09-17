@@ -41,9 +41,9 @@ function WidgetCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[12px] border border-[#232323] bg-[#141414] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+    <section className="rounded-[12px] border border-line bg-surface-2 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
       <div className="flex items-center justify-between">
-        <h2 className="font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.1em] text-[#5a5a56]">
+        <h2 className="font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.1em] text-ink-faint">
           {label}
         </h2>
         {headerRight}
@@ -62,7 +62,7 @@ function ViewAllLink({ href }: { href: string }) {
 }
 
 function EmptyWidgetState({ message }: { message: string }) {
-  return <p className="mt-4 text-sm text-[#5a5a56]">{message}</p>;
+  return <p className="mt-4 text-sm text-ink-faint">{message}</p>;
 }
 
 export function MyTasksPreviewWidget({
@@ -92,20 +92,20 @@ export function MyTasksPreviewWidget({
             return (
               <li
                 key={item.id}
-                className="flex items-center gap-3 rounded-md px-2 py-2.5 text-sm transition-colors hover:bg-[#1a1a1a]"
+                className="flex items-center gap-3 rounded-md px-2 py-2.5 text-sm transition-colors hover:bg-surface-3"
               >
                 <span
                   className={
                     item.state === "COMPLETE"
                       ? "flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[5px] bg-[#ff6b4a]"
-                      : "h-4 w-4 flex-shrink-0 rounded-[5px] border-[1.5px] border-[#333333]"
+                      : "h-4 w-4 flex-shrink-0 rounded-[5px] border-[1.5px] border-line-strong"
                   }
                 >
                   {item.state === "COMPLETE" && <Check className="h-[11px] w-[11px] text-[#1a0800]" />}
                 </span>
                 <a
                   href={`/workspaces/${item.sourceWorkspaceId}/lists/${item.listId}/items/${item.id}`}
-                  className="min-w-0 flex-1 truncate text-[13.5px] text-[#e5e5e0] hover:underline"
+                  className="min-w-0 flex-1 truncate text-[13.5px] text-ink hover:underline"
                 >
                   {item.title}
                 </a>
@@ -136,14 +136,14 @@ export function RecentListsWidget({
           {lists.map((list) => (
             <li key={list.id}>
               <a href={`/workspaces/${workspaceId}/lists/${list.id}`} className="group flex items-center gap-3">
-                <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-[#1a1a1a]">
+                <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-surface-3">
                   <LayoutList className="h-4 w-4 text-[#ff8a70]" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-medium text-[#e5e5e0] group-hover:underline">
+                  <span className="block truncate text-[13px] font-medium text-ink group-hover:underline">
                     {list.name}
                   </span>
-                  <span className="block text-[11.5px] text-[#5a5a56]">
+                  <span className="block text-[11.5px] text-ink-faint">
                     {list.itemCount} {list.itemCount === 1 ? "item" : "items"} · {list.completionPercent}% complete
                   </span>
                 </span>
@@ -169,7 +169,7 @@ export function AssignedByMeWidget({
     <WidgetCard
       label="Items I've Assigned"
       headerRight={
-        <span className="text-[11px] text-[#5a5a56]">Created by you, assigned to someone else</span>
+        <span className="text-[11px] text-ink-faint">Created by you, assigned to someone else</span>
       }
     >
       {items.length === 0 ? (
@@ -181,7 +181,7 @@ export function AssignedByMeWidget({
             return (
               <li
                 key={item.id}
-                className="flex items-center gap-3 rounded-md px-2 py-2.5 text-sm transition-colors hover:bg-[#1a1a1a]"
+                className="flex items-center gap-3 rounded-md px-2 py-2.5 text-sm transition-colors hover:bg-surface-3"
               >
                 <span
                   className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
@@ -189,7 +189,7 @@ export function AssignedByMeWidget({
                 />
                 <a
                   href={`/workspaces/${workspaceId}/lists/${item.listId}/items/${item.id}`}
-                  className="min-w-0 flex-1 truncate text-[13.5px] text-[#e5e5e0] hover:underline"
+                  className="min-w-0 flex-1 truncate text-[13.5px] text-ink hover:underline"
                 >
                   {item.title}
                 </a>
@@ -198,7 +198,7 @@ export function AssignedByMeWidget({
                     <MemberAvatar key={name} name={name} />
                   ))}
                   {item.assigneeCount > 2 && (
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#202020] font-[family-name:var(--font-mono-label)] text-[10px] font-bold text-[#8f8f8a]">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-4 font-[family-name:var(--font-mono-label)] text-[10px] font-bold text-ink-muted">
                       +{item.assigneeCount - 2}
                     </span>
                   )}

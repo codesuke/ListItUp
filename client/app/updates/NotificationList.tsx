@@ -24,7 +24,7 @@ function NotificationRow({
   boundArchive: () => Promise<void>;
 }) {
   return (
-    <div className="flex items-start gap-1 rounded-[8px] px-1 py-1 hover:bg-[#1a1a1a]">
+    <div className="flex items-start gap-1 rounded-[8px] px-1 py-1 hover:bg-surface-3">
       <form action={boundOpen} className="min-w-0 flex-1">
         <button type="submit" className="flex w-full items-start gap-3 rounded-[8px] px-2 py-1.5 text-left text-[13px]">
           <span
@@ -36,14 +36,14 @@ function NotificationRow({
             aria-hidden="true"
           />
           <span className="min-w-0 flex-1">
-            <span className={notification.isUnread ? "text-[#e5e5e0]" : "text-[#8f8f8a]"}>
+            <span className={notification.isUnread ? "text-ink" : "text-ink-muted"}>
               {describeNotification(notification)}{" "}
             </span>
-            <span className={notification.isUnread ? "font-medium text-[#e5e5e0]" : "font-medium text-[#8f8f8a]"}>
+            <span className={notification.isUnread ? "font-medium text-ink" : "font-medium text-ink-muted"}>
               {notification.itemTitle}
             </span>
           </span>
-          <span className="mt-0.5 flex-shrink-0 font-[family-name:var(--font-mono-label)] text-[10px] text-[#5a5a56]">
+          <span className="mt-0.5 flex-shrink-0 font-[family-name:var(--font-mono-label)] text-[10px] text-ink-faint">
             {formatNotificationTimestamp(notification.createdAt)}
           </span>
         </button>
@@ -53,7 +53,7 @@ function NotificationRow({
         <button
           type="submit"
           aria-label={notification.isBookmarked ? "Remove bookmark" : "Bookmark"}
-          className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-[#5a5a56] hover:bg-[#202020] hover:text-[#e5e5e0]"
+          className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-ink-faint hover:bg-surface-4 hover:text-ink"
         >
           <Bookmark
             className={notification.isBookmarked ? "h-3.5 w-3.5 fill-[#ff8a70] text-[#ff8a70]" : "h-3.5 w-3.5"}
@@ -68,7 +68,7 @@ function NotificationRow({
           <button
             type="submit"
             aria-label="Archive"
-            className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-[#5a5a56] hover:bg-[#202020] hover:text-[#e5e5e0]"
+            className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-ink-faint hover:bg-surface-4 hover:text-ink"
           >
             <Archive className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
           </button>
@@ -93,14 +93,14 @@ export function NotificationList({
 }) {
   if (notifications.length === 0) {
     return (
-      <div className="rounded-[12px] border border-dashed border-[#232323] px-4 py-16 text-center text-sm text-[#5a5a56]">
+      <div className="rounded-[12px] border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className="rounded-[12px] border border-[#232323] bg-[#141414] p-2">
+    <div className="rounded-[12px] border border-line bg-surface-2 p-2">
       {notifications.map((notification) => (
         <NotificationRow
           key={notification.id}

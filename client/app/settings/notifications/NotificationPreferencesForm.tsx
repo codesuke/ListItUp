@@ -45,31 +45,31 @@ export function NotificationPreferencesForm({
         {CATEGORIES.map((category) => (
           <label
             key={category}
-            className="flex items-center justify-between gap-4 rounded-xl border border-[#232323] bg-[#141414] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+            className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface-2 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
           >
             <span>
-              <span className="block text-[13.5px] font-semibold text-[#e5e5e0]">
+              <span className="block text-[13.5px] font-semibold text-ink">
                 {CATEGORY_LABEL[category]}
               </span>
-              <span className="mt-0.5 block text-[12px] text-[#8f8f8a]">
+              <span className="mt-0.5 block text-[12px] text-ink-muted">
                 {CATEGORY_DESCRIPTION[category]}
               </span>
             </span>
-            <span className="relative inline-flex h-[19px] w-[34px] shrink-0 items-center rounded-full border border-[#333333] bg-[#202020] transition-colors has-[:checked]:border-[#ff6b4a] has-[:checked]:bg-[#ff6b4a24]">
+            <span className="relative inline-flex h-[19px] w-[34px] shrink-0 items-center rounded-full border border-line-strong bg-surface-4 transition-colors has-[:checked]:border-[#ff6b4a] has-[:checked]:bg-[#ff6b4a24]">
               <input
                 type="checkbox"
                 name={category}
                 defaultChecked={enabledByCategory[category]}
                 className="peer sr-only"
               />
-              <span className="absolute left-[2px] h-[13px] w-[13px] rounded-full bg-[#8f8f8a] transition-all peer-checked:left-[17px] peer-checked:bg-[#ff6b4a]" />
+              <span className="absolute left-[2px] h-[13px] w-[13px] rounded-full bg-ink-muted transition-all peer-checked:left-[17px] peer-checked:bg-[#ff6b4a]" />
             </span>
           </label>
         ))}
       </div>
 
       {state.status === "success" ? (
-        <p role="status" className="mt-3 text-[12.5px] text-[#8f8f8a]">
+        <p role="status" className="mt-3 text-[12.5px] text-ink-muted">
           Notification preferences updated.
         </p>
       ) : null}

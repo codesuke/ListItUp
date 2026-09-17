@@ -69,7 +69,7 @@ function CompleteToggle({
       <button
         type="submit"
         aria-label="Mark complete"
-        className="h-4 w-4 flex-shrink-0 rounded-[5px] border-[1.5px] border-[#333333] transition-colors hover:border-[#ff6b4a]"
+        className="h-4 w-4 flex-shrink-0 rounded-[5px] border-[1.5px] border-line-strong transition-colors hover:border-[#ff6b4a]"
       />
     </form>
   );
@@ -78,7 +78,7 @@ function CompleteToggle({
 function FacetIcon({ icon: Icon, count }: { icon: React.ComponentType<{ className?: string }>; count: number }) {
   if (count === 0) return null;
   return (
-    <span className="flex items-center gap-[3px] font-[family-name:var(--font-mono-label)] text-[11px] text-[#5a5a56]">
+    <span className="flex items-center gap-[3px] font-[family-name:var(--font-mono-label)] text-[11px] text-ink-faint">
       <Icon className="h-3 w-3" /> {count}
     </span>
   );
@@ -101,7 +101,7 @@ function ItemRow({
 
   return (
     <div
-      className={`flex items-center gap-2.5 rounded-[8px] py-2 pr-2.5 transition-colors hover:bg-[#1a1a1a] ${
+      className={`flex items-center gap-2.5 rounded-[8px] py-2 pr-2.5 transition-colors hover:bg-surface-3 ${
         indented ? "pl-[52px]" : "pl-2.5"
       }`}
     >
@@ -110,21 +110,21 @@ function ItemRow({
       <Link
         href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
         className={`min-w-0 flex-1 truncate text-[13.5px] hover:underline ${
-          item.state === "COMPLETE" ? "text-[#5a5a56] line-through" : "text-[#e5e5e0]"
+          item.state === "COMPLETE" ? "text-ink-faint line-through" : "text-ink"
         }`}
       >
-        {item.hasParent && <span className="mr-1 text-[#5a5a56]">↳</span>}
+        {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
         {item.title}
       </Link>
       {item.priority !== "NORMAL" && (
-        <span className="whitespace-nowrap font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.04em] text-[#8f8f8a]">
+        <span className="whitespace-nowrap font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.04em] text-ink-muted">
           {PRIORITY_LABEL[item.priority]}
         </span>
       )}
       {item.labels.map((label) => (
         <span
           key={label.id}
-          className="whitespace-nowrap rounded-full border border-[#333333] bg-[#1a1a1a] px-2 py-0.5 font-[family-name:var(--font-mono-label)] text-[10.5px] text-[#8f8f8a]"
+          className="whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2 py-0.5 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted"
         >
           {label.name}
         </span>
@@ -157,7 +157,7 @@ function ArchivedItemRow({
     <div className="flex items-center gap-3 rounded-[8px] px-2.5 py-2">
       <Link
         href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-        className="min-w-0 flex-1 truncate text-[13.5px] text-[#8f8f8a] hover:text-[#e5e5e0] hover:underline"
+        className="min-w-0 flex-1 truncate text-[13.5px] text-ink-muted hover:text-ink hover:underline"
       >
         {item.title}
       </Link>
@@ -165,7 +165,7 @@ function ArchivedItemRow({
         <input type="hidden" name="itemId" value={item.id} />
         <button
           type="submit"
-          className="rounded-[6px] border border-[#333333] px-3 py-1 text-xs text-[#8f8f8a] hover:border-[#ff6b4a] hover:text-[#e5e5e0]"
+          className="rounded-[6px] border border-line-strong px-3 py-1 text-xs text-ink-muted hover:border-[#ff6b4a] hover:text-ink"
         >
           Restore
         </button>
@@ -184,15 +184,15 @@ function AddItemForm({
   return (
     <form action={boundAddItem} className="flex items-center gap-2 px-2.5 py-2">
       {sectionId && <input type="hidden" name="sectionId" value={sectionId} />}
-      <span className="text-[#5a5a56]">+</span>
+      <span className="text-ink-faint">+</span>
       <input
         type="text"
         name="title"
         placeholder="Add an Item"
         required
-        className="flex-1 bg-transparent text-[13.5px] text-[#e5e5e0] placeholder:text-[#5a5a56] focus:outline-none"
+        className="flex-1 bg-transparent text-[13.5px] text-ink placeholder:text-ink-faint focus:outline-none"
       />
-      <button type="submit" className="text-xs text-[#5a5a56] hover:text-[#ff8a70]">
+      <button type="submit" className="text-xs text-ink-faint hover:text-[#ff8a70]">
         Add
       </button>
     </form>
@@ -214,7 +214,7 @@ function SectionActionButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-[#5a5a56] hover:bg-[#202020] hover:text-[#e5e5e0]"
+      className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-ink-faint hover:bg-surface-4 hover:text-ink"
     >
       <Icon className="h-3.5 w-3.5" />
     </button>
@@ -241,7 +241,7 @@ function SectionActionForm({
         type="submit"
         aria-label={label}
         title={label}
-        className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-[#5a5a56] hover:bg-[#202020] hover:text-[#e5e5e0]"
+        className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-ink-faint hover:bg-surface-4 hover:text-ink"
       >
         <Icon className="h-3.5 w-3.5" />
       </button>
@@ -307,7 +307,7 @@ export function SectionList({
   const chipClass = (active: boolean) =>
     active
       ? "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#ff6b4a] bg-[#ff6b4a24] px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] text-[#ff8a70]"
-      : "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#333333] bg-[#1a1a1a] px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] text-[#8f8f8a] hover:text-[#e5e5e0]";
+      : "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted hover:text-ink";
 
   return (
     <div>
@@ -319,7 +319,7 @@ export function SectionList({
               name="name"
               placeholder="New Section name"
               required
-              className="rounded-[6px] border border-[#333333] bg-[#141414] px-3 py-1.5 text-[13px] text-[#e5e5e0] placeholder:text-[#5a5a56] focus:border-[#ff6b4a] focus:outline-none"
+              className="rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
             />
             <button
               type="submit"
@@ -335,7 +335,7 @@ export function SectionList({
             <select
               name="groupBy"
               defaultValue={groupBy}
-              className="rounded-[6px] border border-[#333333] bg-[#141414] px-3 py-1.5 text-[13px] text-[#e5e5e0]"
+              className="rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] text-ink"
             >
               <option value="SECTION">Section</option>
             </select>
@@ -358,10 +358,10 @@ export function SectionList({
       </div>
 
       {showArchived ? (
-        <div className="rounded-[12px] border border-[#232323] bg-[#141414] p-2">
-          <div className="px-2.5 py-2 text-[13px] font-semibold text-[#e5e5e0]">Archived Items</div>
+        <div className="rounded-[12px] border border-line bg-surface-2 p-2">
+          <div className="px-2.5 py-2 text-[13px] font-semibold text-ink">Archived Items</div>
           {archivedItems.length === 0 ? (
-            <div className="px-3 py-4 text-center text-xs text-[#5a5a56]">No archived Items.</div>
+            <div className="px-3 py-4 text-center text-xs text-ink-faint">No archived Items.</div>
           ) : (
             archivedItems.map((item) => (
               <ArchivedItemRow
@@ -375,13 +375,13 @@ export function SectionList({
           )}
         </div>
       ) : visibleSections.length === 0 && !showUnsectioned ? (
-        <div className="rounded-[12px] border border-dashed border-[#232323] px-4 py-16 text-center text-sm text-[#5a5a56]">
+        <div className="rounded-[12px] border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
           {sections.length === 0
             ? "No Sections yet."
             : "Every Section is empty — toggle “Hide empty Sections” off to see them."}
         </div>
       ) : (
-        <div className="rounded-[12px] border border-[#232323] bg-[#141414] p-2">
+        <div className="rounded-[12px] border border-line bg-surface-2 p-2">
           {visibleSections.map((section, index) => {
             const collapsed = collapsedIds.has(section.id);
             const isRenaming = renamingId === section.id;
@@ -393,7 +393,7 @@ export function SectionList({
                     type="button"
                     onClick={() => toggleCollapsed(section.id)}
                     aria-label={collapsed ? "Expand Section" : "Collapse Section"}
-                    className="text-[#5a5a56] hover:text-[#e5e5e0]"
+                    className="text-ink-faint hover:text-ink"
                   >
                     {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                   </button>
@@ -412,7 +412,7 @@ export function SectionList({
                         name="name"
                         defaultValue={section.name}
                         autoFocus
-                        className="flex-1 rounded-[6px] border border-[#333333] bg-[#1a1a1a] px-2 py-1 text-[13px] text-[#e5e5e0] focus:border-[#ff6b4a] focus:outline-none"
+                        className="flex-1 rounded-[6px] border border-line-strong bg-surface-3 px-2 py-1 text-[13px] text-ink focus:border-[#ff6b4a] focus:outline-none"
                       />
                       <button type="submit" className="text-xs text-[#ff8a70]">
                         Save
@@ -420,13 +420,13 @@ export function SectionList({
                       <button
                         type="button"
                         onClick={() => setRenamingId(null)}
-                        className="text-xs text-[#5a5a56] hover:text-[#8f8f8a]"
+                        className="text-xs text-ink-faint hover:text-ink-muted"
                       >
                         Cancel
                       </button>
                     </form>
                   ) : (
-                    <span className="text-[13px] font-semibold text-[#e5e5e0]">{section.name}</span>
+                    <span className="text-[13px] font-semibold text-ink">{section.name}</span>
                   )}
 
                   {!isRenaming && <StatusBadge tone="muted">{section.items.length}</StatusBadge>}
@@ -467,7 +467,7 @@ export function SectionList({
                 {!collapsed && (
                   <div>
                     {section.items.length === 0 ? (
-                      <div className="px-3 py-4 text-center text-xs text-[#5a5a56]">No Items yet.</div>
+                      <div className="px-3 py-4 text-center text-xs text-ink-faint">No Items yet.</div>
                     ) : (
                       section.items.map((item) => (
                         <ItemRow
@@ -490,7 +490,7 @@ export function SectionList({
           {showUnsectioned && (
             <div className={visibleSections.length > 0 ? "mt-2" : undefined}>
               <div className="flex items-center gap-2 px-2.5 py-2.5">
-                <span className="text-[13px] font-semibold text-[#e5e5e0]">No Section</span>
+                <span className="text-[13px] font-semibold text-ink">No Section</span>
                 <StatusBadge tone="muted">{unsectionedItems.length}</StatusBadge>
               </div>
               {unsectionedItems.map((item) => (

@@ -5,7 +5,7 @@ const TONE_CLASSES: Record<StatusBadgeTone, string> = {
   amber: "bg-[#f5b64224] text-[#f5b642]",
   blue: "bg-[#5b9dff24] text-[#5b9dff]",
   green: "bg-[#3ecf8e24] text-[#3ecf8e]",
-  muted: "bg-[#202020] text-[#8f8f8a]",
+  muted: "bg-surface-4 text-ink-muted",
 };
 
 export function StatusBadge({ tone, children }: { tone: StatusBadgeTone; children: React.ReactNode }) {

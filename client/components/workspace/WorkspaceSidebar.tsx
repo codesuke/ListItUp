@@ -45,10 +45,10 @@ function NavLink({
       className={
         isActive
           ? "flex items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-[13.5px] font-medium bg-[#ff6b4a24] text-[#ff8a70]"
-          : "flex items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-[13.5px] font-medium text-[#8f8f8a] hover:bg-[#1a1a1a] hover:text-[#e5e5e0]"
+          : "flex items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-[13.5px] font-medium text-ink-muted hover:bg-surface-3 hover:text-ink"
       }
     >
-      <span className={isActive ? "text-[#ff8a70]" : "text-[#5a5a56]"}>{icon}</span>
+      <span className={isActive ? "text-[#ff8a70]" : "text-ink-faint"}>{icon}</span>
       <span className="flex-1 truncate">{label}</span>
       {badge !== undefined && badge > 0 && (
         <span
@@ -82,33 +82,33 @@ export function WorkspaceSidebar({
   const listHref = (listId: string) => `/workspaces/${currentWorkspaceId}/lists/${listId}`;
 
   return (
-    <aside className="flex w-[264px] flex-shrink-0 flex-col gap-1 border-r border-[#232323] bg-[#0d0d0d] px-3 py-4">
+    <aside className="flex w-[264px] flex-shrink-0 flex-col gap-1 border-r border-line bg-surface-1 px-3 py-4">
       <div className="relative mb-2">
         <button
           type="button"
           onClick={() => setIsSwitcherOpen((open) => !open)}
           aria-expanded={isSwitcherOpen}
           aria-label="Switch Workspace"
-          className="flex w-full items-center gap-2.5 rounded-[8px] border border-[#232323] bg-[#141414] px-2.5 py-2.5 text-left hover:border-[#333333] hover:bg-[#1a1a1a]"
+          className="flex w-full items-center gap-2.5 rounded-[8px] border border-line bg-surface-2 px-2.5 py-2.5 text-left hover:border-line-strong hover:bg-surface-3"
         >
           <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-[#ff6b4a] font-[family-name:var(--font-mono-label)] text-xs font-bold text-[#1a0800]">
             {initialsFromName(currentWorkspaceName)}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-semibold text-[#e5e5e0]">
+            <span className="block truncate text-[13px] font-semibold text-ink">
               {currentWorkspaceName}
             </span>
-            <span className="block font-[family-name:var(--font-mono-label)] text-[9px] uppercase tracking-[0.08em] text-[#5a5a56]">
+            <span className="block font-[family-name:var(--font-mono-label)] text-[9px] uppercase tracking-[0.08em] text-ink-faint">
               Workspace
             </span>
           </span>
-          <ChevronsUpDown className="h-3.5 w-3.5 flex-shrink-0 text-[#5a5a56]" />
+          <ChevronsUpDown className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
         </button>
 
         {isSwitcherOpen && (
-          <ul className="absolute left-0 right-0 z-10 mt-1 rounded-md border border-[#232323] bg-[#141414] py-1 shadow-lg">
+          <ul className="absolute left-0 right-0 z-10 mt-1 rounded-md border border-line bg-surface-2 py-1 shadow-lg">
             {switchableWorkspaces.length === 0 && (
-              <li className="px-3 py-2 text-xs text-[#5a5a56]">No other Workspaces yet.</li>
+              <li className="px-3 py-2 text-xs text-ink-faint">No other Workspaces yet.</li>
             )}
             {switchableWorkspaces.map((workspace) => (
               <li key={workspace.id}>
@@ -117,7 +117,7 @@ export function WorkspaceSidebar({
                   className={
                     workspace.id === currentWorkspaceId
                       ? "block px-3 py-2 text-sm text-[#ff8a70]"
-                      : "block px-3 py-2 text-sm text-[#8f8f8a] hover:bg-[#1a1a1a] hover:text-[#e5e5e0]"
+                      : "block px-3 py-2 text-sm text-ink-muted hover:bg-surface-3 hover:text-ink"
                   }
                 >
                   {workspace.name}
@@ -147,7 +147,7 @@ export function WorkspaceSidebar({
 
       {lists.length > 0 && (
         <nav className="flex flex-col gap-0.5">
-          <div className="px-2.5 pb-1.5 pt-4 font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.14em] text-[#5a5a56]">
+          <div className="px-2.5 pb-1.5 pt-4 font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.14em] text-ink-faint">
             Lists
           </div>
           {lists.map((list) => (
@@ -168,7 +168,7 @@ export function WorkspaceSidebar({
           onClick={() => setIsPersonalSpaceOpen((open) => !open)}
           aria-expanded={isPersonalSpaceOpen}
           disabled={!personalSpace}
-          className="flex w-full items-center gap-1.5 rounded-md px-2.5 pb-1.5 pt-4 font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.14em] text-[#5a5a56] hover:text-[#8f8f8a] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center gap-1.5 rounded-md px-2.5 pb-1.5 pt-4 font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.14em] text-ink-faint hover:text-ink-muted disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPersonalSpaceOpen ? (
             <ChevronDown className="h-3 w-3" />
@@ -182,7 +182,7 @@ export function WorkspaceSidebar({
           <div className="flex flex-col gap-0.5 pl-2">
             <Link
               href={`/workspaces/${personalSpace.id}`}
-              className="rounded-md px-2.5 py-1.5 text-sm text-[#8f8f8a] hover:bg-[#1a1a1a] hover:text-[#e5e5e0]"
+              className="rounded-md px-2.5 py-1.5 text-sm text-ink-muted hover:bg-surface-3 hover:text-ink"
             >
               {personalSpace.name}
             </Link>
@@ -190,11 +190,11 @@ export function WorkspaceSidebar({
         )}
       </div>
 
-      <div className="mt-auto flex items-center gap-2.5 border-t border-[#232323] px-2.5 pt-4">
-        <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-[#141414] bg-[#5b9dff] font-[family-name:var(--font-mono-label)] text-[10px] font-bold text-[#1a0800]">
+      <div className="mt-auto flex items-center gap-2.5 border-t border-line px-2.5 pt-4">
+        <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-2 bg-[#5b9dff] font-[family-name:var(--font-mono-label)] text-[10px] font-bold text-[#1a0800]">
           {initialsFromName(currentUserName)}
         </span>
-        <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-[#8f8f8a]">{currentUserName}</span>
+        <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-ink-muted">{currentUserName}</span>
       </div>
     </aside>
   );

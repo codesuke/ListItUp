@@ -15,11 +15,11 @@ import type {
 
 const CARD_CLASS = DASHBOARD_CARD_CLASS;
 const WIDGET_TITLE_CLASS = DASHBOARD_WIDGET_TITLE_CLASS;
-const WHY_TAG_CLASS = "font-[family-name:var(--font-mono-label)] text-[9.5px] tracking-[0.06em] text-[#5a5a56]";
-const EMPTY_STATE_CLASS = "text-sm text-[#5a5a56]";
+const WHY_TAG_CLASS = "font-[family-name:var(--font-mono-label)] text-[9.5px] tracking-[0.06em] text-ink-faint";
+const EMPTY_STATE_CLASS = "text-sm text-ink-faint";
 
 const STATE_BAR_COLOR: Record<StateBreakdownEntry["state"], string> = {
-  TO_DO: "bg-[#5a5a56]",
+  TO_DO: "bg-ink-faint",
   IN_PROGRESS: "bg-[#5b9dff]",
   BLOCKED: "bg-[#f5b642]",
   COMPLETE: "bg-[#3ecf8e]",
@@ -133,7 +133,7 @@ function CompletionOverTimeWidget({ points }: { points: CompletionOverTimePoint[
               />
             ))}
           </svg>
-          <div className="mt-1 flex justify-between text-[10.5px] text-[#5a5a56]">
+          <div className="mt-1 flex justify-between text-[10.5px] text-ink-faint">
             {labelIndices.map((index) => (
               <span key={points[index]!.date}>{formatAxisDate(points[index]!.date)}</span>
             ))}
@@ -172,7 +172,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
         ))}
       </div>
       <div className="mt-3 flex items-center justify-end gap-1.5">
-        <span className="text-[10px] text-[#5a5a56]">Less</span>
+        <span className="text-[10px] text-ink-faint">Less</span>
         {([0, 1, 2, 3, 4] as const).map((level) => (
           <span
             key={level}
@@ -180,7 +180,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
             style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[level] }}
           />
         ))}
-        <span className="text-[10px] text-[#5a5a56]">More</span>
+        <span className="text-[10px] text-ink-faint">More</span>
       </div>
     </div>
   );
@@ -198,18 +198,18 @@ function ContributionMapWidget({ entries }: { entries: ContributionEntry[] }) {
           {entries.map((entry) => (
             <div key={entry.userId} className="flex items-center gap-3">
               <MemberAvatar name={entry.name} />
-              <span className="w-24 flex-shrink-0 truncate text-[12.5px] text-[#e5e5e0]">{entry.name}</span>
-              <div className="h-2 flex-1 rounded-full bg-[#202020]">
+              <span className="w-24 flex-shrink-0 truncate text-[12.5px] text-ink">{entry.name}</span>
+              <div className="h-2 flex-1 rounded-full bg-surface-4">
                 <div className="h-2 rounded-full bg-[#ff6b4a]" style={{ width: `${entry.completionRatePercent}%` }} />
               </div>
-              <span className="w-10 flex-shrink-0 text-right font-[family-name:var(--font-mono-label)] text-[11.5px] text-[#8f8f8a]">
+              <span className="w-10 flex-shrink-0 text-right font-[family-name:var(--font-mono-label)] text-[11.5px] text-ink-muted">
                 {entry.completionRatePercent}%
               </span>
             </div>
           ))}
         </div>
       )}
-      <div className="mt-4 text-[11px] text-[#5a5a56]">
+      <div className="mt-4 text-[11px] text-ink-faint">
         Completion rate = Items completed ÷ Items assigned. Never a raw count.
       </div>
     </div>
@@ -286,7 +286,7 @@ function AttentionImbalanceWidget({ entries }: { entries: AttentionImbalanceEntr
           </svg>
           <div className="flex flex-col gap-2">
             {entries.map((entry, index) => (
-              <div key={entry.userId} className="flex items-center gap-2 text-[12px] text-[#e5e5e0]">
+              <div key={entry.userId} className="flex items-center gap-2 text-[12px] text-ink">
                 <span
                   className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
                   style={{ backgroundColor: RADAR_MEMBER_COLORS[index % RADAR_MEMBER_COLORS.length] }}
@@ -294,7 +294,7 @@ function AttentionImbalanceWidget({ entries }: { entries: AttentionImbalanceEntr
                 {entry.name}
               </div>
             ))}
-            <div className="mt-1 text-[11px] text-[#5a5a56]">Normalized per Member, not raw count.</div>
+            <div className="mt-1 text-[11px] text-ink-faint">Normalized per Member, not raw count.</div>
           </div>
         </div>
       )}
@@ -310,12 +310,12 @@ function PeerComparisonToggle({ enabled }: { enabled: boolean }) {
       aria-checked={enabled}
       aria-label="Peer comparison"
       className={`relative h-[19px] w-[34px] flex-shrink-0 rounded-full border transition-colors ${
-        enabled ? "border-[#ff6b4a] bg-[#ff6b4a24]" : "border-[#333333] bg-[#202020]"
+        enabled ? "border-[#ff6b4a] bg-[#ff6b4a24]" : "border-line-strong bg-surface-4"
       }`}
     >
       <span
         className={`absolute top-[2px] h-[13px] w-[13px] rounded-full transition-all ${
-          enabled ? "left-[17px] bg-[#ff6b4a]" : "left-[2px] bg-[#8f8f8a]"
+          enabled ? "left-[17px] bg-[#ff6b4a]" : "left-[2px] bg-ink-muted"
         }`}
       />
     </button>
@@ -327,12 +327,12 @@ function PeerComparisonIndicator({ enabled }: { enabled: boolean }) {
     <div
       aria-label={`Peer comparison is ${enabled ? "on" : "off"}`}
       className={`relative h-[19px] w-[34px] flex-shrink-0 rounded-full border ${
-        enabled ? "border-[#ff6b4a] bg-[#ff6b4a24]" : "border-[#333333] bg-[#202020]"
+        enabled ? "border-[#ff6b4a] bg-[#ff6b4a24]" : "border-line-strong bg-surface-4"
       }`}
     >
       <span
         className={`absolute top-[2px] h-[13px] w-[13px] rounded-full ${
-          enabled ? "left-[17px] bg-[#ff6b4a]" : "left-[2px] bg-[#8f8f8a]"
+          enabled ? "left-[17px] bg-[#ff6b4a]" : "left-[2px] bg-ink-muted"
         }`}
       />
     </div>
@@ -351,10 +351,10 @@ function PeerComparisonCard({
   return (
     <div className={`${CARD_CLASS} flex items-center justify-between p-5`}>
       <div className="flex items-start gap-3">
-        <Users className="mt-0.5 h-4 w-4 text-[#5a5a56]" />
+        <Users className="mt-0.5 h-4 w-4 text-ink-faint" />
         <div>
-          <div className="text-[13px] font-semibold text-[#e5e5e0]">Peer comparison</div>
-          <p className="mt-0.5 text-[12px] text-[#8f8f8a]">
+          <div className="text-[13px] font-semibold text-ink">Peer comparison</div>
+          <p className="mt-0.5 text-[12px] text-ink-muted">
             Workspace-level, off by default. When enabled, unlocks a directly comparative view on top of the
             Contribution Map and Radar Chart above — still normalized metrics, never raw counts. Only a Workspace
             Owner or Admin can change this.

@@ -26,7 +26,7 @@ export function TimelineView({
 
   if (!range) {
     return (
-      <div className="mt-10 rounded-lg border border-dashed border-neutral-800 px-4 py-16 text-center text-sm text-neutral-600">
+      <div className="mt-10 rounded-lg border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
         No Items with a due date yet.
       </div>
     );
@@ -34,11 +34,11 @@ export function TimelineView({
 
   return (
     <div className="mt-6">
-      <div className="mb-2 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-neutral-500">
+      <div className="mb-2 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-ink-muted">
         <span>{formatDate(range.start)}</span>
         <span>{formatDate(range.end)}</span>
       </div>
-      <div className="flex flex-col gap-2 rounded-lg border border-neutral-800 bg-[#0d0d0d] p-4">
+      <div className="flex flex-col gap-2 rounded-lg border border-line bg-surface-1 p-4">
         {items.map((item) => {
           const { leftPercent, widthPercent } = computeBarPosition(item, range);
 
@@ -46,12 +46,12 @@ export function TimelineView({
             <div key={item.id} className="flex items-center gap-3">
               <a
                 href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-                className="w-48 flex-shrink-0 truncate text-sm text-neutral-200 hover:text-white hover:underline"
+                className="w-48 flex-shrink-0 truncate text-sm text-ink hover:text-ink hover:underline"
               >
-                {item.hasParent && <span className="mr-1 text-neutral-600">↳</span>}
+                {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
                 {item.title}
               </a>
-              <div className="relative h-5 flex-1 rounded bg-[#141414]">
+              <div className="relative h-5 flex-1 rounded bg-surface-2">
                 <div
                   className={`absolute h-full rounded ${STATE_BAR_COLOR[item.state]}`}
                   style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
