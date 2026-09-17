@@ -89,7 +89,7 @@ export function ItemDetailPanel({
   const priorityBadge = PRIORITY_BADGE[data.priority];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {data.parent && (
         <Link
           href={`/workspaces/${workspaceId}/lists/${listId}/items/${data.parent.id}`}
@@ -109,7 +109,7 @@ export function ItemDetailPanel({
             defaultValue={data.title}
             className="w-full bg-transparent text-[17px] font-semibold leading-snug text-ink focus:outline-none"
           />
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid max-w-3xl grid-cols-3 gap-3">
             <div>
               <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Section</div>
               <select name="sectionId" defaultValue={data.sectionId ?? ""} className={`w-full ${INPUT_CLASS}`}>
@@ -151,7 +151,7 @@ export function ItemDetailPanel({
       )}
 
       {/* State / Assignees */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid max-w-3xl grid-cols-2 gap-4">
         <div className={SECTION_CLASS}>
           <div className={FIELD_LABEL_CLASS}>State</div>
           {data.state === "ARCHIVED" ? (
@@ -233,7 +233,7 @@ export function ItemDetailPanel({
       {/* Metadata */}
       <div className={SECTION_CLASS}>
         <div className={FIELD_LABEL_CLASS}>Metadata</div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid max-w-3xl grid-cols-3 gap-4">
           <div>
             <div className={`${FIELD_LABEL_CLASS} mb-2`}>Priority</div>
             <StatusBadge tone={priorityBadge.tone}>{priorityBadge.label}</StatusBadge>
@@ -479,7 +479,7 @@ export function ItemDetailPanel({
             action={`/api/workspaces/${workspaceId}/lists/${listId}/items/${data.itemId}/attachments`}
             method="POST"
             encType="multipart/form-data"
-            className="flex items-center gap-2"
+            className="flex max-w-md items-center gap-2"
           >
             <input
               type="file"
