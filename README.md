@@ -1,246 +1,273 @@
 <div align="center">
 
-# ListItUp
+<img src="docs/assets/listitup-readme-hero.png" alt="ListItUp — capture, organize, complete" width="100%" />
 
-**From scattered to sorted, without making organization feel like a second job.**
+<br />
 
-A self-hostable project and task management app for people who want to capture work and get it done, without the ceremony of most enterprise project management tools.
+[![Early Development](https://img.shields.io/badge/status-early_development-FF6B4A?style=flat-square)](#project-status)
+[![MIT License](https://img.shields.io/badge/license-MIT-ECECE6?style=flat-square)](LICENSE)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-171717?style=flat-square&logo=next.js)](client/package.json)
+[![React 19](https://img.shields.io/badge/React-19-171717?style=flat-square&logo=react)](client/package.json)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)](client/tsconfig.json)
+[![Self-hostable](https://img.shields.io/badge/self--hostable-Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](#self-host-with-docker)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://github.com/codesuke/ListItUp/actions/workflows/ci.yml/badge.svg)](https://github.com/codesuke/ListItUp/actions/workflows/ci.yml)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Self-Hosted](https://img.shields.io/badge/Self--Hosted-Docker%20Compose-2496ED?logo=docker&logoColor=white)](#getting-started)
-[![Contributor Covenant](https://img.shields.io/badge/Code%20of%20Conduct-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+**A calm, practical workspace for turning scattered intentions into useful structure.**
 
-[**Try the hosted instance**](https://listitup.virtunode.tech/) · [Self-host it](#getting-started) · [Read the docs](#documentation) · [Report a bug](https://github.com/codesuke/ListItUp/issues/new)
-
-</div>
-
----
-
-## Table of Contents
-
-- [About](#about)
-- [Project Status](#project-status)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Option A — Docker Compose (self-host anywhere)](#option-a--docker-compose-self-host-anywhere)
-  - [Option B — Dokploy](#option-b--dokploy)
-  - [Option C — Local development](#option-c--local-development)
-  - [Environment Variables](#environment-variables)
-- [Project Structure](#project-structure)
-- [Testing](#testing)
-- [Documentation](#documentation)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [Code of Conduct](#code-of-conduct)
-- [Security](#security)
-- [License](#license)
-
----
-
-## About
-
-Most project management tools optimize for the enterprise buyer: endless configuration, permission matrices, and dashboards nobody asked for. ListItUp is built for the opposite instinct — capture a thought, turn it into something actionable, and move on with your day.
-
-It ships two ways, on purpose:
-
-- **Hosted** — sign up at [listitup.virtunode.tech](https://listitup.virtunode.tech/) and we run it for you.
-- **Self-hosted** — clone this repo and run it on your own infrastructure, under an MIT license, with no feature gated behind a paywall.
-
-Both run the exact same open source code. Nothing about the hosted instance is a separate, more-capable product.
-
-## Project Status
-
-ListItUp is under **active early development**. Here's what's actually true today, not aspirational:
-
-| Area                                                                | Status      |
-| ------------------------------------------------------------------- | ----------- |
-| Authentication (sign-up, sign-in, password reset, 2FA, magic links) | Shipped     |
-| Personal workspace provisioning                                     | Shipped     |
-| `My Tasks` personal planning view                                   | Shipped     |
-| List and Item management                                            | In progress |
-| Shared/team workspaces                                              | In progress |
-| Reports & Analytics                                                 | Planned     |
-
-Track live progress in [GitHub Issues](https://github.com/codesuke/ListItUp/issues). Screenshots will land in this README once the core List/Item UI ships — we'd rather under-promise here than show you a mockup and call it done.
-
-## Features
-
-ListItUp's domain model (fully defined in [`CONTEXT.md`](CONTEXT.md)) is built around a small set of concepts that stay consistent whether you're working solo or with a team:
-
-- **Lists** — named containers for anything you want to organize, compare, or complete.
-- **Items** — entries inside a List. An Item can be a task, an idea, or a decision candidate, and picks up task-like accountability (owner, priority, due date) only when it actually needs one.
-- **Workspaces** — every user gets a private personal Workspace automatically after their first verified sign-in, and can create or join shared Workspaces with teammates. Item capabilities are identical in both.
-- **My Tasks** — a single, unified planning view across your personal Lists and anything assigned to you in shared Workspaces. It's the same canonical Item either way — complete it once, and it's done everywhere.
-- **Notes & Personal Notes** — lightweight context on an Item, plus a private planning note only you can see, even on Items you don't own.
-- **Reports & Analytics** — live views of Items across Lists, and operational signals like completion rate, blocked count, and aging Open Items — not vanity metrics like streaks or leaderboards.
-
-## Tech Stack
-
-<div align="center">
-
-![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+[Product](#why-listitup) · [Capabilities](#capabilities) · [Quick start](#quick-start) · [Documentation](#documentation) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
-- **Framework**: [Next.js](https://nextjs.org/) (App Router), React 19, TypeScript
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/), `shadcn` UI primitives, [Lucide](https://lucide.dev/) icons
-- **Data**: [Prisma](https://www.prisma.io/) + `@prisma/adapter-pg` against PostgreSQL
-- **Auth**: [Better Auth](https://www.better-auth.com/) — email/password, magic links, TOTP two-factor
-- **Deployment**: Docker, Docker Compose, and [Dokploy](https://dokploy.com/)
+> [!IMPORTANT]
+> ListItUp is in active early development. The hosted database is currently offline, so the public URL is not a reliable demo yet. The source, product model, and local/self-hosted setup remain available here.
 
-## Getting Started
+## Why ListItUp?
+
+Most work-management tools begin with configuration. ListItUp begins with the thought you do not want to lose.
+
+Capture it quickly. Give it structure when the structure becomes useful. Coordinate it with other people only when the work calls for it.
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>01 / Capture</h3>
+      Add an Item before deciding exactly where it belongs. Personal capture defaults to an Inbox List.
+    </td>
+    <td width="33%" valign="top">
+      <h3>02 / Organize</h3>
+      Turn loose Items into Lists and Sections. Add dates, priorities, labels, dependencies, or custom fields only when needed.
+    </td>
+    <td width="33%" valign="top">
+      <h3>03 / Coordinate</h3>
+      Assign work, share context, track blockers, and move between focused List, Board, Calendar, Timeline, Files, and Dashboard views.
+    </td>
+  </tr>
+</table>
+
+ListItUp deliberately avoids productivity theater. There are no streaks, artificial scores, or ceremony for ceremony's sake—just clear work, visible responsibility, and enough structure to keep moving.
+
+## Capabilities
+
+### Structure work your way
+
+- Create Lists for tasks, ideas, products, notes, or decision candidates.
+- Group Items into reorderable Sections and nest child Items to any depth.
+- Switch between List, Board, Calendar, Timeline, Files, and Dashboard views.
+- Add priorities, due dates, labels, custom fields, dependencies, attachments, and Notes.
+- Archive and restore Lists or individual Items without losing history.
+
+### Work alone or together
+
+- Keep private work in an automatically provisioned Personal Space.
+- Collaborate through shared Workspaces with Owner, Admin, Member, and Viewer roles.
+- Set List-level Lead, Member, Viewer, and Guest access.
+- Use **My Tasks** to see assigned Items across every Workspace without creating duplicates.
+- Track Updates, mentions, notification preferences, and personal Notes.
+
+### Stay operational
+
+- Start with a ready-to-explore Demo Workspace after verified sign-in.
+- Use quick-add syntax to capture dates, assignees, labels, and destination Lists.
+- Review completion, overdue work, state breakdowns, and progress from Dashboard views.
+- Keep attachment data in private S3-compatible object storage.
+- Protect accounts with password, magic-link, recovery, and TOTP two-factor flows.
+
+## Project status
+
+The codebase already contains the product's core vertical slices. Production hardening and deployment infrastructure are still in progress.
+
+| Area                                                        | Status                   |
+| ----------------------------------------------------------- | ------------------------ |
+| Authentication, verification, recovery, and 2FA             | Available in code        |
+| Personal Space, Demo Workspace, and shared Workspaces       | Available in code        |
+| List, Section, and Item lifecycle                           | Available in code        |
+| List, Board, Calendar, Timeline, Files, and Dashboard views | Available in code        |
+| My Tasks, Home, Profile, and Updates                        | Available in code        |
+| Attachments, Notes, Labels, Custom Fields, and Dependencies | Available in code        |
+| Expanded analytics and comparative reporting                | In progress              |
+| List Channels and Direct Messages                           | Planned for v2           |
+| Hosted production infrastructure                            | Offline / being prepared |
+
+The issue tracker is the live work queue: [github.com/codesuke/ListItUp/issues](https://github.com/codesuke/ListItUp/issues).
+
+## Tech stack
+
+| Layer          | Technology                                                     |
+| -------------- | -------------------------------------------------------------- |
+| Application    | Next.js 16 App Router, React 19, TypeScript                    |
+| Interface      | Tailwind CSS, Base UI/shadcn primitives, Lucide, Framer Motion |
+| Data           | PostgreSQL, Prisma 7, `@prisma/adapter-pg`                     |
+| Authentication | Better Auth, TOTP 2FA, Redis-backed rate limits                |
+| Files          | Private S3-compatible storage; MinIO for self-hosting          |
+| Email          | SMTP through Nodemailer                                        |
+| Delivery       | Docker, Docker Compose, or a platform such as Dokploy          |
+
+```mermaid
+flowchart LR
+    Browser[Browser] --> App[Next.js application]
+    App --> Postgres[(PostgreSQL)]
+    App --> Redis[(Redis)]
+    App --> Storage[(S3-compatible storage)]
+    App --> SMTP[SMTP provider]
+```
+
+Everything under [`client/`](client/) is one deployable application. Server Components, Server Actions, Route Handlers, authentication, and persistence all live inside that Next.js boundary.
+
+## Quick start
 
 ### Prerequisites
 
-| Tool                                                       | Version                                                              | Needed for                                           |
-| ---------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------- |
-| [Docker](https://docs.docker.com/get-docker/) + Compose v2 | latest                                                               | Options A & B                                        |
-| [Node.js](https://nodejs.org/)                             | 24+ (CI runs 24; the production image runs 26)                       | Option C                                             |
-| [pnpm](https://pnpm.io/)                                   | 10.x — run `corepack enable` to get the pinned version automatically | Option C                                             |
-| PostgreSQL                                                 | 16+                                                                  | Option C, if not using the bundled Compose database  |
-| An SMTP account                                            | any provider                                                         | All options — required for verification/reset emails |
+- Node.js 24+
+- pnpm 10.x through Corepack
+- PostgreSQL 16+
+- Redis
+- S3-compatible object storage such as MinIO
+- An SMTP account for verification and recovery email
 
-### Option A — Docker Compose (self-host anywhere)
+### Local development
 
-The fastest way to run the whole stack — app, database, and migrations — on any machine with Docker.
+```bash
+git clone https://github.com/codesuke/ListItUp.git
+cd ListItUp/client
+
+corepack enable
+pnpm install
+cp .env.example .env
+```
+
+Fill in the required values in `client/.env`, then prepare the database and start the app:
+
+```bash
+pnpm run prisma:migrate
+pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+> [!TIP]
+> The app fails early when required infrastructure is missing. If authentication cannot start, check `DATABASE_URL`, `REDIS_URL`, and `BETTER_AUTH_URL` first. `BETTER_AUTH_URL` must include `http://` or `https://`.
+
+### Self-host with Docker
+
+The Compose stack supplies the application, PostgreSQL, migrations, and MinIO:
 
 ```bash
 git clone https://github.com/codesuke/ListItUp.git
 cd ListItUp
 cp .env.example .env
-# edit .env: set BETTER_AUTH_SECRET, BETTER_AUTH_URL, POSTGRES_PASSWORD, and your SMTP credentials
+
+# Replace every placeholder secret and configure SMTP first.
 docker compose up -d
+docker compose ps
 ```
 
-What this does, step by step:
-
-1. `db` starts a PostgreSQL 17 container with a persistent named volume.
-2. `migrate` waits for `db` to report healthy, then runs `prisma migrate deploy` against it and exits.
-3. `app` waits for `migrate` to finish successfully, then builds and starts the Next.js production server on `http://localhost:3000`.
-
-Check status any time with `docker compose ps`, and logs with `docker compose logs -f app`.
-
-### Option B — Dokploy
-
-[`client/Dockerfile`](client/Dockerfile) is built for platform-managed deploys like [Dokploy](https://dokploy.com/), where the platform — not Compose — owns the database and injects environment variables at runtime:
-
-1. In Dokploy, create a new application from this repository.
-2. Set the build context to `client/`.
-3. Provision (or point at) a PostgreSQL instance and set `DATABASE_URL` accordingly.
-4. Copy the remaining variables from [`client/.env.example`](client/.env.example) into Dokploy's environment settings: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and the `SMTP_*` variables.
-5. Deploy. The container runs `prisma migrate deploy` against `DATABASE_URL` on every start, before the server boots; if a migration fails, the container exits instead of serving against a stale schema.
-
-### Option C — Local development
-
-For working on ListItUp itself rather than just running it:
+The application is exposed at [http://localhost:3000](http://localhost:3000). Follow logs with:
 
 ```bash
-git clone https://github.com/codesuke/ListItUp.git
-cd ListItUp
-docker compose up -d db          # bring up just the database
-cd client
-cp .env.example .env             # point DATABASE_URL at localhost:5432
-pnpm install
-pnpm exec prisma migrate dev
-pnpm dev
+docker compose logs -f app
 ```
 
-The app is now running at `http://localhost:3000` with hot reload. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor workflow, testing commands, and coding conventions.
+> [!NOTE]
+> Redis is currently external to the Compose file. Add a reachable `REDIS_URL` to `.env` before starting the application.
 
-### Environment Variables
+### Platform deployment
 
-| Variable                                | Required              | Notes                                                                              |
-| --------------------------------------- | --------------------- | ---------------------------------------------------------------------------------- |
-| `DATABASE_URL`                          | Yes, in Option C only | Options A & B set this automatically (Compose) or expect the platform to (Dokploy) |
-| `POSTGRES_PASSWORD`                     | Option A only         | Password for the bundled Postgres container                                        |
-| `BETTER_AUTH_SECRET`                    | Yes                   | Random string, 32+ characters — signs sessions and tokens                          |
-| `BETTER_AUTH_URL`                       | Yes                   | The externally reachable base URL of this instance                                 |
-| `MAIL_PROVIDER`                         | No                    | Free-text label for logging/diagnostics only — doesn't change behavior             |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | Yes                   | Connection details for your SMTP provider                                          |
-| `SMTP_USER`, `SMTP_PASSWORD`            | Yes                   | SMTP auth credentials                                                              |
-| `MAIL_FROM_NAME`, `MAIL_FROM_EMAIL`     | Yes                   | From header on verification/reset emails                                           |
+[`client/Dockerfile`](client/Dockerfile) produces the standalone production image used by platforms such as Dokploy. Set the build context to `client/`, provision PostgreSQL, Redis, object storage, and SMTP, then copy the required values from [`client/.env.example`](client/.env.example).
 
-See [`.env.example`](.env.example) (Compose) or [`client/.env.example`](client/.env.example) (local dev / Dokploy) for copy-paste starting points.
+The container applies committed Prisma migrations before starting the Next.js server. It exits instead of serving against an outdated schema when migration fails.
 
-## Testing
+<details>
+<summary><strong>Required environment groups</strong></summary>
 
-The required behavior suite runs against disposable PostgreSQL, Redis, and Mailpit services. It never uses a real SMTP account.
+| Group          | Variables                                                                                                                                       |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Database       | `DATABASE_URL`                                                                                                                                  |
+| Authentication | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `REDIS_URL`                                                                                            |
+| Email          | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM_NAME`, `MAIL_FROM_EMAIL`                                      |
+| Attachments    | `OBJECT_STORAGE_ENDPOINT`, `OBJECT_STORAGE_REGION`, `OBJECT_STORAGE_BUCKET`, `OBJECT_STORAGE_ACCESS_KEY_ID`, `OBJECT_STORAGE_SECRET_ACCESS_KEY` |
+| Operations     | `DISCORD_SECURITY_WEBHOOK_URL`, `SECURITY_CLEANUP_SCHEDULER_SECRET`                                                                             |
+
+Use [`.env.example`](.env.example) for Compose or [`client/.env.example`](client/.env.example) for local/platform deployments. Never commit real secrets.
+
+</details>
+
+## Development checks
+
+Quality checks are intentionally local-only during the current stage of development. There are no GitHub Actions, Dependabot jobs, or Git hooks configured.
+
+Run the checks you need from `client/`:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm build
+```
+
+The full behavior suite requires disposable PostgreSQL, Redis, and Mailpit services:
 
 ```bash
 docker compose -f docker-compose.test.yml up -d
 cd client
-cp .env.test.example .env.test
-set -a; . .env.test; set +a
+
+set -a
+. .env.test.example
+set +a
+
 pnpm exec prisma migrate deploy
 pnpm test
 ```
 
-The test database is disposable. Stop the services with `docker compose -f docker-compose.test.yml down` when finished. CI uses the same service configuration and runs migrations before the suite. The browser release journeys are added by the follow-up [issue #32](https://github.com/codesuke/ListItUp/issues/32).
+Stop the disposable stack when finished:
 
-## Project Structure
-
-```text
-/
-├── AGENTS.md / CLAUDE.md   agent and contributor working rules
-├── Architecture.md         full repo layout and client/ app structure
-├── CONTEXT.md              product glossary
-├── Brand.md                brand voice
-├── DESIGN.md               interface direction
-├── docker-compose.yml      self-hosting stack (app + Postgres)
-├── docs/                   QnA, specs, ADRs, templates
-└── client/                 the Next.js application
-    ├── app/                App Router routes
-    ├── components/         shared UI, incl. generated shadcn primitives
-    ├── lib/                auth, mailer, session, workspace, and other feature logic
-    └── Dockerfile           production image, built for Dokploy-style platforms
+```bash
+docker compose -f docker-compose.test.yml down
 ```
 
-See [`Architecture.md`](Architecture.md) for the full breakdown.
+## Repository map
+
+```text
+ListItUp/
+├── client/                  Next.js application
+│   ├── app/                 routes, layouts, metadata, and server actions
+│   ├── components/          shared interface components
+│   ├── lib/                 domain and infrastructure modules
+│   ├── prisma/              schema and committed migrations
+│   └── public/              static assets and brand files
+├── docs/
+│   ├── ADR/                 durable architecture decisions
+│   ├── QnA/                 resolved product discussions
+│   ├── Research/            supporting product research
+│   └── Specs-Planned/       planned product work
+├── Architecture.md          physical architecture and conventions
+├── CONTEXT.md               canonical product vocabulary
+├── Brand.md                 positioning, voice, and personality
+└── DESIGN.md                interface design contract
+```
 
 ## Documentation
 
-- [`CONTEXT.md`](CONTEXT.md) — product glossary and domain language
-- [`Brand.md`](Brand.md) — product voice and positioning
-- [`DESIGN.md`](DESIGN.md) — interface direction
-- [`Architecture.md`](Architecture.md) — repo layout and the `client/` app's structure
-- [`docs/licensing.md`](docs/licensing.md) — what the MIT license means for you, in plain English
-- [`docs/`](docs/) — QnA sessions, specs, and architecture decision records
-
-## Roadmap
-
-No fixed dates — this is a small, actively developed project, and we'd rather ship honestly than promise a quarter. In rough order:
-
-1. List and Item CRUD, replacing the current auth-only UI.
-2. Shared/team Workspaces, invitations, and roles.
-3. Reports & Analytics views.
-4. Attachments (S3-compatible storage — see [ADR 0002](docs/ADR/0002-s3-compatible-attachment-storage.md)).
-
-Open a [feature request](https://github.com/codesuke/ListItUp/issues/new) if there's something specific you'd want prioritized.
+| Document                                                 | Use it for                                                 |
+| -------------------------------------------------------- | ---------------------------------------------------------- |
+| [`CONTEXT.md`](CONTEXT.md)                               | Canonical product terms and definitions                    |
+| [`Brand.md`](Brand.md)                                   | Positioning, promise, voice, and visual direction          |
+| [`DESIGN.md`](DESIGN.md)                                 | UI composition, tokens, typography, motion, and guardrails |
+| [`Architecture.md`](Architecture.md)                     | Repository layout, stack, testing, and code placement      |
+| [`docs/Frontend-Overview.md`](docs/Frontend-Overview.md) | Frontend scope and implementation sequence                 |
+| [`docs/ADR/`](docs/ADR/)                                 | Durable technical and product decisions                    |
+| [`docs/Specs-Planned/`](docs/Specs-Planned/)             | Planned feature specifications                             |
+| [`docs/licensing.md`](docs/licensing.md)                 | The MIT license explained in plain English                 |
 
 ## Contributing
 
-Contributions are welcome, whether that's code, docs, bug reports, or design feedback. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full dev setup, testing workflow, and coding conventions.
+Bug reports, documentation improvements, design feedback, and code contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), then pick an issue labeled [`ready-for-agent`](https://github.com/codesuke/ListItUp/labels/ready-for-agent) or [`ready-for-human`](https://github.com/codesuke/ListItUp/labels/ready-for-human).
 
-New here? Issues labeled [`good first issue`](https://github.com/codesuke/ListItUp/labels/good%20first%20issue) are scoped to be a manageable first contribution.
-
-## Code of Conduct
-
-This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). By participating, you're expected to uphold it.
-
-## Security
-
-Found a vulnerability? Please don't open a public issue — see [SECURITY.md](SECURITY.md) for how to report it privately.
+Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating. Report security vulnerabilities privately through [SECURITY.md](SECURITY.md), not a public issue.
 
 ## License
 
-ListItUp is [MIT licensed](LICENSE), © VirtuNode. See [`docs/licensing.md`](docs/licensing.md) for a plain-English explanation of what that means for you.
+ListItUp is open source under the [MIT License](LICENSE). You may use, modify, self-host, and redistribute it—including commercially—provided you retain the license and copyright notice.
+
+<div align="center">
+
+Built by [VirtuNode](https://github.com/VirtuNode-dev) · [Open an issue](https://github.com/codesuke/ListItUp/issues) · [Read the license guide](docs/licensing.md)
+
+</div>
