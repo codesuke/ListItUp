@@ -31,6 +31,7 @@ import { FilesView } from "./FilesView";
 import { MyTasksList } from "./MyTasksList";
 import { loadMyTasksPageData, type MyTasksFilterWorkspace } from "./page-data";
 import { QuickAddForm } from "./QuickAddForm";
+import { SearchForm } from "./SearchForm";
 
 type Query = {
   workspace?: string;
@@ -258,24 +259,14 @@ export default async function MyTasksPage({ searchParams }: Props) {
                       </a>
                     ))}
                   </div>
-                  <form action="/my-tasks" method="GET" className="flex items-center gap-2">
-                    <input type="hidden" name="workspace" value={query.workspace ?? ""} />
-                    <input type="hidden" name="completed" value={query.completed ?? ""} />
-                    <input type="hidden" name="archived" value={query.archived ?? ""} />
-                    <input type="hidden" name="sort" value={sortBy} />
-                    <input type="hidden" name="group" value={groupBy} />
-                    <div className="flex h-[30px] items-center gap-1.5 rounded-[6px] border border-line-strong bg-surface-2 px-2.5">
-                      <Search className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
-                      <input
-                        type="search"
-                        name="q"
-                        defaultValue={search}
-                        aria-label="Search your Items"
-                        placeholder="Search…"
-                        className="w-32 bg-transparent text-[12.5px] text-ink outline-none placeholder:text-ink-faint"
-                      />
-                    </div>
-                  </form>
+                  <SearchForm
+                    workspace={query.workspace ?? ""}
+                    completed={query.completed ?? ""}
+                    archived={query.archived ?? ""}
+                    sort={sortBy}
+                    group={groupBy}
+                    search={search}
+                  />
                 </div>
 
                 <div className="mb-5 flex flex-wrap items-center gap-2">
