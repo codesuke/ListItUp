@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ListItUp — Logo Draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="../shared/theme.css" />
+<style>
+  body { background: var(--bg-0); }
+  .swatch { border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; }
+  .swatch.dark { background: #262626; border: 1px solid var(--border); }
+  .swatch.light { background: #E5E5E0; }
+  .cap { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); text-align: center; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <div class="max-w-5xl mx-auto px-8 py-14">
+    <div class="font-mono-label text-[11px] mb-3" style="color:var(--orange-light)">ListItUp · Brand Asset</div>
+    <div class="flex items-center gap-3 mb-2">
+      <h1 class="text-[30px] font-semibold tracking-tight" style="color:var(--ink)">Logo — draft v1</h1>
+      <span class="ln-badge ln-badge-amber">Draft — awaiting approval</span>
+    </div>
+    <p class="text-[13.5px] max-w-2xl mb-12" style="color:var(--ink-muted)">
+      Mark: three list bars crossed by a single ascending arrow — "list" + "up" — in the one brand accent
+      (<code class="font-mono-label normal-case" style="color:var(--ink)">#FF6B4A</code>). Dark surface is
+      the default per <code class="font-mono-label normal-case" style="color:var(--ink)">DESIGN.md</code>;
+      the light variant matches the app's light theme toggle. Not wired anywhere yet.
+    </p>
+
+    <div class="font-mono-label text-[11px] mb-4" style="color:var(--ink-faint)">Mark — dark surface (default theme)</div>
+    <div class="flex items-end gap-6 mb-14">
+      <div><div class="swatch dark" style="width:160px;height:160px;padding:16px"><img src="assets/mark-dark.svg" width="128" height="128"></div><div class="cap">128px</div></div>
+      <div><div class="swatch dark" style="width:96px;height:96px;padding:12px"><img src="assets/mark-dark.svg" width="64" height="64"></div><div class="cap">64px</div></div>
+      <div><div class="swatch dark" style="width:56px;height:56px;padding:8px"><img src="assets/mark-dark.svg" width="32" height="32"></div><div class="cap">32px</div></div>
+      <div><div class="swatch dark" style="width:32px;height:32px;padding:6px"><img src="assets/mark-dark.svg" width="16" height="16"></div><div class="cap">16px</div></div>
+    </div>
+
+    <div class="font-mono-label text-[11px] mb-4" style="color:var(--ink-faint)">Mark — light surface</div>
+    <div class="flex items-end gap-6 mb-14">
+      <div><div class="swatch light" style="width:160px;height:160px;padding:16px"><img src="assets/mark-light.svg" width="128" height="128"></div><div class="cap">128px</div></div>
+      <div><div class="swatch light" style="width:96px;height:96px;padding:12px"><img src="assets/mark-light.svg" width="64" height="64"></div><div class="cap">64px</div></div>
+      <div><div class="swatch light" style="width:56px;height:56px;padding:8px"><img src="assets/mark-light.svg" width="32" height="32"></div><div class="cap">32px</div></div>
+    </div>
+
+    <div class="font-mono-label text-[11px] mb-4" style="color:var(--ink-faint)">Horizontal lockup</div>
+    <div class="grid grid-cols-2 gap-5">
+      <div>
+        <div class="swatch dark" style="padding:24px"><img src="assets/lockup-dark.svg" width="280" height="70"></div>
+        <div class="cap">dark theme navbar</div>
+      </div>
+      <div>
+        <div class="swatch light" style="padding:24px"><img src="assets/lockup-light.svg" width="280" height="70"></div>
+        <div class="cap">light theme navbar</div>
+      </div>
+    </div>
+
+    <div class="mt-14">
+      <a href="../index.html" class="ln-btn ln-btn-ghost">&larr; Back to design mocks</a>
+    </div>
+  </div>
+</body>
+</html>
