@@ -239,15 +239,6 @@ async function run() {
       // Progress graph (#49) — same computeProgressPercent as List
       // Dashboard, applied to the User's cross-Workspace assigned set.
       assert.equal(data.dashboard.progressPercent, 0);
-
-      // Attention Imbalance radar (#51) — personal-only, normalized against
-      // the User's own busiest axis: 2 raw To Do Items is the busiest axis
-      // here, so it reaches 1; the 1 raw Blocked Item normalizes to 0.5.
-      // Nothing overdue (the dated Item's due date is in the future) or
-      // Complete in this fixture, so both stay 0 — and there is no other
-      // User's data anywhere in the shape, since the query is scoped to
-      // this User's own assigned Items across Workspaces.
-      assert.deepEqual(data.dashboard.attentionImbalance, { TO_DO: 1, BLOCKED: 0.5, OVERDUE: 0, DONE: 0 });
     }
 
     // Contribution Map (#50) — personal-only, broken down per source List
@@ -291,6 +282,60 @@ async function run() {
         { listId: workspaceB.listId, label: "Engineering List", completionRatePercent: 100 },
         { listId: workspaceA.listId, label: "Marketing List", completionRatePercent: 50 },
       ]);
+    }
+
+    // Attention Imbalance radar (#51) — personal-only, normalized against
+    // the User's own busiest axis rather than a busiest-Member comparison.
+    {
+      const userId = await createUser();
+      const workspaceA = await createWorkspaceWithList("Marketing");
+      await joinWorkspace(workspaceA.workspaceId, workspaceA.listId, userId);
+
+      for (let i = 0; i < 3; i++) {
+        const toDo = await prisma.item.create({
+          data: { id: randomUUID(), listId: workspaceA.listId, creatorId: userId, title: `To Do ${i}` },
+        });
+        await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId: toDo.id, userId } });
+      }
+      const blocked = await prisma.item.create({
+        data: {
+          id: randomUUID(),
+          listId: workspaceA.listId,
+          creatorId: userId,
+          title: "Blocked task",
+          state: "BLOCKED",
+          blockerReason: "Waiting on review",
+        },
+      });
+      await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId: blocked.id, userId } });
+
+      // A second User with 5 Blocked Items of their own in the same List —
+      // never assigned to the first User, so must never affect their shape.
+      // If this leaked in, Blocked would wrongly become the busiest axis.
+      const otherUserId = await createUser();
+      await joinWorkspace(workspaceA.workspaceId, workspaceA.listId, otherUserId);
+      for (let i = 0; i < 5; i++) {
+        const otherBlocked = await prisma.item.create({
+          data: {
+            id: randomUUID(),
+            listId: workspaceA.listId,
+            creatorId: otherUserId,
+            title: `Other's blocked ${i}`,
+            state: "BLOCKED",
+            blockerReason: "Waiting on review",
+          },
+        });
+        await prisma.itemAssignee.create({
+          data: { id: randomUUID(), itemId: otherBlocked.id, userId: otherUserId },
+        });
+      }
+
+      const data = await loadMyTasksPageData(prisma, { userId });
+
+      // 3 raw To Do Items is the User's own busiest axis, so it reaches 1;
+      // the 1 raw Blocked Item normalizes to 1/3 — unaffected by the other
+      // User's 5 Blocked Items in the same List.
+      assert.deepEqual(data.dashboard.attentionImbalance, { TO_DO: 1, BLOCKED: 1 / 3, OVERDUE: 0, DONE: 0 });
     }
   } finally {
     const listIds = (

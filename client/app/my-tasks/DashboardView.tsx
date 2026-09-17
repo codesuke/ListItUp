@@ -75,6 +75,12 @@ export function DashboardView({
   contributionByList,
   attentionImbalance,
 }: MyTasksDashboardData) {
+  // counts.total alone isn't a reliable empty-state signal here: a User
+  // whose assigned Items are all IN_PROGRESS or ARCHIVED has counts.total
+  // > 0 but nothing on any of the radar's four tracked axes, which would
+  // render a degenerate all-zero shape instead of the empty state.
+  const hasAttentionData = Object.values(attentionImbalance).some((value) => value > 0);
+
   return (
     <div className="mt-6 flex flex-col gap-5">
       <div className="grid grid-cols-4 gap-4">
@@ -112,7 +118,7 @@ export function DashboardView({
         <AttentionImbalanceWidget
           title="Attention Imbalance"
           whyTag="Where your own attention is skewed"
-          entries={counts.total > 0 ? [{ key: "me", name: "You", normalized: attentionImbalance }] : []}
+          entries={hasAttentionData ? [{ key: "me", name: "You", normalized: attentionImbalance }] : []}
           emptyMessage="No assigned Items yet."
           footnote="Normalized against your own busiest state — never anyone else's data."
         />

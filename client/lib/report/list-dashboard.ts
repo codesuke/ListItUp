@@ -268,6 +268,20 @@ function emptyAxisCounts(): Record<AttentionAxis, number> {
   return { TO_DO: 0, BLOCKED: 0, OVERDUE: 0, DONE: 0 };
 }
 
+// Shared by buildAttentionImbalance and buildPersonalAttentionImbalance —
+// which axes an Item counts against, independent of whose radar it feeds.
+// Not mutually exclusive: an Item can be both TO_DO and OVERDUE at once.
+function classifyAttentionAxes(item: { state: ItemState; dueDate: Date | null }, now: Date): AttentionAxis[] {
+  const axes: AttentionAxis[] = [];
+  if (item.state === "TO_DO") axes.push("TO_DO");
+  if (item.state === "BLOCKED") axes.push("BLOCKED");
+  if (item.state === "COMPLETE") axes.push("DONE");
+  if (item.state !== "COMPLETE" && item.dueDate !== null && item.dueDate.getTime() < now.getTime()) {
+    axes.push("OVERDUE");
+  }
+  return axes;
+}
+
 // Attention Imbalance (#57): where a List's attention is skewed across its
 // people, one axis per state-of-concern (To Do, Blocked, Overdue, Done).
 // Each axis is normalized against its own busiest Member (0..1) so the
@@ -281,20 +295,13 @@ export function buildAttentionImbalance(
 ): AttentionImbalanceEntry[] {
   const rawByUserId = new Map<string, Record<AttentionAxis, number>>();
 
-  const bump = (userId: string, axis: AttentionAxis) => {
-    const counts = rawByUserId.get(userId) ?? emptyAxisCounts();
-    counts[axis] += 1;
-    rawByUserId.set(userId, counts);
-  };
-
   for (const item of items) {
     for (const userId of item.assigneeUserIds) {
-      if (item.state === "TO_DO") bump(userId, "TO_DO");
-      if (item.state === "BLOCKED") bump(userId, "BLOCKED");
-      if (item.state === "COMPLETE") bump(userId, "DONE");
-      if (item.state !== "COMPLETE" && item.dueDate !== null && item.dueDate.getTime() < now.getTime()) {
-        bump(userId, "OVERDUE");
+      const counts = rawByUserId.get(userId) ?? emptyAxisCounts();
+      for (const axis of classifyAttentionAxes(item, now)) {
+        counts[axis] += 1;
       }
+      rawByUserId.set(userId, counts);
     }
   }
 
@@ -319,7 +326,10 @@ export function buildAttentionImbalance(
 
 export type PersonalAttentionImbalance = Record<AttentionAxis, number>;
 
-type PersonalAttentionItem = { state: ItemState; dueDate: Date | null };
+// Same shape as MemberAssignmentItem minus assigneeUserIds — a personal
+// caller's Items are already scoped to one User, so there's nothing to key
+// per-assignee.
+type PersonalAttentionItem = Omit<MemberAssignmentItem, "assigneeUserIds">;
 
 // Personal Attention Imbalance (My Tasks, #51): the same "where is attention
 // piling up" question buildAttentionImbalance answers per Member, with no
@@ -333,11 +343,8 @@ export function buildPersonalAttentionImbalance(
 ): PersonalAttentionImbalance {
   const raw = emptyAxisCounts();
   for (const item of items) {
-    if (item.state === "TO_DO") raw.TO_DO += 1;
-    if (item.state === "BLOCKED") raw.BLOCKED += 1;
-    if (item.state === "COMPLETE") raw.DONE += 1;
-    if (item.state !== "COMPLETE" && item.dueDate !== null && item.dueDate.getTime() < now.getTime()) {
-      raw.OVERDUE += 1;
+    for (const axis of classifyAttentionAxes(item, now)) {
+      raw[axis] += 1;
     }
   }
 
