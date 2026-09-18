@@ -18,7 +18,21 @@ const INPUT_CLASS =
   "rounded-[6px] border border-line-strong bg-surface-3 px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none";
 const GHOST_BUTTON_CLASS =
   "rounded-[6px] border border-line-strong px-3 py-1.5 text-[12.5px] text-ink-muted transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink";
-const SECTION_CLASS = "flex flex-col gap-2";
+// Every section below the heading shares this wrapper so spacing and the
+// divider rhythm stay consistent regardless of how much content a section
+// has, instead of each block picking its own ad hoc gap.
+const SECTION_CLASS = "flex flex-col gap-3 border-t border-line-strong/60 pt-6";
+// The heading + primary form is always the first block on the page, so it
+// never gets a leading divider.
+const HEADING_SECTION_CLASS = "flex flex-col gap-4";
+// Shared row templates so label/input/action columns line up across every
+// field-style section (top form, Metadata, Custom Fields) instead of each
+// row sizing itself independently.
+const FIELD_GRID_CLASS = "grid grid-cols-1 gap-3 sm:grid-cols-3";
+const TWO_COL_GRID_CLASS = "grid grid-cols-1 gap-5 sm:grid-cols-2";
+const CUSTOM_FIELD_ROW_CLASS = "grid grid-cols-1 items-center gap-2 sm:grid-cols-[10rem_14rem_auto]";
+const CUSTOM_FIELD_ROW_VIEW_CLASS = "grid grid-cols-1 gap-1 sm:grid-cols-[10rem_1fr] sm:items-baseline";
+const BOUNDED_CONTROL_CLASS = "w-full sm:w-56";
 
 const STATE_LABEL: Record<string, string> = {
   TO_DO: "To Do",
@@ -89,151 +103,154 @@ export function ItemDetailPanel({
   const priorityBadge = PRIORITY_BADGE[data.priority];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex max-w-4xl flex-col">
       {data.parent && (
         <Link
           href={`/workspaces/${workspaceId}/lists/${listId}/items/${data.parent.id}`}
-          className="-mb-2 text-[12px] text-ink-faint transition-colors duration-150 hover:text-ink-muted"
+          className="mb-3 inline-block text-[12px] text-ink-faint transition-colors duration-150 hover:text-ink-muted"
         >
           ↑ {data.parent.title}
         </Link>
       )}
 
-      {/* Basic Information */}
-      {data.canEdit ? (
-        <form action={boundUpdateDetails} className="flex flex-col gap-3">
-          <div className={FIELD_LABEL_CLASS}>Basic Information</div>
-          <input
-            type="text"
-            name="title"
-            defaultValue={data.title}
-            className="w-full bg-transparent text-[17px] font-semibold leading-snug text-ink focus:outline-none"
-          />
-          <div className="grid max-w-3xl grid-cols-3 gap-3">
-            <div>
-              <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Section</div>
-              <select name="sectionId" defaultValue={data.sectionId ?? ""} className={`w-full ${INPUT_CLASS}`}>
-                <option value="">No Section</option>
-                {data.sections.map((section) => (
-                  <option key={section.id} value={section.id}>
-                    {section.name}
-                  </option>
-                ))}
-              </select>
+      {/* A. Item heading + B. Primary item information */}
+      <div className={HEADING_SECTION_CLASS}>
+        {data.canEdit ? (
+          <form action={boundUpdateDetails} className="flex flex-col gap-4">
+            <input
+              type="text"
+              name="title"
+              defaultValue={data.title}
+              className="w-full bg-transparent text-[17px] font-semibold leading-snug text-ink focus:outline-none"
+            />
+            <div className={FIELD_GRID_CLASS}>
+              <div>
+                <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Section</div>
+                <select name="sectionId" defaultValue={data.sectionId ?? ""} className={`w-full ${INPUT_CLASS}`}>
+                  <option value="">No Section</option>
+                  {data.sections.map((section) => (
+                    <option key={section.id} value={section.id}>
+                      {section.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Priority</div>
+                <select name="priority" defaultValue={data.priority} className={`w-full ${INPUT_CLASS}`}>
+                  <option value="LOW">Low</option>
+                  <option value="NORMAL">Normal</option>
+                  <option value="HIGH">High</option>
+                </select>
+              </div>
+              <div>
+                <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Due date</div>
+                <input
+                  type="date"
+                  name="dueDate"
+                  defaultValue={data.dueDate ? data.dueDate.toISOString().slice(0, 10) : ""}
+                  className={`w-full ${INPUT_CLASS}`}
+                />
+              </div>
             </div>
-            <div>
-              <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Priority</div>
-              <select name="priority" defaultValue={data.priority} className={`w-full ${INPUT_CLASS}`}>
-                <option value="LOW">Low</option>
-                <option value="NORMAL">Normal</option>
-                <option value="HIGH">High</option>
-              </select>
-            </div>
-            <div>
-              <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Due date</div>
-              <input
-                type="date"
-                name="dueDate"
-                defaultValue={data.dueDate ? data.dueDate.toISOString().slice(0, 10) : ""}
-                className={`w-full ${INPUT_CLASS}`}
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="self-start rounded-[6px] bg-[#ff6b4a] px-3 py-1.5 text-[12.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
-          >
-            Save
-          </button>
-        </form>
-      ) : (
-        <h2 className="text-[17px] font-semibold leading-snug text-ink">{data.title}</h2>
-      )}
+            <button
+              type="submit"
+              className="self-start rounded-[6px] bg-[#ff6b4a] px-3 py-1.5 text-[12.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
+            >
+              Save
+            </button>
+          </form>
+        ) : (
+          <h2 className="text-[17px] font-semibold leading-snug text-ink">{data.title}</h2>
+        )}
+      </div>
 
-      {/* State / Assignees */}
-      <div className="grid max-w-3xl grid-cols-2 gap-4">
-        <div className={SECTION_CLASS}>
-          <div className={FIELD_LABEL_CLASS}>State</div>
-          {data.state === "ARCHIVED" ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-[13px] text-ink">Archived</span>
-              {data.canEdit && (
-                <form action={boundRestore}>
-                  <button type="submit" className={GHOST_BUTTON_CLASS}>
-                    Restore
-                  </button>
-                </form>
-              )}
-            </div>
-          ) : data.canEdit ? (
-            <div className="flex flex-wrap items-start gap-3">
-              <StatePillControl
-                currentState={data.state}
-                currentBlockerReason={data.blockerReason}
-                boundTransition={boundTransition}
-              />
-              <form action={boundArchive}>
-                <button type="submit" className={GHOST_BUTTON_CLASS}>
-                  Archive
-                </button>
-              </form>
-            </div>
-          ) : (
-            <span className="text-[13px] text-ink">{STATE_LABEL[data.state]}</span>
-          )}
-          {data.state === "BLOCKED" && !data.canEdit && data.blockerReason && (
-            <div className="rounded-[6px] border border-[#f5b64240] bg-[#f5b64214] px-2.5 py-2 text-[12.5px] text-[#f5b642]">
-              <span className="font-semibold">Blocker reason —</span> {data.blockerReason}
-            </div>
-          )}
-        </div>
-
-        <div className={SECTION_CLASS}>
-          <div className={FIELD_LABEL_CLASS}>Assignees</div>
-          <div className="flex flex-wrap items-center gap-2">
-            {data.assignees.map((assignee) => (
-              <div key={assignee.userId} className="flex items-center gap-1.5">
-                <MemberAvatar name={assignee.name} />
-                <span className="text-[13px] text-ink">{assignee.name}</span>
+      {/* C. Current status & ownership */}
+      <div className={SECTION_CLASS}>
+        <div className={TWO_COL_GRID_CLASS}>
+          <div className="flex flex-col gap-2">
+            <div className={FIELD_LABEL_CLASS}>State</div>
+            {data.state === "ARCHIVED" ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-[13px] text-ink">Archived</span>
                 {data.canEdit && (
-                  <form action={boundRemoveAssignee(assignee.userId)}>
-                    <button
-                      type="submit"
-                      aria-label={`Remove ${assignee.name}`}
-                      className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]"
-                    >
-                      ×
+                  <form action={boundRestore}>
+                    <button type="submit" className={GHOST_BUTTON_CLASS}>
+                      Restore
                     </button>
                   </form>
                 )}
               </div>
-            ))}
-            {data.assignees.length === 0 && <span className="text-[13px] text-ink-faint">No one yet.</span>}
+            ) : data.canEdit ? (
+              <div className="flex flex-wrap items-start gap-3">
+                <StatePillControl
+                  currentState={data.state}
+                  currentBlockerReason={data.blockerReason}
+                  boundTransition={boundTransition}
+                />
+                <form action={boundArchive}>
+                  <button type="submit" className={GHOST_BUTTON_CLASS}>
+                    Archive
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <span className="text-[13px] text-ink">{STATE_LABEL[data.state]}</span>
+            )}
+            {data.state === "BLOCKED" && !data.canEdit && data.blockerReason && (
+              <div className="rounded-[6px] border border-[#f5b64240] bg-[#f5b64214] px-2.5 py-2 text-[12.5px] text-[#f5b642]">
+                <span className="font-semibold">Blocker reason —</span> {data.blockerReason}
+              </div>
+            )}
           </div>
-          {data.canEdit && unassignedMembers.length > 0 && (
-            <form action={boundAddAssignee} className="flex items-center gap-2">
-              <select name="userId" required defaultValue="" className={`min-w-0 flex-1 ${INPUT_CLASS}`}>
-                <option value="" disabled>
-                  Add an Assignee…
-                </option>
-                {unassignedMembers.map((member) => (
-                  <option key={member.userId} value={member.userId}>
-                    {member.name}
+
+          <div className="flex flex-col gap-2">
+            <div className={FIELD_LABEL_CLASS}>Assignees</div>
+            <div className="flex flex-wrap items-center gap-2">
+              {data.assignees.map((assignee) => (
+                <div key={assignee.userId} className="flex items-center gap-1.5">
+                  <MemberAvatar name={assignee.name} />
+                  <span className="text-[13px] text-ink">{assignee.name}</span>
+                  {data.canEdit && (
+                    <form action={boundRemoveAssignee(assignee.userId)}>
+                      <button
+                        type="submit"
+                        aria-label={`Remove ${assignee.name}`}
+                        className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]"
+                      >
+                        ×
+                      </button>
+                    </form>
+                  )}
+                </div>
+              ))}
+              {data.assignees.length === 0 && <span className="text-[13px] text-ink-faint">No one yet.</span>}
+            </div>
+            {data.canEdit && unassignedMembers.length > 0 && (
+              <form action={boundAddAssignee} className="flex items-center gap-2">
+                <select name="userId" required defaultValue="" className={`min-w-0 flex-1 ${INPUT_CLASS}`}>
+                  <option value="" disabled>
+                    Add an Assignee…
                   </option>
-                ))}
-              </select>
-              <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Add assignee">
-                <Plus className="h-3 w-3" />
-              </button>
-            </form>
-          )}
+                  {unassignedMembers.map((member) => (
+                    <option key={member.userId} value={member.userId}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Add assignee">
+                  <Plus className="h-3 w-3" />
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Metadata */}
+      {/* D. Metadata */}
       <div className={SECTION_CLASS}>
         <div className={FIELD_LABEL_CLASS}>Metadata</div>
-        <div className="grid max-w-3xl grid-cols-3 gap-4">
+        <div className={FIELD_GRID_CLASS}>
           <div>
             <div className={`${FIELD_LABEL_CLASS} mb-2`}>Priority</div>
             <StatusBadge tone={priorityBadge.tone}>{priorityBadge.label}</StatusBadge>
@@ -253,7 +270,7 @@ export function ItemDetailPanel({
         </div>
       </div>
 
-      {/* Labels */}
+      {/* E. Labels */}
       <div className={SECTION_CLASS}>
         <div className={FIELD_LABEL_CLASS}>Labels</div>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -270,27 +287,33 @@ export function ItemDetailPanel({
             </span>
           ))}
           {data.labels.length === 0 && <span className="text-[13px] text-ink-faint">None yet.</span>}
-          {data.canEdit && data.availableLabels.length > 0 && (
-            <form action={boundApplyExistingLabel} className="flex items-center gap-1.5">
-              <select name="labelId" required defaultValue="" className={INPUT_CLASS}>
-                <option value="" disabled>
-                  Apply a Label…
-                </option>
-                {data.availableLabels.map((label) => (
-                  <option key={label.id} value={label.id}>
-                    {label.name}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Apply label">
-                <Plus className="h-3 w-3" />
-              </button>
-            </form>
-          )}
         </div>
+        {data.canEdit && data.availableLabels.length > 0 && (
+          <form action={boundApplyExistingLabel} className="flex flex-wrap items-center gap-2">
+            <select name="labelId" required defaultValue="" className={`${INPUT_CLASS} ${BOUNDED_CONTROL_CLASS}`}>
+              <option value="" disabled>
+                Apply a Label…
+              </option>
+              {data.availableLabels.map((label) => (
+                <option key={label.id} value={label.id}>
+                  {label.name}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Apply label">
+              <Plus className="h-3 w-3" />
+            </button>
+          </form>
+        )}
         {data.canCreateLabel && (
-          <form action={boundCreateAndApplyLabel} className="flex items-center gap-2">
-            <input type="text" name="name" placeholder="New Label name" required className={`flex-1 ${INPUT_CLASS}`} />
+          <form action={boundCreateAndApplyLabel} className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              name="name"
+              placeholder="New Label name"
+              required
+              className={`${INPUT_CLASS} ${BOUNDED_CONTROL_CLASS}`}
+            />
             <button type="submit" className={GHOST_BUTTON_CLASS}>
               Create &amp; apply
             </button>
@@ -298,20 +321,23 @@ export function ItemDetailPanel({
         )}
       </div>
 
-      {/* Custom Fields */}
+      {/* F. Custom Fields */}
       <div className={SECTION_CLASS}>
         <div className={FIELD_LABEL_CLASS}>Custom Fields</div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {data.customFieldDefinitions.map((definition) => (
-            <div key={definition.id} className="flex items-center justify-between gap-3 text-[13px]">
-              <span className="text-ink-muted">{definition.name}</span>
+            <div
+              key={definition.id}
+              className={data.canEdit ? CUSTOM_FIELD_ROW_CLASS : CUSTOM_FIELD_ROW_VIEW_CLASS}
+            >
+              <span className="text-[13px] text-ink-muted">{definition.name}</span>
               {data.canEdit ? (
-                <form action={boundSetCustomFieldValue(definition.id)} className="flex items-center gap-2">
+                <form action={boundSetCustomFieldValue(definition.id)} className="contents">
                   {definition.type === "DROPDOWN" ? (
                     <select
                       name="value"
                       defaultValue={data.customFieldValues[definition.id] ?? ""}
-                      className={INPUT_CLASS}
+                      className={`w-full ${INPUT_CLASS}`}
                     >
                       <option value="">—</option>
                       {definition.options.map((option) => (
@@ -325,20 +351,21 @@ export function ItemDetailPanel({
                       type={definition.type === "DATE" ? "date" : definition.type === "NUMBER" ? "number" : "text"}
                       name="value"
                       defaultValue={data.customFieldValues[definition.id] ?? ""}
-                      className={INPUT_CLASS}
+                      className={`w-full ${INPUT_CLASS}`}
                     />
                   )}
-                  <button type="submit" className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
+                  <button
+                    type="submit"
+                    className="justify-self-start text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70] sm:justify-self-auto"
+                  >
                     Save
                   </button>
                 </form>
               ) : (
                 <span
-                  className={
-                    definition.type === "DROPDOWN"
-                      ? undefined
-                      : "font-[family-name:var(--font-mono-label)] text-ink"
-                  }
+                  className={`text-[13px] ${
+                    definition.type === "DROPDOWN" ? "text-ink" : "font-[family-name:var(--font-mono-label)] text-ink"
+                  }`}
                 >
                   {data.customFieldValues[definition.id] ?? "—"}
                 </span>
@@ -523,7 +550,7 @@ export function ItemDetailPanel({
         </div>
         {data.canEdit && (
           <form action={boundAddNote} className="flex flex-col gap-2">
-            <textarea name="body" placeholder="Add a Note…" required rows={2} className={INPUT_CLASS} />
+            <textarea name="body" placeholder="Add a Note…" required rows={2} className={`w-full ${INPUT_CLASS}`} />
             {data.mentionCandidates.length > 0 && (
               <div className="flex flex-wrap gap-3">
                 {data.mentionCandidates.map((candidate) => (
@@ -542,22 +569,24 @@ export function ItemDetailPanel({
 
       {/* Personal note */}
       {data.isAssignee && (
-        <div className="rounded-[8px] border border-dashed border-line-strong bg-surface-3 p-3">
-          <div className={`${FIELD_LABEL_CLASS} mb-1.5 flex items-center gap-1.5`}>
-            <Lock className="h-3 w-3" /> Personal note — only visible to you
+        <div className={SECTION_CLASS}>
+          <div className="rounded-[8px] border border-dashed border-line-strong bg-surface-3 p-3">
+            <div className={`${FIELD_LABEL_CLASS} mb-1.5 flex items-center gap-1.5`}>
+              <Lock className="h-3 w-3" /> Personal note — only visible to you
+            </div>
+            <form action={boundUpsertPersonalNote} className="flex flex-col gap-2">
+              <textarea
+                name="body"
+                defaultValue={data.personalNote ?? ""}
+                placeholder="Private planning notes…"
+                rows={2}
+                className={`w-full ${INPUT_CLASS}`}
+              />
+              <button type="submit" className={`self-start ${GHOST_BUTTON_CLASS}`}>
+                Save
+              </button>
+            </form>
           </div>
-          <form action={boundUpsertPersonalNote} className="flex flex-col gap-2">
-            <textarea
-              name="body"
-              defaultValue={data.personalNote ?? ""}
-              placeholder="Private planning notes…"
-              rows={2}
-              className={INPUT_CLASS}
-            />
-            <button type="submit" className={`self-start ${GHOST_BUTTON_CLASS}`}>
-              Save
-            </button>
-          </form>
         </div>
       )}
 
