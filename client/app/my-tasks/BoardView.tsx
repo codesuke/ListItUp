@@ -66,7 +66,7 @@ function MoveControl({
       <button
         type="submit"
         disabled={!target || (needsBlockerReason && !blockerReason.trim())}
-        className="self-start text-xs text-ink-muted hover:text-[#ff8a70] disabled:cursor-not-allowed disabled:opacity-40"
+        className="self-start text-xs text-ink-muted transition-colors duration-150 hover:text-[#ff8a70] disabled:cursor-not-allowed disabled:opacity-40"
       >
         Move
       </button>

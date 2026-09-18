@@ -3,7 +3,11 @@ import Link from "next/link";
 
 export function Logo({ href }: { href: string }) {
   return (
-    <Link href={href} aria-label="ListItUp home" className="flex flex-shrink-0 items-center gap-2">
+    <Link
+      href={href}
+      aria-label="ListItUp home"
+      className="flex flex-shrink-0 items-center gap-2 transition-opacity duration-150 hover:opacity-80"
+    >
       <Image
         src="/brand/listitup-ribbon-concept-v3-porcelain.png"
         alt=""

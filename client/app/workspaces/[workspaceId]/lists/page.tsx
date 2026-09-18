@@ -43,7 +43,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
   const boundCreate = createListAction.bind(null, workspaceId);
 
   return (
-    <main className="min-h-screen bg-canvas px-6 py-12 text-ink">
+    <main className="min-h-screen bg-canvas px-6 py-12 text-ink animate-in fade-in duration-200">
       <div className="mx-auto max-w-4xl">
         <div className="mb-8 flex items-center gap-4">
           <span className="h-px w-14 bg-[#ff6b4a]" />
@@ -59,8 +59,8 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
             href={`/workspaces/${workspaceId}/lists`}
             className={
               archived
-                ? "pb-3 text-ink-muted hover:text-ink"
-                : "border-b-2 border-[#ff6b4a] pb-3 text-ink"
+                ? "pb-3 text-ink-muted transition-colors duration-150 hover:text-ink"
+                : "border-b-2 border-[#ff6b4a] pb-3 text-ink transition-colors duration-150"
             }
           >
             Lists
@@ -69,8 +69,8 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
             href={`/workspaces/${workspaceId}/lists?tab=archived`}
             className={
               archived
-                ? "border-b-2 border-[#ff6b4a] pb-3 text-ink"
-                : "pb-3 text-ink-muted hover:text-ink"
+                ? "border-b-2 border-[#ff6b4a] pb-3 text-ink transition-colors duration-150"
+                : "pb-3 text-ink-muted transition-colors duration-150 hover:text-ink"
             }
           >
             Archived
@@ -87,7 +87,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
             name="search"
             defaultValue={search ?? ""}
             placeholder="Search Lists by name"
-            className="min-w-48 flex-1 rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
+            className="min-w-48 flex-1 rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
           />
           <select
             name="status"
@@ -119,7 +119,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
           </label>
           <button
             type="submit"
-            className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink hover:border-[#ff6b4a] hover:text-ink"
+            className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
           >
             Apply
           </button>
@@ -132,11 +132,11 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
               name="name"
               placeholder="New List name"
               required
-              className="flex-1 rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
+              className="flex-1 rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
             />
             <button
               type="submit"
-              className="rounded-md bg-[#ff6b4a] px-4 py-1.5 text-sm font-medium text-[#1a0800] hover:bg-[#ff8a70]"
+              className="rounded-md bg-[#ff6b4a] px-4 py-1.5 text-sm font-medium text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
             >
               New List
             </button>
@@ -155,8 +155,8 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
                   aria-label={list.isStarredByViewer ? "Unstar List" : "Star List"}
                   className={
                     list.isStarredByViewer
-                      ? "text-[#ff8a70]"
-                      : "text-ink-faint hover:text-ink-muted"
+                      ? "text-[#ff8a70] transition-colors duration-150"
+                      : "text-ink-faint transition-colors duration-150 hover:text-ink-muted"
                   }
                 >
                   ★
@@ -165,7 +165,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
 
               <a
                 href={`/workspaces/${workspaceId}/lists/${list.id}`}
-                className="min-w-0 flex-1 hover:underline"
+                className="min-w-0 flex-1 transition-colors duration-150 hover:underline"
               >
                 <div className="truncate text-sm font-medium text-ink">{list.name}</div>
                 {list.description && (
@@ -185,7 +185,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
                 <form action={boundRestore.bind(null, list.id)}>
                   <button
                     type="submit"
-                    className="rounded-md border border-line-strong px-3 py-1 text-xs text-ink hover:border-[#ff6b4a] hover:text-ink"
+                    className="rounded-md border border-line-strong px-3 py-1 text-xs text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
                   >
                     Restore
                   </button>
@@ -194,7 +194,7 @@ export default async function ListBrowsingPage({ params, searchParams }: Props) 
                 <form action={boundArchive.bind(null, list.id)}>
                   <button
                     type="submit"
-                    className="rounded-md border border-line-strong px-3 py-1 text-xs text-ink hover:border-[#ff6b4a] hover:text-ink"
+                    className="rounded-md border border-line-strong px-3 py-1 text-xs text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
                   >
                     Archive
                   </button>

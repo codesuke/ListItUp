@@ -15,8 +15,8 @@ export function BlockerReasonDialog({
   const [reason, setReason] = useState("");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="w-full max-w-sm rounded-lg border border-line-strong bg-surface-2 p-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 animate-in fade-in-0 duration-150">
+      <div className="w-full max-w-sm rounded-lg border border-line-strong bg-surface-2 p-4 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150">
         <p className="text-sm font-semibold text-ink">Why is this Blocked?</p>
         <input
           autoFocus
@@ -30,7 +30,7 @@ export function BlockerReasonDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md border border-line-strong px-3 py-1.5 text-xs text-ink-muted hover:border-line-strong hover:text-ink"
+            className="rounded-md border border-line-strong px-3 py-1.5 text-xs text-ink-muted transition-colors duration-150 hover:border-line-strong hover:text-ink"
           >
             Cancel
           </button>
@@ -38,7 +38,7 @@ export function BlockerReasonDialog({
             type="button"
             disabled={!reason.trim()}
             onClick={() => onConfirm(reason.trim())}
-            className="rounded-md border border-[#ff6b4a] px-3 py-1.5 text-xs text-[#ff8a70] hover:bg-[#ff6b4a] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-[#ff6b4a] px-3 py-1.5 text-xs text-[#ff8a70] transition-colors duration-150 hover:bg-[#ff6b4a] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
             Move to Blocked
           </button>

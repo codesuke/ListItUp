@@ -33,7 +33,7 @@ export default async function WorkspacePage({
   const timeLabel = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col animate-in fade-in duration-200">
       <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
         <HomeBreadcrumb />
         <GlobalHeaderActions

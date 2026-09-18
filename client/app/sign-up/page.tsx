@@ -81,7 +81,7 @@ function SignUpContent() {
         Already have an account?{" "}
         <Link
           href="/sign-in"
-          className="text-[#e6e6e6] underline decoration-[#31363a] underline-offset-4 hover:decoration-[#c4581a]"
+          className="text-[#e6e6e6] underline decoration-[#31363a] underline-offset-4 transition-colors duration-150 hover:decoration-[#c4581a]"
         >
           Sign in
         </Link>

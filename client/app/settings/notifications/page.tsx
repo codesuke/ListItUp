@@ -39,10 +39,10 @@ export default async function NotificationsSettingsPage() {
       currentWorkspaceName={workspace.kind === "PERSONAL" ? "Personal Space" : workspace.name}
       userId={session.user.id}
     >
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col animate-in fade-in duration-200">
         <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
           <div className="flex items-center gap-2">
-            <a href="/updates" className="text-[13px] text-ink-faint hover:text-ink-muted">
+            <a href="/updates" className="text-[13px] text-ink-faint transition-colors duration-150 hover:text-ink-muted">
               Updates
             </a>
             <ChevronRight className="h-3 w-3 text-ink-faint" />

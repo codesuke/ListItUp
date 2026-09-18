@@ -45,7 +45,7 @@ export function CalendarView({
           <Link
             href={prevHref}
             aria-label="Previous month"
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
+            className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </Link>
@@ -53,7 +53,7 @@ export function CalendarView({
           <Link
             href={nextHref}
             aria-label="Next month"
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
+            className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </Link>
@@ -90,7 +90,7 @@ export function CalendarView({
                 <Link
                   key={item.id}
                   href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-                  className="flex items-center gap-1.5 truncate rounded-[5px] bg-surface-3 px-1.5 py-1 text-[11px] text-ink-muted hover:text-ink"
+                  className="flex items-center gap-1.5 truncate rounded-[5px] bg-surface-3 px-1.5 py-1 text-[11px] text-ink-muted transition-colors duration-150 hover:text-ink"
                 >
                   <span
                     className="h-1.5 w-1.5 flex-shrink-0 rounded-full"

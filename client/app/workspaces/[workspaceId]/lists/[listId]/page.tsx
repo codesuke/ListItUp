@@ -133,7 +133,7 @@ function RolesColumn({
               <span className="truncate">{entry.name}</span>
               {bindRemove && (
                 <form action={bindRemove(entry.userId)}>
-                  <button type="submit" className="text-xs text-ink-faint hover:text-[#ff8a70]">
+                  <button type="submit" className="text-xs text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
                     {removeLabel ?? "Remove"}
                   </button>
                 </form>
@@ -176,11 +176,11 @@ function OverviewTab({
               defaultValue={data.description ?? ""}
               placeholder="What is this List for?"
               rows={3}
-              className="w-full rounded-md border border-line-strong bg-surface-2 px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
+              className="w-full rounded-md border border-line-strong bg-surface-2 px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
             />
             <button
               type="submit"
-              className="self-start rounded-md bg-[#ff6b4a] px-4 py-1.5 text-sm font-medium text-[#1a0800] hover:bg-[#ff8a70]"
+              className="self-start rounded-md bg-[#ff6b4a] px-4 py-1.5 text-sm font-medium text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
             >
               Save
             </button>
@@ -237,7 +237,7 @@ function OverviewTab({
                 </select>
                 <button
                   type="submit"
-                  className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink hover:border-[#ff6b4a] hover:text-ink"
+                  className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
                 >
                   Add
                 </button>
@@ -250,11 +250,11 @@ function OverviewTab({
                 name="email"
                 required
                 placeholder="Grant Guest access by email"
-                className="min-w-56 rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
+                className="min-w-56 rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
               />
               <button
                 type="submit"
-                className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink hover:border-[#ff6b4a] hover:text-ink"
+                className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
               >
                 Grant
               </button>
@@ -332,7 +332,7 @@ export default async function ListPage({ params, searchParams }: Props) {
   const boundTogglePeerComparison = togglePeerComparisonAction.bind(null, workspaceId, listId);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col animate-in fade-in duration-200">
       <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
         <div className="flex min-w-0 items-center gap-2">
           <LayoutList className="h-4 w-4 flex-shrink-0 text-[#ff8a70]" />
@@ -343,14 +343,14 @@ export default async function ListPage({ params, searchParams }: Props) {
             type="button"
             disabled
             title="Export CSV ships with the Reports & Analytics spec (ADR 0012)."
-            className="flex items-center gap-1.5 rounded-[6px] border border-line-strong px-3 py-[7px] text-[13px] font-semibold text-ink-muted opacity-60"
+            className="flex items-center gap-1.5 rounded-[6px] border border-line-strong px-3 py-[7px] text-[13px] font-semibold text-ink-muted opacity-60 transition-colors duration-150"
           >
             <Download className="h-3.5 w-3.5" /> Export CSV
           </button>
           <button
             type="button"
             aria-label="List settings"
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
           >
             <Settings className="h-[15px] w-[15px]" />
           </button>
@@ -375,8 +375,8 @@ export default async function ListPage({ params, searchParams }: Props) {
                     isDisabledTab
                       ? "flex cursor-default items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-faint"
                       : activeTab === tab.key
-                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-ink"
-                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted hover:text-ink"
+                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-ink transition-colors duration-150"
+                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted transition-colors duration-150 hover:text-ink"
                   }
                 >
                   <Icon className="h-3.5 w-3.5" /> {tab.label}

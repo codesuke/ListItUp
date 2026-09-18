@@ -222,6 +222,19 @@ body {
   );
 }
 
+/* Respect the OS-level motion preference across every transition/animation
+   utility in the app, rather than opting each component in individually. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Custom check-mark for the sign-in "remember me" checkbox. */
 input[name="remember"] + span {
   position: relative;

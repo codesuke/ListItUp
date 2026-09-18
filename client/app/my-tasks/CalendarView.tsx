@@ -20,14 +20,14 @@ export function CalendarView({
       <div className="mb-4 flex items-center gap-3">
         <a
           href={prevHref}
-          className="rounded-md border border-line-strong px-2 py-1 text-xs text-ink-muted hover:text-ink"
+          className="rounded-md border border-line-strong px-2 py-1 text-xs text-ink-muted transition-colors duration-150 hover:text-ink"
         >
           ←
         </a>
         <span className="text-sm font-medium text-ink">{monthLabel}</span>
         <a
           href={nextHref}
-          className="rounded-md border border-line-strong px-2 py-1 text-xs text-ink-muted hover:text-ink"
+          className="rounded-md border border-line-strong px-2 py-1 text-xs text-ink-muted transition-colors duration-150 hover:text-ink"
         >
           →
         </a>

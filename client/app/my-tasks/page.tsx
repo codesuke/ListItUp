@@ -88,7 +88,7 @@ function myTasksHref(query: Query): string {
 }
 
 const CHIP_BASE =
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] tracking-[0.04em]";
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] tracking-[0.04em] transition-colors duration-150";
 const CHIP_ACTIVE = `${CHIP_BASE} border-[#ff6b4a] bg-[#ff6b4a24] text-[#ff8a70]`;
 const CHIP_INACTIVE = `${CHIP_BASE} border-line-strong bg-surface-3 text-ink-muted hover:text-ink`;
 
@@ -190,7 +190,7 @@ export default async function MyTasksPage({ searchParams }: Props) {
       currentWorkspaceName={shellWorkspace.isPersonal ? "Personal Space" : shellWorkspace.name}
       userId={session.user.id}
     >
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col animate-in fade-in duration-200">
         <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold text-ink">My Tasks</span>
@@ -215,8 +215,8 @@ export default async function MyTasksPage({ searchParams }: Props) {
                     href={myTasksHref({ ...query, tab: tab.key === "list" ? undefined : tab.key })}
                     className={
                       activeTab === tab.key
-                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-ink"
-                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted hover:text-ink"
+                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-ink transition-colors duration-150"
+                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted transition-colors duration-150 hover:text-ink"
                     }
                   >
                     <Icon className="h-3.5 w-3.5" /> {tab.label}

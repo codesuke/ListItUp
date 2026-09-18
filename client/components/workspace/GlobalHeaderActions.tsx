@@ -10,7 +10,7 @@ import { initialsFromName } from "@/lib/utils";
 // row (Search, Bell) so they read as one consistent group with ThemeToggle,
 // which carries the same classes itself.
 const ICON_BUTTON_CLASSES =
-  "flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1";
+  "flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-[background-color,color,transform] duration-150 hover:bg-surface-3 hover:text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1";
 
 export function GlobalHeaderActions({
   currentUserName,
@@ -52,7 +52,7 @@ export function GlobalHeaderActions({
       <Link
         href="/profile"
         aria-label="View profile"
-        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-2 bg-[#5b9dff] font-[family-name:var(--font-mono-label)] text-[10px] font-bold text-[#1a0800] hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1"
+        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-2 bg-[#5b9dff] font-[family-name:var(--font-mono-label)] text-[10px] font-bold text-[#1a0800] transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1"
       >
         {initialsFromName(currentUserName)}
       </Link>

@@ -47,7 +47,7 @@ const EMPTY_MESSAGE: Record<UpdatesTab, string> = {
 };
 
 const CHIP_BASE =
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] tracking-[0.04em]";
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] tracking-[0.04em] transition-colors duration-150";
 const CHIP_ACTIVE = `${CHIP_BASE} border-[#ff6b4a] bg-[#ff6b4a24] text-[#ff8a70]`;
 const CHIP_INACTIVE = `${CHIP_BASE} border-line-strong bg-surface-3 text-ink-muted hover:text-ink`;
 
@@ -93,7 +93,7 @@ export default async function UpdatesPage({ searchParams }: Props) {
       currentWorkspaceName={shellWorkspace.kind === "PERSONAL" ? "Personal Space" : shellWorkspace.name}
       userId={session.user.id}
     >
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col animate-in fade-in duration-200">
         <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold text-ink">Updates</span>
@@ -102,7 +102,7 @@ export default async function UpdatesPage({ searchParams }: Props) {
           <div className="flex items-center gap-3">
             <a
               href="/settings/notifications"
-              className="flex items-center gap-1.5 text-[12px] text-ink-muted hover:text-ink"
+              className="flex items-center gap-1.5 text-[12px] text-ink-muted transition-colors duration-150 hover:text-ink"
             >
               <Settings className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
               Manage Notifications
@@ -125,8 +125,8 @@ export default async function UpdatesPage({ searchParams }: Props) {
                     href={updatesHref({ tab: t.key === "activity" ? undefined : t.key })}
                     className={
                       tab === t.key
-                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-ink"
-                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted hover:text-ink"
+                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-ink transition-colors duration-150"
+                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted transition-colors duration-150 hover:text-ink"
                     }
                   >
                     <Icon className="h-3.5 w-3.5" /> {t.label}

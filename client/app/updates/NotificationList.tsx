@@ -24,14 +24,14 @@ function NotificationRow({
   boundArchive: () => Promise<void>;
 }) {
   return (
-    <div className="flex items-start gap-1 rounded-[8px] px-1 py-1 hover:bg-surface-3">
+    <div className="flex items-start gap-1 rounded-[8px] px-1 py-1 transition-colors duration-150 hover:bg-surface-3">
       <form action={boundOpen} className="min-w-0 flex-1">
         <button type="submit" className="flex w-full items-start gap-3 rounded-[8px] px-2 py-1.5 text-left text-[13px]">
           <span
             className={
               notification.isUnread
-                ? "mt-1.5 h-[7px] w-[7px] flex-shrink-0 rounded-full bg-[#ff6b4a]"
-                : "mt-1.5 h-[7px] w-[7px] flex-shrink-0 rounded-full bg-transparent"
+                ? "mt-1.5 h-[7px] w-[7px] flex-shrink-0 rounded-full bg-[#ff6b4a] transition-colors duration-150"
+                : "mt-1.5 h-[7px] w-[7px] flex-shrink-0 rounded-full bg-transparent transition-colors duration-150"
             }
             aria-hidden="true"
           />
@@ -53,10 +53,14 @@ function NotificationRow({
         <button
           type="submit"
           aria-label={notification.isBookmarked ? "Remove bookmark" : "Bookmark"}
-          className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-ink-faint hover:bg-surface-4 hover:text-ink"
+          className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-ink-faint transition-colors duration-150 hover:bg-surface-4 hover:text-ink"
         >
           <Bookmark
-            className={notification.isBookmarked ? "h-3.5 w-3.5 fill-[#ff8a70] text-[#ff8a70]" : "h-3.5 w-3.5"}
+            className={
+              notification.isBookmarked
+                ? "h-3.5 w-3.5 fill-[#ff8a70] text-[#ff8a70] transition-colors duration-150"
+                : "h-3.5 w-3.5 transition-colors duration-150"
+            }
             strokeWidth={1.7}
             aria-hidden="true"
           />
@@ -68,7 +72,7 @@ function NotificationRow({
           <button
             type="submit"
             aria-label="Archive"
-            className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-ink-faint hover:bg-surface-4 hover:text-ink"
+            className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-ink-faint transition-colors duration-150 hover:bg-surface-4 hover:text-ink"
           >
             <Archive className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
           </button>

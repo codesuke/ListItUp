@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronDown, ChevronRight, ChevronsUpDown, Home, LayoutList, ListChecks } from "lucide-react";
+import { Bell, ChevronRight, ChevronsUpDown, Home, LayoutList, ListChecks } from "lucide-react";
 
 import type { WorkspaceNavEntry } from "@/app/workspaces/[workspaceId]/layout-data";
 import { Logo } from "@/components/logo";
@@ -151,13 +151,11 @@ export function WorkspaceSidebar({
             onClick={() => setIsPersonalSpaceOpen((open) => !open)}
             aria-expanded={isPersonalSpaceOpen}
             disabled={!personalSpace}
-            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.14em] text-sidebar-foreground/70 hover:text-sidebar-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.14em] text-sidebar-foreground/70 transition-colors duration-150 hover:text-sidebar-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isPersonalSpaceOpen ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
-            )}
+            <ChevronRight
+              className={`h-3 w-3 transition-transform duration-150 ${isPersonalSpaceOpen ? "rotate-90" : ""}`}
+            />
             Personal Space
           </button>
 
@@ -182,7 +180,7 @@ export function WorkspaceSidebar({
             onClick={() => setIsSwitcherOpen((open) => !open)}
             aria-expanded={isSwitcherOpen}
             aria-label="Switch Workspace"
-            className="flex w-full items-center gap-2.5 rounded-[8px] border border-sidebar-border bg-surface-2 px-2.5 py-2.5 text-left hover:border-line-strong hover:bg-surface-3 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0"
+            className="flex w-full items-center gap-2.5 rounded-[8px] border border-sidebar-border bg-surface-2 px-2.5 py-2.5 text-left transition-colors duration-150 hover:border-line-strong hover:bg-surface-3 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0"
           >
             <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-[#ff6b4a] font-[family-name:var(--font-mono-label)] text-xs font-bold text-[#1a0800]">
               {initialsFromName(currentWorkspaceName)}
@@ -195,11 +193,13 @@ export function WorkspaceSidebar({
                 Workspace
               </span>
             </span>
-            <ChevronsUpDown className="h-3.5 w-3.5 flex-shrink-0 text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden" />
+            <ChevronsUpDown
+              className={`h-3.5 w-3.5 flex-shrink-0 text-sidebar-foreground/70 transition-transform duration-150 group-data-[collapsible=icon]:hidden ${isSwitcherOpen ? "rotate-180" : ""}`}
+            />
           </button>
 
           {isSwitcherOpen && (
-            <ul className="absolute bottom-full left-0 z-10 mb-1 w-56 rounded-md border border-sidebar-border bg-surface-2 py-1 shadow-lg">
+            <ul className="absolute bottom-full left-0 z-10 mb-1 w-56 origin-bottom-left rounded-md border border-sidebar-border bg-surface-2 py-1 shadow-lg animate-in fade-in-0 zoom-in-95 duration-150">
               {switchableWorkspaces.length === 0 && (
                 <li className="px-3 py-2 text-xs text-sidebar-foreground/70">No other Workspaces yet.</li>
               )}
@@ -209,8 +209,8 @@ export function WorkspaceSidebar({
                     href={`/workspaces/${workspace.id}`}
                     className={
                       workspace.id === currentWorkspaceId
-                        ? "block px-3 py-2 text-sm text-[#ff8a70]"
-                        : "block px-3 py-2 text-sm text-sidebar-foreground/70 hover:bg-surface-3 hover:text-sidebar-foreground"
+                        ? "block px-3 py-2 text-sm text-[#ff8a70] transition-colors duration-150"
+                        : "block px-3 py-2 text-sm text-sidebar-foreground/70 transition-colors duration-150 hover:bg-surface-3 hover:text-sidebar-foreground"
                     }
                   >
                     {workspace.name}

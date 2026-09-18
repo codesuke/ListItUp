@@ -67,7 +67,7 @@ function MoveControl({
       <button
         type="submit"
         disabled={!target || (needsBlockerReason && !blockerReason.trim())}
-        className="self-start text-xs text-ink-muted hover:text-[#ff8a70] disabled:cursor-not-allowed disabled:opacity-40"
+        className="self-start text-xs text-ink-muted transition-colors duration-150 hover:text-[#ff8a70] disabled:cursor-not-allowed disabled:opacity-40"
       >
         Move
       </button>
@@ -152,7 +152,7 @@ export function BoardView({
             </select>
             <button
               type="submit"
-              className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink hover:border-[#ff6b4a] hover:text-ink"
+              className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
             >
               Apply
             </button>
@@ -164,8 +164,8 @@ export function BoardView({
           onClick={() => setShowArchived((current) => !current)}
           className={
             showArchived
-              ? "rounded-full border border-[#ff6b4a] px-3 py-1 text-xs text-[#ff8a70]"
-              : "rounded-full border border-line-strong px-3 py-1 text-xs text-ink-muted hover:text-ink"
+              ? "rounded-full border border-[#ff6b4a] px-3 py-1 text-xs text-[#ff8a70] transition-colors duration-150"
+              : "rounded-full border border-line-strong px-3 py-1 text-xs text-ink-muted transition-colors duration-150 hover:text-ink"
           }
         >
           Archived ({archivedItems.length})
@@ -186,7 +186,7 @@ export function BoardView({
                 <div key={item.id} className="flex items-center gap-2 rounded-md border border-line bg-surface-2 p-2">
                   <a
                     href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-                    className="flex-1 truncate text-sm text-ink hover:text-ink hover:underline"
+                    className="flex-1 truncate text-sm text-ink transition-colors duration-150 hover:text-ink hover:underline"
                   >
                     {item.title}
                   </a>
@@ -194,7 +194,7 @@ export function BoardView({
                     <input type="hidden" name="itemId" value={item.id} />
                     <button
                       type="submit"
-                      className="rounded-md border border-line-strong px-3 py-1 text-xs text-ink hover:border-[#ff6b4a] hover:text-ink"
+                      className="rounded-md border border-line-strong px-3 py-1 text-xs text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
                     >
                       Restore
                     </button>
@@ -223,7 +223,7 @@ export function BoardView({
                     <DraggableCard key={item.id} id={item.id} disabled={!canManage}>
                       <a
                         href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-                        className="block text-sm text-ink hover:text-ink hover:underline"
+                        className="block text-sm text-ink transition-colors duration-150 hover:text-ink hover:underline"
                       >
                         {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
                         {item.title}

@@ -32,13 +32,13 @@ export function FilesView({
           <div className="min-w-0">
             <a
               href={`/api/workspaces/${workspaceId}/lists/${listId}/items/${entry.itemId}/attachments/${entry.attachmentId}`}
-              className="block truncate text-sm text-ink hover:text-ink hover:underline"
+              className="block truncate text-sm text-ink transition-colors duration-150 hover:text-ink hover:underline"
             >
               {entry.fileName}
             </a>
             <a
               href={`/workspaces/${workspaceId}/lists/${listId}/items/${entry.itemId}`}
-              className="block truncate text-xs text-ink-muted hover:text-ink hover:underline"
+              className="block truncate text-xs text-ink-muted transition-colors duration-150 hover:text-ink hover:underline"
             >
               {entry.itemTitle}
             </a>

@@ -46,7 +46,7 @@ export function TimelineView({
             <div key={item.id} className="flex items-center gap-3">
               <a
                 href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-                className="w-48 flex-shrink-0 truncate text-sm text-ink hover:text-ink hover:underline"
+                className="w-48 flex-shrink-0 truncate text-sm text-ink transition-colors duration-150 hover:text-ink hover:underline"
               >
                 {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
                 {item.title}

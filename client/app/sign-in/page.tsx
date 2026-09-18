@@ -116,7 +116,7 @@ function SignInContent() {
             <label className="flex min-h-11 w-fit cursor-pointer items-center gap-3 text-sm text-[#a5aaaf]">
               <input className="peer sr-only" type="checkbox" name="remember" />
               <span
-                className="grid size-4 place-items-center rounded border border-[#31363a] bg-[#0e1113] text-xs text-[#0e1113] peer-checked:border-[#c4581a] peer-checked:bg-[#c4581a] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#c4581a]"
+                className="grid size-4 place-items-center rounded border border-[#31363a] bg-[#0e1113] text-xs text-[#0e1113] transition-colors duration-150 peer-checked:border-[#c4581a] peer-checked:bg-[#c4581a] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#c4581a]"
                 aria-hidden="true"
               >
                 ✓

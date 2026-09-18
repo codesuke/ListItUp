@@ -32,7 +32,11 @@ export function CopyLinkButton({ url }: { url: string }) {
       aria-label={copied ? "Link copied" : "Copy link to this Item"}
       className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
     >
-      {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+      {copied ? (
+        <Check key="copied" className="h-3.5 w-3.5 animate-in fade-in-0 zoom-in-50 duration-200" />
+      ) : (
+        <Share2 key="share" className="h-3.5 w-3.5 animate-in fade-in-0 zoom-in-50 duration-200" />
+      )}
     </button>
   );
 }

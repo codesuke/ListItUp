@@ -15,7 +15,7 @@ export default async function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-canvas px-6 py-12 text-ink">
+    <main className="min-h-screen bg-canvas px-6 py-12 text-ink animate-in fade-in duration-200">
       <div className="mx-auto max-w-xl">
         <div className="mb-8 flex items-center gap-4">
           <span className="h-px w-14 bg-[#ff6b4a]" />

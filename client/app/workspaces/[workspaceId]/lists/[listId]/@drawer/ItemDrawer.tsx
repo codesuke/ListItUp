@@ -13,7 +13,7 @@ export function ItemDrawer({ sectionLabel, children }: { sectionLabel: string; c
 
   return (
     <aside
-      className="flex w-[380px] flex-shrink-0 flex-col overflow-y-auto border-l border-line bg-surface-1"
+      className="flex w-[380px] flex-shrink-0 flex-col overflow-y-auto border-l border-line bg-surface-1 animate-in slide-in-from-right fade-in-0 duration-200"
       style={{ maxHeight: "100vh" }}
     >
       <div className="flex flex-shrink-0 items-center justify-between border-b border-line p-5">
@@ -24,7 +24,7 @@ export function ItemDrawer({ sectionLabel, children }: { sectionLabel: string; c
           type="button"
           onClick={() => router.back()}
           aria-label="Close"
-          className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
+          className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
         >
           <X className="h-3.5 w-3.5" />
         </button>

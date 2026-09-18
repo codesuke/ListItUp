@@ -46,7 +46,7 @@ export function StatePillControl({
               key={state.value}
               type="button"
               onClick={() => selectState(state.value)}
-              className="rounded-full border px-2.5 py-[5px] text-[11.5px] font-semibold transition-colors"
+              className="rounded-full border px-2.5 py-[5px] text-[11.5px] font-semibold transition-colors duration-150"
               style={
                 isActive
                   ? { borderColor: state.color, color: state.color, backgroundColor: `${state.color}24` }
@@ -67,11 +67,11 @@ export function StatePillControl({
             defaultValue={currentBlockerReason ?? ""}
             placeholder="Blocker reason (required)"
             required
-            className="rounded-[6px] border border-line-strong bg-surface-3 px-3 py-2 text-[12.5px] text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
+            className="rounded-[6px] border border-line-strong bg-surface-3 px-3 py-2 text-[12.5px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
           />
           <button
             type="submit"
-            className="self-start rounded-[6px] bg-[#ff6b4a] px-3 py-1.5 text-[12.5px] font-semibold text-[#1a0800] hover:bg-[#ff8a70]"
+            className="self-start rounded-[6px] bg-[#ff6b4a] px-3 py-1.5 text-[12.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
           >
             Save
           </button>

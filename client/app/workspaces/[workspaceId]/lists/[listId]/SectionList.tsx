@@ -69,7 +69,7 @@ function CompleteToggle({
       <button
         type="submit"
         aria-label="Mark complete"
-        className="h-4 w-4 flex-shrink-0 rounded-[5px] border-[1.5px] border-line-strong transition-colors hover:border-[#ff6b4a]"
+        className="h-4 w-4 flex-shrink-0 rounded-[5px] border-[1.5px] border-line-strong transition-colors duration-150 hover:border-[#ff6b4a]"
       />
     </form>
   );
@@ -101,7 +101,7 @@ function ItemRow({
 
   return (
     <div
-      className={`flex items-center gap-2.5 rounded-[8px] py-2 pr-2.5 transition-colors hover:bg-surface-3 ${
+      className={`flex items-center gap-2.5 rounded-[8px] py-2 pr-2.5 transition-colors duration-150 hover:bg-surface-3 ${
         indented ? "pl-[52px]" : "pl-2.5"
       }`}
     >
@@ -109,7 +109,7 @@ function ItemRow({
       {!indented && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: STATE_DOT_COLOR[item.state] }} />}
       <Link
         href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-        className={`min-w-0 flex-1 truncate text-[13.5px] hover:underline ${
+        className={`min-w-0 flex-1 truncate text-[13.5px] transition-colors duration-150 hover:underline ${
           item.state === "COMPLETE" ? "text-ink-faint line-through" : "text-ink"
         }`}
       >
@@ -157,7 +157,7 @@ function ArchivedItemRow({
     <div className="flex items-center gap-3 rounded-[8px] px-2.5 py-2">
       <Link
         href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-        className="min-w-0 flex-1 truncate text-[13.5px] text-ink-muted hover:text-ink hover:underline"
+        className="min-w-0 flex-1 truncate text-[13.5px] text-ink-muted transition-colors duration-150 hover:text-ink hover:underline"
       >
         {item.title}
       </Link>
@@ -165,7 +165,7 @@ function ArchivedItemRow({
         <input type="hidden" name="itemId" value={item.id} />
         <button
           type="submit"
-          className="rounded-[6px] border border-line-strong px-3 py-1 text-xs text-ink-muted hover:border-[#ff6b4a] hover:text-ink"
+          className="rounded-[6px] border border-line-strong px-3 py-1 text-xs text-ink-muted transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
         >
           Restore
         </button>
@@ -192,7 +192,7 @@ function AddItemForm({
         required
         className="flex-1 bg-transparent text-[13.5px] text-ink placeholder:text-ink-faint focus:outline-none"
       />
-      <button type="submit" className="text-xs text-ink-faint hover:text-[#ff8a70]">
+      <button type="submit" className="text-xs text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
         Add
       </button>
     </form>
@@ -214,7 +214,7 @@ function SectionActionButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-ink-faint hover:bg-surface-4 hover:text-ink"
+      className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-ink-faint transition-colors duration-150 hover:bg-surface-4 hover:text-ink"
     >
       <Icon className="h-3.5 w-3.5" />
     </button>
@@ -241,7 +241,7 @@ function SectionActionForm({
         type="submit"
         aria-label={label}
         title={label}
-        className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-ink-faint hover:bg-surface-4 hover:text-ink"
+        className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-ink-faint transition-colors duration-150 hover:bg-surface-4 hover:text-ink"
       >
         <Icon className="h-3.5 w-3.5" />
       </button>
@@ -306,8 +306,8 @@ export function SectionList({
 
   const chipClass = (active: boolean) =>
     active
-      ? "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#ff6b4a] bg-[#ff6b4a24] px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] text-[#ff8a70]"
-      : "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted hover:text-ink";
+      ? "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#ff6b4a] bg-[#ff6b4a24] px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] text-[#ff8a70] transition-colors duration-150"
+      : "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted transition-colors duration-150 hover:text-ink";
 
   return (
     <div>
@@ -319,11 +319,11 @@ export function SectionList({
               name="name"
               placeholder="New Section name"
               required
-              className="rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] text-ink placeholder:text-ink-faint focus:border-[#ff6b4a] focus:outline-none"
+              className="rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
             />
             <button
               type="submit"
-              className="flex items-center gap-1.5 rounded-[6px] bg-[#ff6b4a] px-3 py-[7px] text-[13px] font-semibold text-[#1a0800] hover:bg-[#ff8a70]"
+              className="flex items-center gap-1.5 rounded-[6px] bg-[#ff6b4a] px-3 py-[7px] text-[13px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
             >
               Add Section
             </button>
@@ -393,9 +393,11 @@ export function SectionList({
                     type="button"
                     onClick={() => toggleCollapsed(section.id)}
                     aria-label={collapsed ? "Expand Section" : "Collapse Section"}
-                    className="text-ink-faint hover:text-ink"
+                    className="text-ink-faint transition-colors duration-150 hover:text-ink"
                   >
-                    {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                    <ChevronRight
+                      className={`h-3.5 w-3.5 transition-transform duration-150 ${collapsed ? "" : "rotate-90"}`}
+                    />
                   </button>
 
                   {isRenaming ? (
@@ -412,7 +414,7 @@ export function SectionList({
                         name="name"
                         defaultValue={section.name}
                         autoFocus
-                        className="flex-1 rounded-[6px] border border-line-strong bg-surface-3 px-2 py-1 text-[13px] text-ink focus:border-[#ff6b4a] focus:outline-none"
+                        className="flex-1 rounded-[6px] border border-line-strong bg-surface-3 px-2 py-1 text-[13px] text-ink transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
                       />
                       <button type="submit" className="text-xs text-[#ff8a70]">
                         Save
@@ -420,7 +422,7 @@ export function SectionList({
                       <button
                         type="button"
                         onClick={() => setRenamingId(null)}
-                        className="text-xs text-ink-faint hover:text-ink-muted"
+                        className="text-xs text-ink-faint transition-colors duration-150 hover:text-ink-muted"
                       >
                         Cancel
                       </button>

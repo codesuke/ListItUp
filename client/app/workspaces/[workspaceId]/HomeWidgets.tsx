@@ -55,7 +55,7 @@ function WidgetCard({
 
 function ViewAllLink({ href }: { href: string }) {
   return (
-    <a href={href} className="flex items-center gap-1 text-[12px] font-semibold text-[#ff8a70] hover:text-[#ff6b4a]">
+    <a href={href} className="flex items-center gap-1 text-[12px] font-semibold text-[#ff8a70] transition-colors duration-150 hover:text-[#ff6b4a]">
       View all <ArrowRight className="h-3 w-3" />
     </a>
   );
@@ -105,7 +105,7 @@ export function MyTasksPreviewWidget({
                 </span>
                 <a
                   href={`/workspaces/${item.sourceWorkspaceId}/lists/${item.listId}/items/${item.id}`}
-                  className="min-w-0 flex-1 truncate text-[13.5px] text-ink hover:underline"
+                  className="min-w-0 flex-1 truncate text-[13.5px] text-ink transition-colors duration-150 hover:underline"
                 >
                   {item.title}
                 </a>
@@ -140,7 +140,7 @@ export function RecentListsWidget({
                   <LayoutList className="h-4 w-4 text-[#ff8a70]" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-medium text-ink group-hover:underline">
+                  <span className="block truncate text-[13px] font-medium text-ink transition-colors duration-150 group-hover:underline">
                     {list.name}
                   </span>
                   <span className="block text-[11.5px] text-ink-faint">
@@ -189,7 +189,7 @@ export function AssignedByMeWidget({
                 />
                 <a
                   href={`/workspaces/${workspaceId}/lists/${item.listId}/items/${item.id}`}
-                  className="min-w-0 flex-1 truncate text-[13.5px] text-ink hover:underline"
+                  className="min-w-0 flex-1 truncate text-[13.5px] text-ink transition-colors duration-150 hover:underline"
                 >
                   {item.title}
                 </a>
