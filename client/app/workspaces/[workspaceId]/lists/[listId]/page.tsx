@@ -15,6 +15,7 @@ import {
 import { notFound } from "next/navigation";
 
 import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
+import { MemberAvatar } from "@/components/workspace/MemberAvatar";
 import { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/calendar/month-grid";
 import { countUnreadNotifications } from "@/lib/notification/notification-inbox";
 import { prisma } from "@/lib/prisma";
@@ -122,18 +123,29 @@ function RolesColumn({
   bindRemove?: (userId: string) => (formData: FormData) => Promise<void>;
 }) {
   return (
-    <div>
-      <div className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">{title}</div>
+    <div className="flex min-w-0 flex-col">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">{title}</span>
+        <span className="font-mono text-[11px] text-ink-faint">{entries.length}</span>
+      </div>
+      <div className="mt-2 border-t border-line" />
       {entries.length === 0 ? (
-        <div className="mt-2 text-sm text-ink-faint">No one yet.</div>
+        <div className="mt-2 text-sm text-ink-faint">No members</div>
       ) : (
-        <ul className="mt-2 flex flex-col gap-1.5">
+        <ul className="mt-1 flex max-h-64 flex-col gap-0.5 overflow-y-auto">
           {entries.map((entry) => (
-            <li key={entry.userId} className="flex items-center justify-between gap-2 text-sm text-ink">
-              <span className="truncate">{entry.name}</span>
+            <li
+              key={entry.userId}
+              className="group flex items-center gap-2 rounded-md px-1 py-1.5 transition-colors duration-150 hover:bg-surface-2"
+            >
+              <MemberAvatar name={entry.name} />
+              <span className="min-w-0 flex-1 truncate text-sm text-ink">{entry.name}</span>
               {bindRemove && (
-                <form action={bindRemove(entry.userId)}>
-                  <button type="submit" className="text-xs text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
+                <form action={bindRemove(entry.userId)} className="shrink-0">
+                  <button
+                    type="submit"
+                    className="text-xs text-ink-faint opacity-0 transition-opacity duration-150 hover:text-[#ff8a70] focus-visible:opacity-100 group-hover:opacity-100"
+                  >
                     {removeLabel ?? "Remove"}
                   </button>
                 </form>
@@ -207,9 +219,14 @@ function OverviewTab({
             bindRemove={canManage ? boundRevokeGuest : undefined}
           />
         </div>
+      </div>
 
-        {canManage && (
-          <div className="mt-4 flex flex-wrap items-center gap-4">
+      {canManage && (
+        <div>
+          <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-muted">
+            Manage Access
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
             {data.eligibleMembers.length > 0 && (
               <form action={boundAddMember} className="flex items-center gap-2">
                 <select
@@ -260,8 +277,8 @@ function OverviewTab({
               </button>
             </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
