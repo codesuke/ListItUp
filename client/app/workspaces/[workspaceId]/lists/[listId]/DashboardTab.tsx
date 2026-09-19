@@ -46,6 +46,12 @@ const HEATMAP_WEEKDAY_LABEL = ["", "Mon", "", "Wed", "", "Fri", ""];
 const HEATMAP_MONTH_LABEL = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
+// Minimum week columns between two rendered month labels so short abbreviations
+// (e.g. "Jun" next to "Jul") never overlap when a month spans very few columns.
+// Wider than the column pitch itself since the label text is fixed-size while
+// the columns shrink to fit the full year in the widget's width.
+const HEATMAP_MIN_MONTH_LABEL_GAP = 3;
+const HEATMAP_GAP_PX = "2px";
 
 function parseHeatmapDateKey(dateKey: string): Date {
   return new Date(`${dateKey}T00:00:00Z`);
@@ -59,50 +65,79 @@ function heatmapWeekdayLabel(weeks: HeatmapCell[][], rowIndex: number): string {
   return date ? HEATMAP_WEEKDAY_LABEL[parseHeatmapDateKey(date).getUTCDay()]! : "";
 }
 
-// Labels the first week column of each new month, GitHub-style.
-function heatmapMonthLabel(weeks: HeatmapCell[][], weekIndex: number): string | null {
-  const date = weeks[weekIndex]?.[0]?.date;
-  if (!date) return null;
-  const month = parseHeatmapDateKey(date).getUTCMonth();
-  const previousDate = weeks[weekIndex - 1]?.[0]?.date;
-  const previousMonth = previousDate ? parseHeatmapDateKey(previousDate).getUTCMonth() : null;
-  return month === previousMonth ? null : HEATMAP_MONTH_LABEL[month]!;
+// One label per week column: null unless that column is the first one of a
+// new month, and null-ed back out if the previous label is too close for the
+// text not to overlap it (still anchored to real month boundaries, never
+// evenly redistributed).
+function heatmapMonthLabels(weeks: HeatmapCell[][]): (string | null)[] {
+  let previousMonth: number | null = null;
+  let lastLabeledWeekIndex = -Infinity;
+
+  return weeks.map((week, weekIndex) => {
+    const date = week[0]?.date;
+    if (!date) return null;
+    const month = parseHeatmapDateKey(date).getUTCMonth();
+    const isNewMonth = month !== previousMonth;
+    previousMonth = month;
+    if (!isNewMonth || weekIndex - lastLabeledWeekIndex < HEATMAP_MIN_MONTH_LABEL_GAP) return null;
+    lastLabeledWeekIndex = weekIndex;
+    return HEATMAP_MONTH_LABEL[month]!;
+  });
 }
 
 function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
+  const monthLabels = heatmapMonthLabels(weeks);
+  const columnCount = weeks.length;
+  const gridColumnsStyle = { gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`, gap: HEATMAP_GAP_PX };
+
   return (
     <div className={`${CARD_CLASS} p-5`}>
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-4`}>Rhythm of work — aggregated, not per-Member</div>
-      <div className="overflow-x-auto">
-        <div className="flex min-w-max justify-center gap-[3px]">
-          <div className="w-6 flex-shrink-0" aria-hidden="true" />
+
+      {/* Full year of columns filling the widget width — column width comes from
+          the 1fr grid tracks, so it adapts to whatever space the card actually
+          has instead of forcing a fixed pixel width that could overflow it. */}
+      <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
+        <div className="w-5 flex-shrink-0" aria-hidden="true" />
+        <div className="grid flex-1" style={gridColumnsStyle}>
           {weeks.map((week, weekIndex) => (
-            <div key={week[0]!.date} className="w-[11px] flex-shrink-0 whitespace-nowrap text-[9px] text-ink-faint">
-              {heatmapMonthLabel(weeks, weekIndex)}
+            <div key={week[0]!.date} className="min-w-0 whitespace-nowrap text-[9px] text-ink-faint">
+              {monthLabels[weekIndex]}
             </div>
           ))}
         </div>
-        <div className="mt-1 flex min-w-max justify-center gap-[3px]">
-          <div className="flex flex-shrink-0 flex-col gap-[3px] pr-1">
-            {Array.from({ length: 7 }, (_, rowIndex) => (
-              <div key={rowIndex} className="flex h-[11px] w-5 items-center text-[9px] text-ink-faint">
-                {heatmapWeekdayLabel(weeks, rowIndex)}
-              </div>
-            ))}
-          </div>
-          {weeks.map((week) => (
-            <div key={week[0]!.date} className="flex flex-col gap-[3px]">
-              {week.map((cell) => (
-                <div
-                  key={cell.date}
-                  title={`${cell.date}: ${cell.count} completed`}
-                  className="h-[11px] w-[11px] rounded-[2.5px]"
-                  style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
-                />
-              ))}
+      </div>
+      <div className="mt-1 flex" style={{ gap: HEATMAP_GAP_PX }}>
+        {/* No explicit height here: the grid below sizes itself from its own
+            column width via aspect-square, and flex's default stretch then
+            gives this gutter the exact same height to split into 7 rows. */}
+        <div className="flex w-5 flex-shrink-0 flex-col" style={{ gap: HEATMAP_GAP_PX }}>
+          {Array.from({ length: 7 }, (_, rowIndex) => (
+            <div key={rowIndex} className="flex flex-1 items-center text-[7px] leading-none text-ink-faint">
+              {heatmapWeekdayLabel(weeks, rowIndex)}
             </div>
           ))}
+        </div>
+        <div
+          className="grid flex-1"
+          style={{
+            ...gridColumnsStyle,
+            gridTemplateRows: "repeat(7, auto)",
+            gridAutoFlow: "column",
+            alignContent: "start",
+          }}
+        >
+          {weeks.flatMap((week) =>
+            week.map((cell) => (
+              <div
+                key={cell.date}
+                title={`${cell.date}: ${cell.count} completed`}
+                className="aspect-square w-full rounded-[1.5px]"
+                style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
+              />
+            ))
+          )}
         </div>
       </div>
       <div className="mt-3 flex items-center justify-end gap-1.5">
