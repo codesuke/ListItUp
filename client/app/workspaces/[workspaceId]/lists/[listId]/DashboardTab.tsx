@@ -92,18 +92,16 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-3`}>Rhythm of work — aggregated, not per-Member</div>
 
-      {/* Month labels are pinned right under the subtitle, not part of the
-          centered block below — otherwise they'd drift down with it. Columns
-          are 1fr, not a fixed pixel size: cell width is derived from this
-          card's actual real width, so the grid always spans it exactly
-          (never wider, forcing horizontal scroll). Cells use a slightly
-          taller-than-wide aspect ratio (still reads as square, not a
-          stretched rectangle) so the grid uses more of the leftover card
-          height instead of leaving it empty. Only the grid+weekday row is
-          vertically centered in the space between the month labels and the
-          legend, so the legend itself stays pinned to the card's bottom
-          instead of floating with a gap under it. */}
-      <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
+      {/* Month labels sit a small step below the subtitle, then the grid
+          follows immediately after them — not centered in the leftover
+          space below, which read as a big gap between the labels and the
+          heatmap. Columns are 1fr, not a fixed pixel size: cell width is
+          derived from this card's actual real width, so the grid always
+          spans it exactly (never wider, forcing horizontal scroll). Cells
+          use a slightly taller-than-wide aspect ratio (still reads as
+          square, not a stretched rectangle). Any leftover vertical space
+          collects below the grid, ahead of the legend. */}
+      <div className="mt-1 flex" style={{ gap: HEATMAP_GAP_PX }}>
         <div className={`${HEATMAP_GUTTER_CLASS} flex-shrink-0`} aria-hidden="true" />
         <div className="grid flex-1" style={gridColumnsStyle}>
           {weeks.map((week, weekIndex) => (
@@ -113,7 +111,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
           ))}
         </div>
       </div>
-      <div className="mt-1 flex flex-1 items-center" style={{ gap: HEATMAP_GAP_PX }}>
+      <div className="mt-1 flex flex-1 items-start" style={{ gap: HEATMAP_GAP_PX }}>
         <div className={`flex ${HEATMAP_GUTTER_CLASS} flex-shrink-0 flex-col`} style={{ gap: HEATMAP_GAP_PX }}>
           {Array.from({ length: 7 }, (_, rowIndex) => (
             <div key={rowIndex} className="flex flex-1 items-center whitespace-nowrap text-[9px] text-ink-faint">
