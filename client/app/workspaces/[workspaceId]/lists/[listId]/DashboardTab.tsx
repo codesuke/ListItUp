@@ -83,14 +83,15 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-3`}>Rhythm of work — aggregated, not per-Member</div>
 
-      {/* Columns are 1fr, not a fixed pixel size: cell size is derived from
+      {/* Columns are 1fr, not a fixed pixel size: cell width is derived from
           this card's actual real width, so the grid always fills it exactly
           (never smaller, leaving dead space; never wider, forcing scroll) no
-          matter what that width really is. Cells stay perfect squares via
-          aspect-square regardless of the computed column width. No weekday
-          gutter: only month labels run across the top, so the grid gets the
-          full card width. */}
-      <div className="flex flex-1 flex-col justify-center">
+          matter what that width really is. Row height is 1fr too (not
+          aspect-square) and the cell grid is flex-1, so it stretches to fill
+          the full leftover card height instead of sizing itself off the
+          (much smaller) column width and floating in a centered strip. No
+          weekday gutter: only month labels run across the top. */}
+      <div className="flex flex-1 flex-col">
         <div className="grid" style={gridColumnsStyle}>
           {weeks.map((week, weekIndex) => (
             <div key={week[0]!.date} className="min-w-0 whitespace-nowrap text-[9px] text-ink-faint">
@@ -99,12 +100,11 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
           ))}
         </div>
         <div
-          className="mt-1 grid"
+          className="mt-1 grid flex-1"
           style={{
             ...gridColumnsStyle,
-            gridTemplateRows: "repeat(7, auto)",
+            gridTemplateRows: `repeat(7, minmax(0, 1fr))`,
             gridAutoFlow: "column",
-            alignContent: "start",
           }}
         >
           {weeks.flatMap((week) =>
@@ -112,7 +112,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
               <div
                 key={cell.date}
                 title={`${cell.date}: ${cell.count} completed`}
-                className="aspect-square w-full rounded-[2px]"
+                className="h-full w-full rounded-[2px]"
                 style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
               />
             ))
