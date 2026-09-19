@@ -93,7 +93,7 @@ export default async function UpdatesPage({ searchParams }: Props) {
       currentWorkspaceName={shellWorkspace.kind === "PERSONAL" ? "Personal Space" : shellWorkspace.name}
       userId={session.user.id}
     >
-      <div className="flex min-h-screen flex-col animate-in fade-in duration-200">
+      <div className="flex flex-col animate-in fade-in duration-200">
         <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold text-ink">Updates</span>
@@ -114,7 +114,7 @@ export default async function UpdatesPage({ searchParams }: Props) {
           </div>
         </header>
 
-        <main className="flex-1 bg-canvas px-10 pb-16 pt-8">
+        <main className="bg-canvas px-10 pb-16 pt-8">
           <div className="mx-auto max-w-3xl">
             <nav className="mb-5 flex flex-wrap items-center gap-6 border-b border-line">
               {TABS.map((t) => {
