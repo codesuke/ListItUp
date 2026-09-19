@@ -93,60 +93,64 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
   const monthLabels = heatmapMonthLabels(weeks);
 
   return (
-    <div className={`${CARD_CLASS} p-5`}>
+    <div className={`${CARD_CLASS} flex flex-col p-5`}>
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-3`}>Rhythm of work — aggregated, not per-Member</div>
 
-      {/* Fixed cell/gap size (see HEATMAP_CELL_PX/HEATMAP_GAP_PX above) chosen
-          to fit the full year inside this card's real width with no scroll,
-          no 1fr/percentage sizing, and no stretching. */}
-      <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
-        <div className="flex-shrink-0" style={{ width: HEATMAP_GUTTER_PX }} aria-hidden="true" />
-        {weeks.map((week, weekIndex) => (
-          <div
-            key={week[0]!.date}
-            className="flex-shrink-0 whitespace-nowrap text-[9px] text-ink-faint"
-            style={{ width: HEATMAP_CELL_PX }}
-          >
-            {monthLabels[weekIndex]}
-          </div>
-        ))}
-      </div>
-      <div className="mt-1 flex" style={{ gap: HEATMAP_GAP_PX }}>
-        <div className="flex flex-shrink-0 flex-col" style={{ gap: HEATMAP_GAP_PX }}>
-          {Array.from({ length: 7 }, (_, rowIndex) => (
+      {/* This card's height is set by its taller sibling in the dashboard's
+          2-column row; centering this block in the leftover space puts the
+          heatmap where the eye expects it instead of pinned to the top with
+          dead space below. Cell/gap size below is unchanged — 8px is still
+          the largest fixed size that fits all 52 columns with no scroll. */}
+      <div className="flex flex-1 flex-col justify-center">
+        <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
+          <div className="flex-shrink-0" style={{ width: HEATMAP_GUTTER_PX }} aria-hidden="true" />
+          {weeks.map((week, weekIndex) => (
             <div
-              key={rowIndex}
-              className="flex items-center text-[6px] leading-none text-ink-faint"
-              style={{ height: HEATMAP_CELL_PX, width: HEATMAP_GUTTER_PX }}
+              key={week[0]!.date}
+              className="flex-shrink-0 whitespace-nowrap text-[9px] text-ink-faint"
+              style={{ width: HEATMAP_CELL_PX }}
             >
-              {heatmapWeekdayLabel(weeks, rowIndex)}
+              {monthLabels[weekIndex]}
             </div>
           ))}
         </div>
-        {weeks.map((week) => (
-          <div key={week[0]!.date} className="flex flex-shrink-0 flex-col" style={{ gap: HEATMAP_GAP_PX }}>
-            {week.map((cell) => (
+        <div className="mt-1 flex" style={{ gap: HEATMAP_GAP_PX }}>
+          <div className="flex flex-shrink-0 flex-col" style={{ gap: HEATMAP_GAP_PX }}>
+            {Array.from({ length: 7 }, (_, rowIndex) => (
               <div
-                key={cell.date}
-                title={`${cell.date}: ${cell.count} completed`}
-                className="rounded-[1.5px]"
-                style={{ height: HEATMAP_CELL_PX, width: HEATMAP_CELL_PX, backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
-              />
+                key={rowIndex}
+                className="flex items-center text-[6px] leading-none text-ink-faint"
+                style={{ height: HEATMAP_CELL_PX, width: HEATMAP_GUTTER_PX }}
+              >
+                {heatmapWeekdayLabel(weeks, rowIndex)}
+              </div>
             ))}
           </div>
-        ))}
-      </div>
-      <div className="mt-2 flex items-center justify-end gap-1.5">
-        <span className="text-[10px] text-ink-faint">Less</span>
-        {([0, 1, 2, 3, 4] as const).map((level) => (
-          <span
-            key={level}
-            className="h-[11px] w-[11px] rounded-[2.5px]"
-            style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[level] }}
-          />
-        ))}
-        <span className="text-[10px] text-ink-faint">More</span>
+          {weeks.map((week) => (
+            <div key={week[0]!.date} className="flex flex-shrink-0 flex-col" style={{ gap: HEATMAP_GAP_PX }}>
+              {week.map((cell) => (
+                <div
+                  key={cell.date}
+                  title={`${cell.date}: ${cell.count} completed`}
+                  className="rounded-[1.5px]"
+                  style={{ height: HEATMAP_CELL_PX, width: HEATMAP_CELL_PX, backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 flex items-center justify-end gap-1.5">
+          <span className="text-[10px] text-ink-faint">Less</span>
+          {([0, 1, 2, 3, 4] as const).map((level) => (
+            <span
+              key={level}
+              className="h-[11px] w-[11px] rounded-[2.5px]"
+              style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[level] }}
+            />
+          ))}
+          <span className="text-[10px] text-ink-faint">More</span>
+        </div>
       </div>
     </div>
   );
