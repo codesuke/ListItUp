@@ -1,5 +1,6 @@
-import { ArrowLeft, ArrowRight, Lock, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Lock, Plus } from "lucide-react";
 import Link from "next/link";
+import type { ComponentProps } from "react";
 
 import { MemberAvatar } from "@/components/workspace/MemberAvatar";
 import { StatusBadge, type StatusBadgeTone } from "@/components/workspace/StatusBadge";
@@ -12,12 +13,20 @@ const FIELD_LABEL_CLASS =
   "font-[family-name:var(--font-mono-label)] text-[10.5px] uppercase tracking-[0.08em] text-ink-faint";
 const CHIP_CLASS =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2.5 py-1 text-[12px] text-ink-muted animate-in fade-in-0 zoom-in-95 duration-150";
+// self-stretch (not a fixed height) so this always matches the rendered
+// height of the input/select it sits beside in a flex row, regardless of
+// that row's font size or padding — a fixed h-6 drifted out of sync with
+// INPUT_CLASS and looked visibly shorter than its sibling control.
 const SMALL_ICON_BTN_CLASS =
-  "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink";
+  "flex w-8 flex-shrink-0 items-center justify-center self-stretch rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink";
 const INPUT_CLASS =
   "rounded-[6px] border border-line-strong bg-surface-3 px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none";
+// A filled surface, not just a border on transparent background — matches
+// SMALL_ICON_BTN_CLASS's bg-surface-2 so every secondary action on this
+// page reads as a pressable control instead of leaning on a border that
+// can wash out against similarly-toned neighboring surfaces.
 const GHOST_BUTTON_CLASS =
-  "rounded-[6px] border border-line-strong px-3 py-1.5 text-[12.5px] text-ink-muted transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink";
+  "rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[12.5px] font-medium text-ink-muted transition-colors duration-150 hover:border-[#ff6b4a] hover:bg-surface-3 hover:text-ink";
 // Every section below the heading shares this wrapper so spacing and the
 // divider rhythm stay consistent regardless of how much content a section
 // has, instead of each block picking its own ad hoc gap. Each of the two
@@ -45,7 +54,12 @@ const COLUMN_CLASS = "@container flex min-w-0 flex-col gap-8";
 const FIELD_GRID_CLASS = "grid grid-cols-1 gap-3 @lg:grid-cols-3";
 const CUSTOM_FIELD_ROW_CLASS = "grid grid-cols-1 items-center gap-2 @lg:grid-cols-[10rem_14rem_auto]";
 const CUSTOM_FIELD_ROW_VIEW_CLASS = "grid grid-cols-1 gap-1 @lg:grid-cols-[10rem_1fr] @lg:items-baseline";
-const BOUNDED_CONTROL_CLASS = "w-full sm:w-56";
+// `@lg` (container query), not `sm` (viewport), for the same reason as the
+// other row templates above: this panel also renders inside the 380px Item
+// drawer, and a viewport breakpoint would widen this control past the
+// drawer's content width on any normal desktop viewport regardless of how
+// narrow the drawer itself is rendering.
+const BOUNDED_CONTROL_CLASS = "w-full @lg:w-56";
 
 const STATE_LABEL: Record<string, string> = {
   TO_DO: "To Do",
@@ -69,6 +83,26 @@ const ATTACHMENT_ERROR_MESSAGE: Record<string, string> = {
   forbidden: "You don't have permission to attach files to this Item.",
   "item-not-found": "This Item no longer exists.",
 };
+
+// Native <select> chrome (the OS-drawn arrow and its own internal padding)
+// doesn't match this design system and can't be restyled directly, so every
+// dropdown on this page wraps one in a positioned container and repaints
+// the arrow with a Lucide icon instead of a raw, unstyled browser control.
+function FieldSelect({
+  wrapperClassName,
+  className,
+  children,
+  ...props
+}: ComponentProps<"select"> & { wrapperClassName?: string }) {
+  return (
+    <div className={`relative inline-block ${wrapperClassName ?? ""}`}>
+      <select {...props} className={`w-full appearance-none pr-8 ${INPUT_CLASS} ${className ?? ""}`}>
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
+    </div>
+  );
+}
 
 export function ItemDetailPanel({
   data,
@@ -134,27 +168,27 @@ export function ItemDetailPanel({
               type="text"
               name="title"
               defaultValue={data.title}
-              className="w-full bg-transparent text-[22px] font-semibold leading-snug tracking-tight text-ink focus:outline-none"
+              className="-mx-2 w-[calc(100%+1rem)] rounded-[6px] bg-transparent px-2 py-1 text-[22px] font-semibold leading-snug tracking-tight text-ink transition-colors duration-150 hover:bg-surface-3 focus:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]/50"
             />
             <div className={FIELD_GRID_CLASS}>
               <div>
                 <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Section</div>
-                <select name="sectionId" defaultValue={data.sectionId ?? ""} className={`w-full ${INPUT_CLASS}`}>
+                <FieldSelect name="sectionId" defaultValue={data.sectionId ?? ""} wrapperClassName="w-full">
                   <option value="">No Section</option>
                   {data.sections.map((section) => (
                     <option key={section.id} value={section.id}>
                       {section.name}
                     </option>
                   ))}
-                </select>
+                </FieldSelect>
               </div>
               <div>
                 <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Priority</div>
-                <select name="priority" defaultValue={data.priority} className={`w-full ${INPUT_CLASS}`}>
+                <FieldSelect name="priority" defaultValue={data.priority} wrapperClassName="w-full">
                   <option value="LOW">Low</option>
                   <option value="NORMAL">Normal</option>
                   <option value="HIGH">High</option>
-                </select>
+                </FieldSelect>
               </div>
               <div>
                 <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Due date</div>
@@ -197,10 +231,10 @@ export function ItemDetailPanel({
                     {data.canEdit ? (
                       <form action={boundSetCustomFieldValue(definition.id)} className="contents">
                         {definition.type === "DROPDOWN" ? (
-                          <select
+                          <FieldSelect
                             name="value"
                             defaultValue={data.customFieldValues[definition.id] ?? ""}
-                            className={`w-full ${INPUT_CLASS}`}
+                            wrapperClassName="w-full"
                           >
                             <option value="">—</option>
                             {definition.options.map((option) => (
@@ -208,7 +242,7 @@ export function ItemDetailPanel({
                                 {option}
                               </option>
                             ))}
-                          </select>
+                          </FieldSelect>
                         ) : (
                           <input
                             type={definition.type === "DATE" ? "date" : definition.type === "NUMBER" ? "number" : "text"}
@@ -219,7 +253,7 @@ export function ItemDetailPanel({
                         )}
                         <button
                           type="submit"
-                          className="justify-self-start text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70] @lg:justify-self-auto"
+                          className={`${GHOST_BUTTON_CLASS} justify-self-start @lg:justify-self-auto`}
                         >
                           Save
                         </button>
@@ -242,12 +276,12 @@ export function ItemDetailPanel({
               {data.canDefineCustomFields && (
                 <form action={boundDefineCustomField} className="flex flex-wrap items-center gap-2">
                   <input type="text" name="name" placeholder="New field name" required className={INPUT_CLASS} />
-                  <select name="type" defaultValue="TEXT" className={INPUT_CLASS}>
+                  <FieldSelect name="type" defaultValue="TEXT">
                     <option value="TEXT">Text</option>
                     <option value="NUMBER">Number</option>
                     <option value="DROPDOWN">Dropdown</option>
                     <option value="DATE">Date</option>
-                  </select>
+                  </FieldSelect>
                   <input
                     type="text"
                     name="options"
@@ -309,12 +343,12 @@ export function ItemDetailPanel({
               </div>
               {data.canEdit && (
                 <form action={boundAddDependency} className="flex flex-wrap items-center gap-2">
-                  <select name="direction" defaultValue="blockedBy" className={INPUT_CLASS}>
+                  <FieldSelect name="direction" defaultValue="blockedBy">
                     <option value="blockedBy">Is blocked by…</option>
                     <option value="blocks">Blocks…</option>
-                  </select>
+                  </FieldSelect>
                   {data.sameListItems.length > 0 ? (
-                    <select name="targetItemId" required defaultValue="" className={INPUT_CLASS}>
+                    <FieldSelect name="targetItemId" required defaultValue="">
                       <option value="" disabled>
                         Choose an Item in this List…
                       </option>
@@ -323,7 +357,7 @@ export function ItemDetailPanel({
                           {candidate.title}
                         </option>
                       ))}
-                    </select>
+                    </FieldSelect>
                   ) : (
                     <input
                       type="text"
@@ -549,7 +583,7 @@ export function ItemDetailPanel({
                 </div>
                 {data.canEdit && unassignedMembers.length > 0 && (
                   <form action={boundAddAssignee} className="flex items-center gap-2">
-                    <select name="userId" required defaultValue="" className={`min-w-0 flex-1 ${INPUT_CLASS}`}>
+                    <FieldSelect name="userId" required defaultValue="" wrapperClassName="min-w-0 flex-1">
                       <option value="" disabled>
                         Add an Assignee…
                       </option>
@@ -558,7 +592,7 @@ export function ItemDetailPanel({
                           {member.name}
                         </option>
                       ))}
-                    </select>
+                    </FieldSelect>
                     <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Add assignee">
                       <Plus className="h-3 w-3" />
                     </button>
@@ -572,11 +606,11 @@ export function ItemDetailPanel({
               <div className={FIELD_LABEL_CLASS}>Metadata</div>
               <div className="flex flex-col gap-4">
                 <div>
-                  <div className={`${FIELD_LABEL_CLASS} mb-2`}>Priority</div>
+                  <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Priority</div>
                   <StatusBadge tone={priorityBadge.tone}>{priorityBadge.label}</StatusBadge>
                 </div>
                 <div>
-                  <div className={`${FIELD_LABEL_CLASS} mb-2`}>Due date</div>
+                  <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Due date</div>
                   <span className="text-[13px] text-ink">
                     {data.dueDate
                       ? data.dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
@@ -584,7 +618,7 @@ export function ItemDetailPanel({
                   </span>
                 </div>
                 <div>
-                  <div className={`${FIELD_LABEL_CLASS} mb-2`}>Created by</div>
+                  <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Created by</div>
                   <span className="text-[13px] text-ink">{data.creatorName}</span>
                 </div>
               </div>
@@ -610,7 +644,7 @@ export function ItemDetailPanel({
               </div>
               {data.canEdit && data.availableLabels.length > 0 && (
                 <form action={boundApplyExistingLabel} className="flex flex-wrap items-center gap-2">
-                  <select name="labelId" required defaultValue="" className={`${INPUT_CLASS} ${BOUNDED_CONTROL_CLASS}`}>
+                  <FieldSelect name="labelId" required defaultValue="" wrapperClassName={BOUNDED_CONTROL_CLASS}>
                     <option value="" disabled>
                       Apply a Label…
                     </option>
@@ -619,7 +653,7 @@ export function ItemDetailPanel({
                         {label.name}
                       </option>
                     ))}
-                  </select>
+                  </FieldSelect>
                   <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Apply label">
                     <Plus className="h-3 w-3" />
                   </button>
