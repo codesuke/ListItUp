@@ -226,17 +226,17 @@ function OverviewTab({
           <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-muted">
             Manage Access
           </div>
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface-1 p-4">
+          <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface-1 p-4">
             {data.eligibleMembers.length > 0 && (
               <form action={boundAddMember} className="flex items-center gap-3">
                 <select
                   name="userId"
                   required
                   defaultValue=""
-                  className="h-9 rounded-md border border-line-strong bg-surface-2 px-3 text-sm text-ink"
+                  className="h-9 w-44 truncate rounded-md border border-line-strong bg-surface-2 px-3 text-sm text-ink"
                 >
                   <option value="" disabled>
-                    Add a Workspace Member…
+                    Add member
                   </option>
                   {data.eligibleMembers.map((member) => (
                     <option key={member.userId} value={member.userId}>
@@ -247,22 +247,18 @@ function OverviewTab({
                 <select
                   name="role"
                   defaultValue="MEMBER"
-                  className="h-9 rounded-md border border-line-strong bg-surface-2 px-3 text-sm text-ink"
+                  className="h-9 w-28 rounded-md border border-line-strong bg-surface-2 px-3 text-sm text-ink"
                 >
-                  <option value="MEMBER">as Member</option>
-                  <option value="VIEWER">as Viewer</option>
+                  <option value="MEMBER">Member</option>
+                  <option value="VIEWER">Viewer</option>
                 </select>
                 <button
                   type="submit"
-                  className="h-9 rounded-md border border-line-strong px-3 text-sm text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
+                  className="h-9 shrink-0 rounded-md border border-line-strong px-3 text-sm text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
                 >
                   Add
                 </button>
               </form>
-            )}
-
-            {data.eligibleMembers.length > 0 && (
-              <div className="h-6 w-px bg-line" aria-hidden="true" />
             )}
 
             <form action={boundGrantGuest} className="flex items-center gap-3">
@@ -271,11 +267,11 @@ function OverviewTab({
                 name="email"
                 required
                 placeholder="Grant Guest access by email"
-                className="h-9 w-56 rounded-md border border-line-strong bg-surface-2 px-3 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
+                className="h-9 w-72 rounded-md border border-line-strong bg-surface-2 px-3 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
               />
               <button
                 type="submit"
-                className="h-9 rounded-md border border-line-strong px-3 text-sm text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
+                className="h-9 shrink-0 rounded-md border border-line-strong px-3 text-sm text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
               >
                 Grant
               </button>
