@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import type { PreferenceCategory } from "@/lib/notification/notification-preferences";
 
@@ -9,6 +9,8 @@ import {
   updateNotificationPreferencesAction,
   type UpdateNotificationPreferencesState,
 } from "./actions";
+
+const SAVED_INDICATOR_DURATION_MS = 1800;
 
 const CATEGORY_LABEL: Record<PreferenceCategory, string> = {
   assignee: "Assignee change",
@@ -38,6 +40,18 @@ export function NotificationPreferencesForm({
     updateNotificationPreferencesAction,
     initialState
   );
+  const [justSaved, setJustSaved] = useState(false);
+  const wasPending = useRef(false);
+
+  useEffect(() => {
+    if (wasPending.current && !isPending && state.status === "success") {
+      setJustSaved(true);
+      const timeout = setTimeout(() => setJustSaved(false), SAVED_INDICATOR_DURATION_MS);
+      wasPending.current = isPending;
+      return () => clearTimeout(timeout);
+    }
+    wasPending.current = isPending;
+  }, [isPending, state]);
 
   return (
     <form action={formAction}>
@@ -69,7 +83,7 @@ export function NotificationPreferencesForm({
       </div>
 
       {state.status === "success" ? (
-        <p role="status" className="mt-3 text-[12.5px] text-ink-muted">
+        <p role="status" className="mt-3 text-[12.5px] text-ink-muted animate-in fade-in-0 slide-in-from-top-1 duration-200">
           Notification preferences updated.
         </p>
       ) : null}
@@ -80,7 +94,9 @@ export function NotificationPreferencesForm({
         className="mt-6 inline-flex items-center gap-1.5 rounded-md border border-transparent bg-[#ff6b4a] px-3 py-[7px] text-[13px] font-semibold text-[#1a0800] transition-colors hover:bg-[#ff8a70] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Check className="h-3.5 w-3.5" />
-        {isPending ? "Saving..." : "Save changes"}
+        <span key={isPending ? "saving" : justSaved ? "saved" : "idle"} className="animate-in fade-in-0 duration-150">
+          {isPending ? "Saving..." : justSaved ? "Saved" : "Save changes"}
+        </span>
       </button>
     </form>
   );

@@ -78,7 +78,7 @@ export function TwoFactorEnabledPanel() {
             </div>
 
             {regenerateState.status === "error" ? (
-              <p role="alert" className="text-sm text-[#ff8a70]">
+              <p role="alert" className="text-sm text-[#ff8a70] animate-in fade-in-0 slide-in-from-top-1 duration-200">
                 {regenerateState.message}
               </p>
             ) : null}
@@ -148,7 +148,7 @@ export function TwoFactorEnabledPanel() {
           </div>
 
           {disableState.status === "error" ? (
-            <p role="alert" className="text-sm text-[#ff8a70]">
+            <p role="alert" className="text-sm text-[#ff8a70] animate-in fade-in-0 slide-in-from-top-1 duration-200">
               {disableState.message}
             </p>
           ) : null}

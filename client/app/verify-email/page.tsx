@@ -88,12 +88,12 @@ function VerifyEmailContent() {
         </form>
 
         {state.status === "sent" ? (
-          <p className="mt-3 text-xs text-neutral-500" role="status">
+          <p className="mt-3 text-xs text-neutral-500 animate-in fade-in-0 slide-in-from-top-1 duration-200" role="status">
             If that address needs a new link, we just sent one.
           </p>
         ) : null}
         {state.status === "error" ? (
-          <p className="mt-3 text-xs text-[#ff8a70]" role="alert">
+          <p className="mt-3 text-xs text-[#ff8a70] animate-in fade-in-0 slide-in-from-top-1 duration-200" role="alert">
             {state.message}
           </p>
         ) : null}

@@ -188,7 +188,7 @@ export function BoardView({
           </div>
           <DragOverlay>
             {activeItem && (
-              <div className="w-64 rotate-2 rounded-md border border-line-strong bg-surface-2 p-2 shadow-2xl">
+              <div className="w-64 rotate-2 scale-[1.01] rounded-md border border-line-strong bg-surface-2 p-2 shadow-2xl">
                 <span className="block text-sm text-ink">{activeItem.title}</span>
               </div>
             )}

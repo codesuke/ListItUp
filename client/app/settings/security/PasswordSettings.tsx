@@ -71,12 +71,12 @@ export function PasswordSettings() {
       </div>
 
       {state.status === "error" ? (
-        <p role="alert" className="text-sm text-[#ff8a70]">
+        <p role="alert" className="text-sm text-[#ff8a70] animate-in fade-in-0 slide-in-from-top-1 duration-200">
           {state.message}
         </p>
       ) : null}
       {state.status === "success" ? (
-        <p role="status" className="text-sm text-ink">
+        <p role="status" className="text-sm text-ink animate-in fade-in-0 slide-in-from-top-1 duration-200">
           Your password was changed. Other sessions were signed out.
         </p>
       ) : null}

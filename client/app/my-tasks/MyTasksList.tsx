@@ -65,8 +65,8 @@ function CompleteToggle({
 }) {
   if (!canComplete) {
     return (
-      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[5px] bg-[#ff6b4a]">
-        <Check className="h-[11px] w-[11px] text-[#1a0800]" />
+      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[5px] bg-[#ff6b4a] animate-in fade-in-0 zoom-in-90 duration-150">
+        <Check className="h-[11px] w-[11px] text-[#1a0800] animate-in fade-in-0 zoom-in-50 duration-200" />
       </span>
     );
   }

@@ -160,7 +160,7 @@ export function WorkspaceSidebar({
           </button>
 
           {isPersonalSpaceOpen && personalSpace && (
-            <SidebarGroupContent className="pl-2">
+            <SidebarGroupContent className="pl-2 animate-in fade-in-0 slide-in-from-top-1 duration-150">
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href={`/workspaces/${personalSpace.id}`} />}>
@@ -199,7 +199,7 @@ export function WorkspaceSidebar({
           </button>
 
           {isSwitcherOpen && (
-            <ul className="absolute bottom-full left-0 z-10 mb-1 w-56 origin-bottom-left rounded-md border border-sidebar-border bg-surface-2 py-1 shadow-lg animate-in fade-in-0 zoom-in-95 duration-150">
+            <ul className="absolute bottom-full left-0 z-10 mb-1 w-56 origin-bottom-left rounded-md border border-sidebar-border bg-surface-2 py-1 shadow-lg animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-1 duration-150">
               {switchableWorkspaces.length === 0 && (
                 <li className="px-3 py-2 text-xs text-sidebar-foreground/70">No other Workspaces yet.</li>
               )}

@@ -132,7 +132,7 @@ function SignInContent() {
           </div>
 
           {signInState.status === "error" ? (
-            <p role="alert" className="text-sm text-[#e17a6a]">
+            <p role="alert" className="text-sm text-[#e17a6a] animate-in fade-in-0 slide-in-from-top-1 duration-200">
               {signInState.message}
             </p>
           ) : null}
@@ -158,12 +158,12 @@ function SignInContent() {
             required
           />
           {magicLinkState.status === "sent" ? (
-            <p role="status" className="text-sm text-[#a5aaaf]">
+            <p role="status" className="text-sm text-[#a5aaaf] animate-in fade-in-0 slide-in-from-top-1 duration-200">
               If that email has an account, a sign-in link is on its way.
             </p>
           ) : null}
           {magicLinkState.status === "error" ? (
-            <p role="alert" className="text-sm text-[#e17a6a]">
+            <p role="alert" className="text-sm text-[#e17a6a] animate-in fade-in-0 slide-in-from-top-1 duration-200">
               {magicLinkState.message}
             </p>
           ) : null}

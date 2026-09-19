@@ -19,10 +19,13 @@ export function AuthSubmitButton({
       disabled={pending}
       className="mt-4 flex h-14 min-h-14 w-full items-center justify-center gap-3 rounded-lg bg-[#c4581a] px-5 text-base font-medium text-[#0b0d0f] transition duration-200 hover:bg-[#dd6a28] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c4581a] active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-60"
     >
-      <span>{pending ? pendingLabel : label}</span>
+      <span key={pending ? "pending" : "idle"} className="animate-in fade-in-0 duration-150">
+        {pending ? pendingLabel : label}
+      </span>
       {pending ? (
         <svg
-          className="h-4 w-4 animate-spin"
+          key="spinner"
+          className="h-4 w-4 animate-spin animate-in fade-in-0 zoom-in-50 duration-200"
           viewBox="0 0 24 24"
           aria-hidden="true"
           fill="none"
@@ -33,7 +36,8 @@ export function AuthSubmitButton({
         </svg>
       ) : showIdleIcon ? (
         <ArrowUpRight
-          className="h-5 w-5"
+          key="arrow"
+          className="h-5 w-5 animate-in fade-in-0 zoom-in-50 duration-200"
           strokeWidth={1.8}
           aria-hidden="true"
         />

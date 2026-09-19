@@ -1,19 +1,33 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { X } from "lucide-react";
+
+// Matches the drawer's own entrance duration (`duration-200` below) so the
+// route change waits exactly as long as the exit animation takes.
+const CLOSE_ANIMATION_MS = 200;
 
 // Closing via router.back() (rather than a Link to the List page) is the
 // pattern Next.js's own intercepted-route modal docs recommend — it
 // correctly unwinds to whatever the User was looking at before opening the
 // drawer (including a specific tab/filter), and reopens the drawer on
-// forward navigation.
+// forward navigation. Closing is deferred by CLOSE_ANIMATION_MS so the
+// slide/fade-out animation has time to play before the route unmounts it.
 export function ItemDrawer({ sectionLabel, children }: { sectionLabel: string; children: React.ReactNode }) {
   const router = useRouter();
+  const [isClosing, setIsClosing] = useState(false);
+
+  function handleClose() {
+    setIsClosing(true);
+    setTimeout(() => router.back(), CLOSE_ANIMATION_MS);
+  }
 
   return (
     <aside
-      className="flex w-[380px] flex-shrink-0 flex-col overflow-y-auto border-l border-line bg-surface-1 animate-in slide-in-from-right fade-in-0 duration-200"
+      className={`flex w-[380px] flex-shrink-0 flex-col overflow-y-auto border-l border-line bg-surface-1 duration-200 ${
+        isClosing ? "animate-out slide-out-to-right fade-out-0" : "animate-in slide-in-from-right fade-in-0"
+      }`}
       style={{ maxHeight: "100vh" }}
     >
       <div className="flex flex-shrink-0 items-center justify-between border-b border-line p-5">
@@ -22,7 +36,7 @@ export function ItemDrawer({ sectionLabel, children }: { sectionLabel: string; c
         </span>
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={handleClose}
           aria-label="Close"
           className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
         >

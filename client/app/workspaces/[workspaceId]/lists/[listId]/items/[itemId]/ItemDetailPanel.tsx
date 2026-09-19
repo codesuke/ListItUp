@@ -11,7 +11,7 @@ import { StatePillControl } from "./StatePillControl";
 const FIELD_LABEL_CLASS =
   "font-[family-name:var(--font-mono-label)] text-[10.5px] uppercase tracking-[0.08em] text-ink-faint";
 const CHIP_CLASS =
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2.5 py-1 text-[12px] text-ink-muted";
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2.5 py-1 text-[12px] text-ink-muted animate-in fade-in-0 zoom-in-95 duration-150";
 const SMALL_ICON_BTN_CLASS =
   "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink";
 const INPUT_CLASS =
@@ -350,7 +350,10 @@ export function ItemDetailPanel({
               )}
               <ul className="flex flex-col gap-1.5">
                 {data.attachments.map((attachment) => (
-                  <li key={attachment.id} className="flex items-center justify-between gap-2 text-[13px]">
+                  <li
+                    key={attachment.id}
+                    className="flex items-center justify-between gap-2 text-[13px] animate-in fade-in-0 slide-in-from-bottom-1 duration-200"
+                  >
                     <a
                       href={`/api/workspaces/${workspaceId}/lists/${listId}/items/${data.itemId}/attachments/${attachment.id}`}
                       className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"

@@ -44,12 +44,12 @@ export default function ForgotPasswordPage() {
         />
 
         {state.status === "sent" ? (
-          <p role="status" className="text-sm text-[#a5aaaf]">
+          <p role="status" className="text-sm text-[#a5aaaf] animate-in fade-in-0 slide-in-from-top-1 duration-200">
             If that email has an account, a reset link is on its way.
           </p>
         ) : null}
         {state.status === "error" ? (
-          <p role="alert" className="text-sm text-[#e17a6a]">
+          <p role="alert" className="text-sm text-[#e17a6a] animate-in fade-in-0 slide-in-from-top-1 duration-200">
             {state.message}
           </p>
         ) : null}

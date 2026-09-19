@@ -27,7 +27,7 @@ export function FilesView({
       {entries.map((entry) => (
         <div
           key={entry.attachmentId}
-          className="flex items-center justify-between gap-3 border-b border-line py-2 last:border-0"
+          className="flex items-center justify-between gap-3 border-b border-line py-2 last:border-0 animate-in fade-in-0 slide-in-from-bottom-1 duration-200"
         >
           <div className="min-w-0">
             <a

@@ -120,7 +120,7 @@ export default async function AcceptInvitationPage({
       </p>
 
       {error ? (
-        <p role="alert" className="mt-4 text-sm text-[#ff8a70]">
+        <p role="alert" className="mt-4 text-sm text-[#ff8a70] animate-in fade-in-0 slide-in-from-top-1 duration-200">
           That didn&apos;t work. Try again.
         </p>
       ) : null}

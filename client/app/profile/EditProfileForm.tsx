@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
-import { ImageIcon, User as UserIcon } from "lucide-react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { Check, ImageIcon, User as UserIcon } from "lucide-react";
 
 import { updateProfileAction, type UpdateProfileState } from "./actions";
+
+const SAVED_INDICATOR_DURATION_MS = 1800;
 
 const inputWrapperClass =
   "flex items-center border border-surface-3 bg-surface-1/95 transition-colors group-hover:border-line-strong group-focus-within:border-[#ff6b4a]";
@@ -31,6 +33,18 @@ export function EditProfileForm({
     updateProfileAction,
     initialUpdateProfileState
   );
+  const [justSaved, setJustSaved] = useState(false);
+  const wasPending = useRef(false);
+
+  useEffect(() => {
+    if (wasPending.current && !isPending && state.status === "success") {
+      setJustSaved(true);
+      const timeout = setTimeout(() => setJustSaved(false), SAVED_INDICATOR_DURATION_MS);
+      wasPending.current = isPending;
+      return () => clearTimeout(timeout);
+    }
+    wasPending.current = isPending;
+  }, [isPending, state]);
 
   return (
     <form action={formAction} className="grid gap-5">
@@ -94,18 +108,31 @@ export function EditProfileForm({
       </div>
 
       {state.status === "error" ? (
-        <p role="alert" className="text-sm text-[#ff8a70]">
+        <p role="alert" className="text-sm text-[#ff8a70] animate-in fade-in-0 slide-in-from-top-1 duration-200">
           {state.message}
         </p>
       ) : null}
       {state.status === "success" ? (
-        <p role="status" className="text-sm text-ink">
+        <p role="status" className="text-sm text-ink animate-in fade-in-0 slide-in-from-top-1 duration-200">
           Profile updated.
         </p>
       ) : null}
 
       <button type="submit" disabled={isPending} className={primaryButtonClass}>
-        {isPending ? "Saving..." : "Save profile"}
+        <span
+          key={isPending ? "saving" : justSaved ? "saved" : "idle"}
+          className="inline-flex items-center gap-1.5 animate-in fade-in-0 duration-150"
+        >
+          {isPending ? (
+            "Saving..."
+          ) : justSaved ? (
+            <>
+              <Check className="h-4 w-4" aria-hidden="true" /> Saved
+            </>
+          ) : (
+            "Save profile"
+          )}
+        </span>
       </button>
     </form>
   );

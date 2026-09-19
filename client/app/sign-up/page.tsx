@@ -65,7 +65,7 @@ function SignUpContent() {
         />
 
         {state.status === "error" ? (
-          <p role="alert" className="text-sm text-[#e17a6a]">
+          <p role="alert" className="text-sm text-[#e17a6a] animate-in fade-in-0 slide-in-from-top-1 duration-200">
             {state.message}
           </p>
         ) : null}

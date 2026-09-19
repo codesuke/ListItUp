@@ -112,12 +112,12 @@ export function EmailSettings({
       ) : null}
 
       {state.status === "error" ? (
-        <p role="alert" className="text-sm text-[#ff8a70]">
+        <p role="alert" className="text-sm text-[#ff8a70] animate-in fade-in-0 slide-in-from-top-1 duration-200">
           {state.message}
         </p>
       ) : null}
       {state.status === "sent" ? (
-        <p role="status" className="text-sm text-ink">
+        <p role="status" className="text-sm text-ink animate-in fade-in-0 slide-in-from-top-1 duration-200">
           Check your new inbox for a confirmation link. Your email stays the
           same until you confirm it.
         </p>

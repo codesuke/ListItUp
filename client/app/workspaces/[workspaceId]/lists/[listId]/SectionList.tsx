@@ -57,8 +57,8 @@ function CompleteToggle({
 }) {
   if (checked) {
     return (
-      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[5px] bg-[#ff6b4a]">
-        <Check className="h-[11px] w-[11px] text-[#1a0800]" />
+      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[5px] bg-[#ff6b4a] animate-in fade-in-0 zoom-in-90 duration-150">
+        <Check className="h-[11px] w-[11px] text-[#1a0800] animate-in fade-in-0 zoom-in-50 duration-200" />
       </span>
     );
   }
@@ -124,7 +124,7 @@ function ItemRow({
       {item.labels.map((label) => (
         <span
           key={label.id}
-          className="whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2 py-0.5 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted"
+          className="whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2 py-0.5 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted animate-in fade-in-0 zoom-in-95 duration-150"
         >
           {label.name}
         </span>
