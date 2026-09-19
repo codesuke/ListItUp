@@ -41,24 +41,69 @@ const HEATMAP_INTENSITY_COLOR: Record<HeatmapCell["intensity"], string> = {
   4: "#ff6b4a",
 };
 
+// Sun..Sat, GitHub-style: only every-other weekday gets a visible label to stay compact.
+const HEATMAP_WEEKDAY_LABEL = ["", "Mon", "", "Wed", "", "Fri", ""];
+const HEATMAP_MONTH_LABEL = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function parseHeatmapDateKey(dateKey: string): Date {
+  return new Date(`${dateKey}T00:00:00Z`);
+}
+
+// Row position doesn't line up with Sun=0..Sat=6 unless the window happens to
+// start on a Sunday, so the label is derived from the actual date rather than
+// the row index.
+function heatmapWeekdayLabel(weeks: HeatmapCell[][], rowIndex: number): string {
+  const date = weeks[0]?.[rowIndex]?.date;
+  return date ? HEATMAP_WEEKDAY_LABEL[parseHeatmapDateKey(date).getUTCDay()]! : "";
+}
+
+// Labels the first week column of each new month, GitHub-style.
+function heatmapMonthLabel(weeks: HeatmapCell[][], weekIndex: number): string | null {
+  const date = weeks[weekIndex]?.[0]?.date;
+  if (!date) return null;
+  const month = parseHeatmapDateKey(date).getUTCMonth();
+  const previousDate = weeks[weekIndex - 1]?.[0]?.date;
+  const previousMonth = previousDate ? parseHeatmapDateKey(previousDate).getUTCMonth() : null;
+  return month === previousMonth ? null : HEATMAP_MONTH_LABEL[month]!;
+}
+
 function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
   return (
     <div className={`${CARD_CLASS} p-5`}>
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-4`}>Rhythm of work — aggregated, not per-Member</div>
-      <div className="flex gap-[3px]">
-        {weeks.map((week) => (
-          <div key={week[0]!.date} className="flex flex-col gap-[3px]">
-            {week.map((cell) => (
-              <div
-                key={cell.date}
-                title={`${cell.date}: ${cell.count} completed`}
-                className="h-[11px] w-[11px] rounded-[2.5px]"
-                style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
-              />
+      <div className="overflow-x-auto">
+        <div className="flex min-w-max gap-[3px]">
+          <div className="w-6 flex-shrink-0" aria-hidden="true" />
+          {weeks.map((week, weekIndex) => (
+            <div key={week[0]!.date} className="w-[11px] flex-shrink-0 whitespace-nowrap text-[9px] text-ink-faint">
+              {heatmapMonthLabel(weeks, weekIndex)}
+            </div>
+          ))}
+        </div>
+        <div className="mt-1 flex min-w-max gap-[3px]">
+          <div className="flex flex-shrink-0 flex-col gap-[3px] pr-1">
+            {Array.from({ length: 7 }, (_, rowIndex) => (
+              <div key={rowIndex} className="flex h-[11px] w-5 items-center text-[9px] text-ink-faint">
+                {heatmapWeekdayLabel(weeks, rowIndex)}
+              </div>
             ))}
           </div>
-        ))}
+          {weeks.map((week) => (
+            <div key={week[0]!.date} className="flex flex-col gap-[3px]">
+              {week.map((cell) => (
+                <div
+                  key={cell.date}
+                  title={`${cell.date}: ${cell.count} completed`}
+                  className="h-[11px] w-[11px] rounded-[2.5px]"
+                  style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
       <div className="mt-3 flex items-center justify-end gap-1.5">
         <span className="text-[10px] text-ink-faint">Less</span>
