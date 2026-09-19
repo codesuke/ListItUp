@@ -226,7 +226,7 @@ function OverviewTab({
           <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-muted">
             Manage Access
           </div>
-          <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface-1 p-4">
+          <div className="flex flex-col gap-3">
             {data.eligibleMembers.length > 0 && (
               <form action={boundAddMember} className="flex items-center gap-3">
                 <select
