@@ -51,7 +51,7 @@ const HEATMAP_MONTH_LABEL = [
 // Wider than the column pitch itself since the label text is fixed-size while
 // the columns shrink to fit the full year in the widget's width.
 const HEATMAP_MIN_MONTH_LABEL_GAP = 3;
-const HEATMAP_GAP_PX = "2px";
+const HEATMAP_GAP_PX = "1px";
 
 function parseHeatmapDateKey(dateKey: string): Date {
   return new Date(`${dateKey}T00:00:00Z`);
@@ -91,7 +91,10 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
   const gridColumnsStyle = { gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`, gap: HEATMAP_GAP_PX };
 
   return (
-    <div className={`${CARD_CLASS} p-5`}>
+    // self-start: this card sits in a grid row next to a taller widget, and
+    // grid's default stretch would otherwise inflate it with dead space below
+    // the now-compact, dense heatmap.
+    <div className={`${CARD_CLASS} self-start p-5`}>
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-4`}>Rhythm of work — aggregated, not per-Member</div>
 
