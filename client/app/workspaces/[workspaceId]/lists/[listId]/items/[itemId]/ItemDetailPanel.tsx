@@ -16,17 +16,28 @@ const CHIP_CLASS =
 // self-stretch (not a fixed height) so this always matches the rendered
 // height of the input/select it sits beside in a flex row, regardless of
 // that row's font size or padding — a fixed h-6 drifted out of sync with
-// INPUT_CLASS and looked visibly shorter than its sibling control.
+// INPUT_CLASS and looked visibly shorter than its sibling control. Sits at
+// the same bg-surface-3 elevation as INPUT_CLASS below, one step up from
+// GHOST_BUTTON_CLASS's resting state, since it doubles as this row's submit.
 const SMALL_ICON_BTN_CLASS =
-  "flex w-8 flex-shrink-0 items-center justify-center self-stretch rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink";
+  "flex w-8 flex-shrink-0 items-center justify-center self-stretch rounded-[6px] border border-line-strong bg-surface-3 text-ink-muted transition-colors duration-150 hover:bg-surface-4 hover:text-ink";
 const INPUT_CLASS =
   "rounded-[6px] border border-line-strong bg-surface-3 px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none";
-// A filled surface, not just a border on transparent background — matches
-// SMALL_ICON_BTN_CLASS's bg-surface-2 so every secondary action on this
-// page reads as a pressable control instead of leaning on a border that
-// can wash out against similarly-toned neighboring surfaces.
+// Secondary actions (Attach, Link, Add Note, Archive, Restore, …). A filled
+// surface, not just a border on transparent background, so it always reads
+// as a pressable control — resting one step below the surface-3 inputs and
+// stepping up to surface-4 on hover, the same elevation logic as every
+// other control on this page.
 const GHOST_BUTTON_CLASS =
-  "rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[12.5px] font-medium text-ink-muted transition-colors duration-150 hover:border-[#ff6b4a] hover:bg-surface-3 hover:text-ink";
+  "rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[12.5px] font-medium text-ink-muted transition-colors duration-150 hover:border-[#ff6b4a] hover:bg-surface-4 hover:text-ink";
+// The one truly primary, data-committing action on this panel (the top
+// title/section/priority/due-date form's Save, and every other "Save" that
+// writes a field) — same filled-orange treatment everywhere so a User only
+// ever sees one visual answer to "what commits this." Every other action
+// (Add, Link, Attach, Archive, Restore, Define field, …) stays on
+// GHOST_BUTTON_CLASS so the page has exactly one loud color, not six.
+const PRIMARY_BUTTON_CLASS =
+  "rounded-[6px] bg-[#ff6b4a] px-3 py-1.5 text-[12.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]";
 // Every section below the heading shares this wrapper so spacing and the
 // divider rhythm stay consistent regardless of how much content a section
 // has, instead of each block picking its own ad hoc gap. Each of the two
@@ -202,7 +213,7 @@ export function ItemDetailPanel({
             </div>
             <button
               type="submit"
-              className="self-start rounded-[6px] bg-[#ff6b4a] px-3 py-1.5 text-[12.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
+              className={`self-start ${PRIMARY_BUTTON_CLASS}`}
             >
               Save
             </button>
@@ -253,7 +264,7 @@ export function ItemDetailPanel({
                         )}
                         <button
                           type="submit"
-                          className={`${GHOST_BUTTON_CLASS} justify-self-start @lg:justify-self-auto`}
+                          className={`${PRIMARY_BUTTON_CLASS} justify-self-start @lg:justify-self-auto`}
                         >
                           Save
                         </button>
@@ -482,7 +493,7 @@ export function ItemDetailPanel({
                       rows={2}
                       className={`w-full ${INPUT_CLASS}`}
                     />
-                    <button type="submit" className={`self-start ${GHOST_BUTTON_CLASS}`}>
+                    <button type="submit" className={`self-start ${PRIMARY_BUTTON_CLASS}`}>
                       Save
                     </button>
                   </form>
