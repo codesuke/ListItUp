@@ -30,14 +30,19 @@ const INPUT_CLASS =
 // other control on this page.
 const GHOST_BUTTON_CLASS =
   "rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[12.5px] font-medium text-ink-muted transition-colors duration-150 hover:border-[#ff6b4a] hover:bg-surface-4 hover:text-ink";
-// The one truly primary, data-committing action on this panel (the top
-// title/section/priority/due-date form's Save, and every other "Save" that
-// writes a field) — same filled-orange treatment everywhere so a User only
-// ever sees one visual answer to "what commits this." Every other action
-// (Add, Link, Attach, Archive, Restore, Define field, …) stays on
+// The one truly primary, data-committing action on this panel: the top
+// title/section/priority/due-date form's Save. Every other action (Add,
+// Link, Attach, Archive, Restore, Define field, …) stays on
 // GHOST_BUTTON_CLASS so the page has exactly one loud color, not six.
 const PRIMARY_BUTTON_CLASS =
   "rounded-[6px] bg-[#ff6b4a] px-3 py-1.5 text-[12.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]";
+// Same orange identity as PRIMARY_BUTTON_CLASS — still unmistakably "this
+// commits the field" — but sized down for the two inline, row-level Saves
+// (Custom Field row, Personal note) that sit inside already-compact
+// contexts. Full button padding next to a text-13px input and a 10.5px
+// label reads as oversized; this matches the row's own scale instead.
+const COMPACT_PRIMARY_BUTTON_CLASS =
+  "rounded-[6px] bg-[#ff6b4a] px-2.5 py-1 text-[11.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]";
 // Every section below the heading shares this wrapper so spacing and the
 // divider rhythm stay consistent regardless of how much content a section
 // has, instead of each block picking its own ad hoc gap. Each of the two
@@ -264,7 +269,7 @@ export function ItemDetailPanel({
                         )}
                         <button
                           type="submit"
-                          className={`${PRIMARY_BUTTON_CLASS} justify-self-start @lg:justify-self-auto`}
+                          className={`${COMPACT_PRIMARY_BUTTON_CLASS} justify-self-start @lg:justify-self-auto`}
                         >
                           Save
                         </button>
@@ -493,7 +498,7 @@ export function ItemDetailPanel({
                       rows={2}
                       className={`w-full ${INPUT_CLASS}`}
                     />
-                    <button type="submit" className={`self-start ${PRIMARY_BUTTON_CLASS}`}>
+                    <button type="submit" className={`self-start ${COMPACT_PRIMARY_BUTTON_CLASS}`}>
                       Save
                     </button>
                   </form>
