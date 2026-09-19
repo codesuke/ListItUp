@@ -111,7 +111,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
           ))}
         </div>
       </div>
-      <div className="mt-1 flex flex-1 items-start" style={{ gap: HEATMAP_GAP_PX }}>
+      <div className="mt-1 flex" style={{ gap: HEATMAP_GAP_PX }}>
         <div className={`flex ${HEATMAP_GUTTER_CLASS} flex-shrink-0 flex-col`} style={{ gap: HEATMAP_GAP_PX }}>
           {Array.from({ length: 7 }, (_, rowIndex) => (
             <div key={rowIndex} className="flex flex-1 items-center whitespace-nowrap text-[9px] text-ink-faint">
@@ -139,6 +139,10 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
           )}
         </div>
       </div>
+      {/* Absorbs the card's leftover height so the legend below sits near
+          the bottom, without stretching the weekday column away from the
+          grid's own height (which broke Mon/Wed/Fri row alignment). */}
+      <div className="flex-1" aria-hidden="true" />
       <div className="mt-2 flex items-center justify-end gap-1.5">
         <span className="text-[10px] text-ink-faint">Less</span>
         {([0, 1, 2, 3, 4] as const).map((level) => (
