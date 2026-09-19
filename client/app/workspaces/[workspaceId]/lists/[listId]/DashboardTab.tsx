@@ -48,10 +48,14 @@ const HEATMAP_MONTH_LABEL = [
 ];
 // Minimum week columns between two rendered month labels so short abbreviations
 // (e.g. "Jun" next to "Jul") never overlap when a month spans very few columns.
-// Wider than the column pitch itself since the label text is fixed-size while
-// the columns shrink to fit the full year in the widget's width.
 const HEATMAP_MIN_MONTH_LABEL_GAP = 3;
-const HEATMAP_GAP_PX = "1px";
+// Fixed cell/gap size, chosen so all 52 columns + the weekday gutter fit inside
+// this card's real content width (~490-540px measured across sidebar/viewport
+// states, worst case ~493px with a scrollbar present) without horizontal
+// scrolling: 16 (gutter) + 52 * (8 + 1) = 484px.
+const HEATMAP_CELL_PX = 8;
+const HEATMAP_GAP_PX = 1;
+const HEATMAP_GUTTER_PX = 16;
 
 function parseHeatmapDateKey(dateKey: string): Date {
   return new Date(`${dateKey}T00:00:00Z`);
@@ -87,61 +91,51 @@ function heatmapMonthLabels(weeks: HeatmapCell[][]): (string | null)[] {
 
 function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
   const monthLabels = heatmapMonthLabels(weeks);
-  const columnCount = weeks.length;
-  const gridColumnsStyle = { gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`, gap: HEATMAP_GAP_PX };
 
   return (
-    // self-start: this card sits in a grid row next to a taller widget, and
-    // grid's default stretch would otherwise inflate it with dead space below
-    // the now-compact, dense heatmap.
-    <div className={`${CARD_CLASS} self-start p-5`}>
+    <div className={`${CARD_CLASS} p-5`}>
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-4`}>Rhythm of work — aggregated, not per-Member</div>
 
-      {/* Full year of columns filling the widget width — column width comes from
-          the 1fr grid tracks, so it adapts to whatever space the card actually
-          has instead of forcing a fixed pixel width that could overflow it. */}
+      {/* Fixed cell/gap size (see HEATMAP_CELL_PX/HEATMAP_GAP_PX above) chosen
+          to fit the full year inside this card's real width with no scroll,
+          no 1fr/percentage sizing, and no stretching. */}
       <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
-        <div className="w-5 flex-shrink-0" aria-hidden="true" />
-        <div className="grid flex-1" style={gridColumnsStyle}>
-          {weeks.map((week, weekIndex) => (
-            <div key={week[0]!.date} className="min-w-0 whitespace-nowrap text-[9px] text-ink-faint">
-              {monthLabels[weekIndex]}
-            </div>
-          ))}
-        </div>
+        <div className="flex-shrink-0" style={{ width: HEATMAP_GUTTER_PX }} aria-hidden="true" />
+        {weeks.map((week, weekIndex) => (
+          <div
+            key={week[0]!.date}
+            className="flex-shrink-0 whitespace-nowrap text-[9px] text-ink-faint"
+            style={{ width: HEATMAP_CELL_PX }}
+          >
+            {monthLabels[weekIndex]}
+          </div>
+        ))}
       </div>
       <div className="mt-1 flex" style={{ gap: HEATMAP_GAP_PX }}>
-        {/* No explicit height here: the grid below sizes itself from its own
-            column width via aspect-square, and flex's default stretch then
-            gives this gutter the exact same height to split into 7 rows. */}
-        <div className="flex w-5 flex-shrink-0 flex-col" style={{ gap: HEATMAP_GAP_PX }}>
+        <div className="flex flex-shrink-0 flex-col" style={{ gap: HEATMAP_GAP_PX }}>
           {Array.from({ length: 7 }, (_, rowIndex) => (
-            <div key={rowIndex} className="flex flex-1 items-center text-[7px] leading-none text-ink-faint">
+            <div
+              key={rowIndex}
+              className="flex items-center text-[6px] leading-none text-ink-faint"
+              style={{ height: HEATMAP_CELL_PX, width: HEATMAP_GUTTER_PX }}
+            >
               {heatmapWeekdayLabel(weeks, rowIndex)}
             </div>
           ))}
         </div>
-        <div
-          className="grid flex-1"
-          style={{
-            ...gridColumnsStyle,
-            gridTemplateRows: "repeat(7, auto)",
-            gridAutoFlow: "column",
-            alignContent: "start",
-          }}
-        >
-          {weeks.flatMap((week) =>
-            week.map((cell) => (
+        {weeks.map((week) => (
+          <div key={week[0]!.date} className="flex flex-shrink-0 flex-col" style={{ gap: HEATMAP_GAP_PX }}>
+            {week.map((cell) => (
               <div
                 key={cell.date}
                 title={`${cell.date}: ${cell.count} completed`}
-                className="aspect-square w-full rounded-[1.5px]"
-                style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
+                className="rounded-[1.5px]"
+                style={{ height: HEATMAP_CELL_PX, width: HEATMAP_CELL_PX, backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
               />
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        ))}
       </div>
       <div className="mt-3 flex items-center justify-end gap-1.5">
         <span className="text-[10px] text-ink-faint">Less</span>
