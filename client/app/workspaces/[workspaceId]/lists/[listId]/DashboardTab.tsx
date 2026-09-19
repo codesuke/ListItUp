@@ -95,7 +95,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
   return (
     <div className={`${CARD_CLASS} p-5`}>
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
-      <div className={`${WHY_TAG_CLASS} mb-4`}>Rhythm of work — aggregated, not per-Member</div>
+      <div className={`${WHY_TAG_CLASS} mb-3`}>Rhythm of work — aggregated, not per-Member</div>
 
       {/* Fixed cell/gap size (see HEATMAP_CELL_PX/HEATMAP_GAP_PX above) chosen
           to fit the full year inside this card's real width with no scroll,
@@ -137,7 +137,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center justify-end gap-1.5">
+      <div className="mt-2 flex items-center justify-end gap-1.5">
         <span className="text-[10px] text-ink-faint">Less</span>
         {([0, 1, 2, 3, 4] as const).map((level) => (
           <span
