@@ -269,7 +269,7 @@ export function ItemDetailPanel({
                         )}
                         <button
                           type="submit"
-                          className={`${COMPACT_PRIMARY_BUTTON_CLASS} justify-self-start @lg:justify-self-auto`}
+                          className={`${COMPACT_PRIMARY_BUTTON_CLASS} justify-self-start`}
                         >
                           Save
                         </button>
