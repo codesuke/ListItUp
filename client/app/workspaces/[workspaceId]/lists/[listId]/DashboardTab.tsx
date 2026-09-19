@@ -75,7 +75,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-4`}>Rhythm of work — aggregated, not per-Member</div>
       <div className="overflow-x-auto">
-        <div className="flex min-w-max gap-[3px]">
+        <div className="flex min-w-max justify-center gap-[3px]">
           <div className="w-6 flex-shrink-0" aria-hidden="true" />
           {weeks.map((week, weekIndex) => (
             <div key={week[0]!.date} className="w-[11px] flex-shrink-0 whitespace-nowrap text-[9px] text-ink-faint">
@@ -83,7 +83,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
             </div>
           ))}
         </div>
-        <div className="mt-1 flex min-w-max gap-[3px]">
+        <div className="mt-1 flex min-w-max justify-center gap-[3px]">
           <div className="flex flex-shrink-0 flex-col gap-[3px] pr-1">
             {Array.from({ length: 7 }, (_, rowIndex) => (
               <div key={rowIndex} className="flex h-[11px] w-5 items-center text-[9px] text-ink-faint">
