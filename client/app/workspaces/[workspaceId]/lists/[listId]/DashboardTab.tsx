@@ -41,32 +41,16 @@ const HEATMAP_INTENSITY_COLOR: Record<HeatmapCell["intensity"], string> = {
   4: "#ff6b4a",
 };
 
-// Sun..Sat, GitHub-style: only every-other weekday gets a visible label to stay compact.
-const HEATMAP_WEEKDAY_LABEL = ["", "Mon", "", "Wed", "", "Fri", ""];
 const HEATMAP_MONTH_LABEL = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 // Minimum week columns between two rendered month labels so short abbreviations
 // (e.g. "Jun" next to "Jul") never overlap when a month spans very few columns.
 const HEATMAP_MIN_MONTH_LABEL_GAP = 3;
-// Fixed cell/gap size, chosen so all 52 columns + the weekday gutter fit inside
-// this card's real content width (~490-540px measured across sidebar/viewport
-// states, worst case ~493px with a scrollbar present) without horizontal
-// scrolling: 16 (gutter) + 52 * (8 + 1) = 484px.
-const HEATMAP_CELL_PX = 8;
-const HEATMAP_GAP_PX = 1;
-const HEATMAP_GUTTER_PX = 16;
+const HEATMAP_GAP_PX = "2px";
 
 function parseHeatmapDateKey(dateKey: string): Date {
   return new Date(`${dateKey}T00:00:00Z`);
-}
-
-// Row position doesn't line up with Sun=0..Sat=6 unless the window happens to
-// start on a Sunday, so the label is derived from the actual date rather than
-// the row index.
-function heatmapWeekdayLabel(weeks: HeatmapCell[][], rowIndex: number): string {
-  const date = weeks[0]?.[rowIndex]?.date;
-  return date ? HEATMAP_WEEKDAY_LABEL[parseHeatmapDateKey(date).getUTCDay()]! : "";
 }
 
 // One label per week column: null unless that column is the first one of a
@@ -91,54 +75,48 @@ function heatmapMonthLabels(weeks: HeatmapCell[][]): (string | null)[] {
 
 function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
   const monthLabels = heatmapMonthLabels(weeks);
+  const columnCount = weeks.length;
+  const gridColumnsStyle = { gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`, gap: HEATMAP_GAP_PX };
 
   return (
     <div className={`${CARD_CLASS} flex flex-col p-5`}>
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-3`}>Rhythm of work — aggregated, not per-Member</div>
 
-      {/* This card's height is set by its taller sibling in the dashboard's
-          2-column row; centering this block in the leftover space puts the
-          heatmap where the eye expects it instead of pinned to the top with
-          dead space below. Cell/gap size below is unchanged — 8px is still
-          the largest fixed size that fits all 52 columns with no scroll. */}
+      {/* Columns are 1fr, not a fixed pixel size: cell size is derived from
+          this card's actual real width, so the grid always fills it exactly
+          (never smaller, leaving dead space; never wider, forcing scroll) no
+          matter what that width really is. Cells stay perfect squares via
+          aspect-square regardless of the computed column width. No weekday
+          gutter: only month labels run across the top, so the grid gets the
+          full card width. */}
       <div className="flex flex-1 flex-col justify-center">
-        <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
-          <div className="flex-shrink-0" style={{ width: HEATMAP_GUTTER_PX }} aria-hidden="true" />
+        <div className="grid" style={gridColumnsStyle}>
           {weeks.map((week, weekIndex) => (
-            <div
-              key={week[0]!.date}
-              className="flex-shrink-0 whitespace-nowrap text-[9px] text-ink-faint"
-              style={{ width: HEATMAP_CELL_PX }}
-            >
+            <div key={week[0]!.date} className="min-w-0 whitespace-nowrap text-[9px] text-ink-faint">
               {monthLabels[weekIndex]}
             </div>
           ))}
         </div>
-        <div className="mt-1 flex" style={{ gap: HEATMAP_GAP_PX }}>
-          <div className="flex flex-shrink-0 flex-col" style={{ gap: HEATMAP_GAP_PX }}>
-            {Array.from({ length: 7 }, (_, rowIndex) => (
+        <div
+          className="mt-1 grid"
+          style={{
+            ...gridColumnsStyle,
+            gridTemplateRows: "repeat(7, auto)",
+            gridAutoFlow: "column",
+            alignContent: "start",
+          }}
+        >
+          {weeks.flatMap((week) =>
+            week.map((cell) => (
               <div
-                key={rowIndex}
-                className="flex items-center text-[6px] leading-none text-ink-faint"
-                style={{ height: HEATMAP_CELL_PX, width: HEATMAP_GUTTER_PX }}
-              >
-                {heatmapWeekdayLabel(weeks, rowIndex)}
-              </div>
-            ))}
-          </div>
-          {weeks.map((week) => (
-            <div key={week[0]!.date} className="flex flex-shrink-0 flex-col" style={{ gap: HEATMAP_GAP_PX }}>
-              {week.map((cell) => (
-                <div
-                  key={cell.date}
-                  title={`${cell.date}: ${cell.count} completed`}
-                  className="rounded-[1.5px]"
-                  style={{ height: HEATMAP_CELL_PX, width: HEATMAP_CELL_PX, backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
-                />
-              ))}
-            </div>
-          ))}
+                key={cell.date}
+                title={`${cell.date}: ${cell.count} completed`}
+                className="aspect-square w-full rounded-[2px]"
+                style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
+              />
+            ))
+          )}
         </div>
         <div className="mt-2 flex items-center justify-end gap-1.5">
           <span className="text-[10px] text-ink-faint">Less</span>
