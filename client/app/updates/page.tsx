@@ -115,7 +115,7 @@ export default async function UpdatesPage({ searchParams }: Props) {
         </header>
 
         <main className="bg-canvas px-10 pb-16 pt-8">
-          <div className="mx-auto max-w-3xl">
+          <div className="mx-auto max-w-6xl">
             <nav className="mb-5 flex flex-wrap items-center gap-6 border-b border-line">
               {TABS.map((t) => {
                 const Icon = t.icon;
