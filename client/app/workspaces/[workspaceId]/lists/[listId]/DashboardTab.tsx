@@ -48,6 +48,10 @@ const HEATMAP_MONTH_LABEL = [
 const HEATMAP_WEEKDAY_LABEL = ["", "Mon", "", "Wed", "", "Fri", ""];
 const HEATMAP_GAP_PX = "2px";
 const HEATMAP_GUTTER_CLASS = "w-6";
+// Slightly taller than wide (not a strict 1:1 square) so the grid claims a
+// bit more of the card's leftover height without turning back into the
+// visibly stretched rectangles this was previously flagged for.
+const HEATMAP_CELL_ASPECT_RATIO = "1 / 1.15";
 
 function parseHeatmapDateKey(dateKey: string): Date {
   return new Date(`${dateKey}T00:00:00Z`);
@@ -88,63 +92,65 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-3`}>Rhythm of work — aggregated, not per-Member</div>
 
-      {/* Columns are 1fr, not a fixed pixel size: cell width is derived from
-          this card's actual real width, so the grid always spans it exactly
-          (never wider, forcing horizontal scroll) no matter what that width
-          really is. Cells are aspect-square (their height follows from that
-          computed width), so they read as squares like GitHub's heatmap
-          instead of stretched rectangles; the leftover vertical space in the
-          card is centered around the resulting (shorter) grid. */}
-      <div className="flex flex-1 flex-col justify-center">
-        <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
-          <div className={`${HEATMAP_GUTTER_CLASS} flex-shrink-0`} aria-hidden="true" />
-          <div className="grid flex-1" style={gridColumnsStyle}>
-            {weeks.map((week, weekIndex) => (
-              <div key={week[0]!.date} className="min-w-0 whitespace-nowrap text-[9px] text-ink-faint">
-                {monthLabels[weekIndex]}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="mt-1 flex" style={{ gap: HEATMAP_GAP_PX }}>
-          <div className={`flex ${HEATMAP_GUTTER_CLASS} flex-shrink-0 flex-col`} style={{ gap: HEATMAP_GAP_PX }}>
-            {Array.from({ length: 7 }, (_, rowIndex) => (
-              <div key={rowIndex} className="flex flex-1 items-center whitespace-nowrap text-[9px] text-ink-faint">
-                {heatmapWeekdayLabel(weeks, rowIndex)}
-              </div>
-            ))}
-          </div>
-          <div
-            className="grid flex-1"
-            style={{
-              ...gridColumnsStyle,
-              gridTemplateRows: "repeat(7, auto)",
-              gridAutoFlow: "column",
-            }}
-          >
-            {weeks.flatMap((week) =>
-              week.map((cell) => (
-                <div
-                  key={cell.date}
-                  title={`${cell.date}: ${cell.count} completed`}
-                  className="aspect-square w-full rounded-[2px]"
-                  style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
-                />
-              ))
-            )}
-          </div>
-        </div>
-        <div className="mt-2 flex items-center justify-end gap-1.5">
-          <span className="text-[10px] text-ink-faint">Less</span>
-          {([0, 1, 2, 3, 4] as const).map((level) => (
-            <span
-              key={level}
-              className="h-[11px] w-[11px] rounded-[2.5px]"
-              style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[level] }}
-            />
+      {/* Month labels are pinned right under the subtitle, not part of the
+          centered block below — otherwise they'd drift down with it. Columns
+          are 1fr, not a fixed pixel size: cell width is derived from this
+          card's actual real width, so the grid always spans it exactly
+          (never wider, forcing horizontal scroll). Cells use a slightly
+          taller-than-wide aspect ratio (still reads as square, not a
+          stretched rectangle) so the grid uses more of the leftover card
+          height instead of leaving it empty. Only the grid+weekday row is
+          vertically centered in the space between the month labels and the
+          legend, so the legend itself stays pinned to the card's bottom
+          instead of floating with a gap under it. */}
+      <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
+        <div className={`${HEATMAP_GUTTER_CLASS} flex-shrink-0`} aria-hidden="true" />
+        <div className="grid flex-1" style={gridColumnsStyle}>
+          {weeks.map((week, weekIndex) => (
+            <div key={week[0]!.date} className="min-w-0 whitespace-nowrap text-[9px] text-ink-faint">
+              {monthLabels[weekIndex]}
+            </div>
           ))}
-          <span className="text-[10px] text-ink-faint">More</span>
         </div>
+      </div>
+      <div className="mt-1 flex flex-1 items-center" style={{ gap: HEATMAP_GAP_PX }}>
+        <div className={`flex ${HEATMAP_GUTTER_CLASS} flex-shrink-0 flex-col`} style={{ gap: HEATMAP_GAP_PX }}>
+          {Array.from({ length: 7 }, (_, rowIndex) => (
+            <div key={rowIndex} className="flex flex-1 items-center whitespace-nowrap text-[9px] text-ink-faint">
+              {heatmapWeekdayLabel(weeks, rowIndex)}
+            </div>
+          ))}
+        </div>
+        <div
+          className="grid flex-1"
+          style={{
+            ...gridColumnsStyle,
+            gridTemplateRows: "repeat(7, auto)",
+            gridAutoFlow: "column",
+          }}
+        >
+          {weeks.flatMap((week) =>
+            week.map((cell) => (
+              <div
+                key={cell.date}
+                title={`${cell.date}: ${cell.count} completed`}
+                className="w-full rounded-[2px]"
+                style={{ aspectRatio: HEATMAP_CELL_ASPECT_RATIO, backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
+              />
+            ))
+          )}
+        </div>
+      </div>
+      <div className="mt-2 flex items-center justify-end gap-1.5">
+        <span className="text-[10px] text-ink-faint">Less</span>
+        {([0, 1, 2, 3, 4] as const).map((level) => (
+          <span
+            key={level}
+            className="h-[11px] w-[11px] rounded-[2.5px]"
+            style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[level] }}
+          />
+        ))}
+        <span className="text-[10px] text-ink-faint">More</span>
       </div>
     </div>
   );
