@@ -93,14 +93,15 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
       <div className={`${WHY_TAG_CLASS} mb-3`}>Rhythm of work — aggregated, not per-Member</div>
 
       {/* Month labels sit a small step below the subtitle, then the grid
-          follows immediately after them — not centered in the leftover
-          space below, which read as a big gap between the labels and the
-          heatmap. Columns are 1fr, not a fixed pixel size: cell width is
-          derived from this card's actual real width, so the grid always
-          spans it exactly (never wider, forcing horizontal scroll). Cells
-          use a slightly taller-than-wide aspect ratio (still reads as
-          square, not a stretched rectangle). Any leftover vertical space
-          collects below the grid, ahead of the legend. */}
+          follows immediately after them, and the legend follows right
+          after the grid — no flexible spacers between any of these, so
+          none of them ever drift apart. Columns are 1fr, not a fixed pixel
+          size: cell width is derived from this card's actual real width,
+          so the grid always spans it exactly (never wider, forcing
+          horizontal scroll). Cells use a slightly taller-than-wide aspect
+          ratio (still reads as square, not a stretched rectangle). Any
+          leftover vertical space is left below the legend, at the card's
+          bottom edge. */}
       <div className="mt-1 flex" style={{ gap: HEATMAP_GAP_PX }}>
         <div className={`${HEATMAP_GUTTER_CLASS} flex-shrink-0`} aria-hidden="true" />
         <div className="grid flex-1" style={gridColumnsStyle}>
@@ -139,10 +140,6 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
           )}
         </div>
       </div>
-      {/* Absorbs the card's leftover height so the legend below sits near
-          the bottom, without stretching the weekday column away from the
-          grid's own height (which broke Mon/Wed/Fri row alignment). */}
-      <div className="flex-1" aria-hidden="true" />
       <div className="mt-2 flex items-center justify-end gap-1.5">
         <span className="text-[10px] text-ink-faint">Less</span>
         {([0, 1, 2, 3, 4] as const).map((level) => (
