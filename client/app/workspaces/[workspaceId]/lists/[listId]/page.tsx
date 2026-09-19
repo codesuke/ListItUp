@@ -228,7 +228,7 @@ function OverviewTab({
           </div>
           <div className="flex flex-col gap-3">
             {data.eligibleMembers.length > 0 && (
-              <form action={boundAddMember} className="flex items-center gap-3">
+              <form action={boundAddMember} className="flex items-center gap-2">
                 <select
                   name="userId"
                   required
@@ -261,7 +261,7 @@ function OverviewTab({
               </form>
             )}
 
-            <form action={boundGrantGuest} className="flex items-center gap-3">
+            <form action={boundGrantGuest} className="flex items-center gap-2">
               <input
                 type="email"
                 name="email"
