@@ -28,7 +28,6 @@ import {
 } from "@/lib/report/list-dashboard";
 
 const COMPLETION_OVER_TIME_DAYS = 14;
-const COMPLETION_HEATMAP_WEEKS = 52;
 // Contribution Map and Attention Imbalance are per-person widgets — capped
 // so the bar list and radar chart stay legible on a List with a large team.
 const CONTRIBUTION_MAP_LIMIT = 6;
@@ -270,7 +269,7 @@ export async function loadListPageData(
     byState: breakdownByState(dashboardItems),
     completionOverTime: buildCompletionOverTime(dashboardItems, now, COMPLETION_OVER_TIME_DAYS),
     progressPercent: computeProgressPercent(counts),
-    completionHeatmap: buildCompletionHeatmap(dashboardItems, now, COMPLETION_HEATMAP_WEEKS),
+    completionHeatmap: buildCompletionHeatmap(dashboardItems, now),
     contributionMap: buildContributionMap(memberAssignmentItems, peerComparisonCandidates).slice(
       0,
       CONTRIBUTION_MAP_LIMIT

@@ -143,11 +143,12 @@ export function computeProgressPercent(counts: ItemCounts): number {
 export type HeatmapCell = { date: string; count: number; intensity: 0 | 1 | 2 | 3 | 4 };
 
 // Completion Heatmap (#54): a GitHub-style grid of Complete counts per day
-// over a trailing window of full weeks, bucketed into 5 intensity levels
-// relative to the window's busiest day — aggregated across the whole List,
-// never per-Member (the mock's "Rhythm of work" framing).
-export function buildCompletionHeatmap(items: DashboardItem[], now: Date, weeks: number): HeatmapCell[][] {
-  const days = weeks * 7;
+// from January 1 of `now`'s year through `now` itself — never padded out
+// to December, so the grid grows by one column as the year goes on —
+// bucketed into 5 intensity levels relative to the window's busiest day,
+// aggregated across the whole List, never per-Member (the mock's "Rhythm
+// of work" framing).
+export function buildCompletionHeatmap(items: DashboardItem[], now: Date): HeatmapCell[][] {
   const completedCountsByDay = new Map<string, number>();
   for (const item of items) {
     if (item.state !== "COMPLETE") continue;
@@ -155,11 +156,13 @@ export function buildCompletionHeatmap(items: DashboardItem[], now: Date, weeks:
     completedCountsByDay.set(key, (completedCountsByDay.get(key) ?? 0) + 1);
   }
 
-  const rangeStartMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - (days - 1) * MS_PER_DAY;
+  const yearStartMs = Date.UTC(now.getUTCFullYear(), 0, 1);
+  const todayMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const days = Math.round((todayMs - yearStartMs) / MS_PER_DAY) + 1;
 
   const cells: { date: string; count: number }[] = [];
   for (let i = 0; i < days; i++) {
-    const dayKey = toDateKey(new Date(rangeStartMs + i * MS_PER_DAY));
+    const dayKey = toDateKey(new Date(yearStartMs + i * MS_PER_DAY));
     cells.push({ date: dayKey, count: completedCountsByDay.get(dayKey) ?? 0 });
   }
 
@@ -173,8 +176,13 @@ export function buildCompletionHeatmap(items: DashboardItem[], now: Date, weeks:
     return 4;
   };
 
+  // Columns are sequential 7-day blocks starting at Jan 1, not calendar
+  // Sun-Sat weeks — but since every column is still a fixed 7-day stride
+  // from the same start date, row r always lands on the same weekday in
+  // every column, so per-row weekday labels stay valid. The final column
+  // is left short (not padded) once the block runs past `now`.
   const weekColumns: HeatmapCell[][] = [];
-  for (let w = 0; w < weeks; w++) {
+  for (let w = 0; w * 7 < days; w++) {
     weekColumns.push(
       cells.slice(w * 7, w * 7 + 7).map((cell) => ({ ...cell, intensity: intensityFor(cell.count) }))
     );

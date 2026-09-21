@@ -135,10 +135,12 @@ const NOW = new Date("2026-09-15T12:00:00.000Z");
   assert.equal(computeProgressPercent({ total: 0, completed: 0, incomplete: 0, overdue: 0 }), 0);
 }
 
-// buildCompletionHeatmap: one column per week, 7 cells per column, oldest
-// day first; intensity is bucketed relative to the window's busiest day,
-// and an all-zero window buckets everything to 0 rather than dividing by
-// zero.
+// buildCompletionHeatmap: Jan 1 of `now`'s year through `now` (inclusive),
+// sliced into 7-cell columns, oldest day first; intensity is bucketed
+// relative to the window's busiest day, and an all-zero window buckets
+// everything to 0 rather than dividing by zero. NOW is 2026-09-15, so the
+// window is Jan 1 - Sep 15: 258 days, 36 full columns plus a short final
+// column holding the last 6 days.
 {
   const items = [
     item({ state: "COMPLETE", updatedAt: new Date("2026-09-15T08:00:00.000Z") }), // today, busiest day (2)
@@ -146,26 +148,28 @@ const NOW = new Date("2026-09-15T12:00:00.000Z");
     item({ state: "COMPLETE", updatedAt: new Date("2026-09-09T08:00:00.000Z") }), // 1 completion
     item({ state: "TO_DO", updatedAt: new Date("2026-09-14T08:00:00.000Z") }), // not Complete, ignored
   ];
-  const weeks = buildCompletionHeatmap(items, NOW, 2);
+  const weeks = buildCompletionHeatmap(items, NOW);
 
-  assert.equal(weeks.length, 2);
-  assert.equal(weeks[0]!.length, 7);
-  assert.equal(weeks[0]![0]!.date, "2026-09-02");
-  assert.equal(weeks[1]![6]!.date, "2026-09-15");
+  assert.equal(weeks.length, 37);
+  assert.equal(weeks[0]![0]!.date, "2026-01-01");
+  const lastWeek = weeks[weeks.length - 1]!;
+  assert.equal(lastWeek.length, 6);
+  assert.equal(lastWeek[lastWeek.length - 1]!.date, "2026-09-15");
 
-  const sept9 = weeks[1]!.find((cell) => cell.date === "2026-09-09")!;
+  const allCells = weeks.flat();
+  const sept9 = allCells.find((cell) => cell.date === "2026-09-09")!;
   assert.deepEqual(sept9, { date: "2026-09-09", count: 1, intensity: 2 });
 
-  const sept15 = weeks[1]!.find((cell) => cell.date === "2026-09-15")!;
+  const sept15 = allCells.find((cell) => cell.date === "2026-09-15")!;
   assert.deepEqual(sept15, { date: "2026-09-15", count: 2, intensity: 4 });
 
-  const sept3 = weeks[0]!.find((cell) => cell.date === "2026-09-03")!;
-  assert.deepEqual(sept3, { date: "2026-09-03", count: 0, intensity: 0 });
+  const jan1 = allCells.find((cell) => cell.date === "2026-01-01")!;
+  assert.deepEqual(jan1, { date: "2026-01-01", count: 0, intensity: 0 });
 }
 
 {
-  const weeks = buildCompletionHeatmap([], NOW, 1);
-  assert.ok(weeks[0]!.every((cell) => cell.intensity === 0));
+  const weeks = buildCompletionHeatmap([], NOW);
+  assert.ok(weeks.flat().every((cell) => cell.intensity === 0));
 }
 
 function assignedItem(overrides: {

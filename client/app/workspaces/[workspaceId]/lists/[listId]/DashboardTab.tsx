@@ -65,22 +65,17 @@ function heatmapWeekdayLabel(weeks: HeatmapCell[][], rowIndex: number): string {
   return date ? HEATMAP_WEEKDAY_LABEL[parseHeatmapDateKey(date).getUTCDay()]! : "";
 }
 
-// Only the January boundary gets a visible label, kept to a single label
-// for the whole year instead of one per month. It's still found the same
-// way (the week column where the month actually changes), so it lands on
-// its real column rather than a hardcoded/guessed offset.
-const HEATMAP_JANUARY_MONTH_INDEX = 0;
-
+// Columns are 7-day blocks, not calendar Sun-Sat weeks, so a month's 1st
+// can land on any row within its column — this scans every cell (not just
+// a column's first row) for a date-of-month of 1 and labels that cell's
+// column, landing on the real column instead of a guessed offset. Only
+// months that have actually started show up, since the data itself never
+// extends past today.
 function heatmapMonthLabels(weeks: HeatmapCell[][]): (string | null)[] {
-  let previousMonth: number | null = null;
-
   return weeks.map((week) => {
-    const date = week[0]?.date;
-    if (!date) return null;
-    const month = parseHeatmapDateKey(date).getUTCMonth();
-    const isNewMonth = month !== previousMonth;
-    previousMonth = month;
-    return isNewMonth && month === HEATMAP_JANUARY_MONTH_INDEX ? HEATMAP_MONTH_LABEL[month]! : null;
+    const firstOfMonthCell = week.find((cell) => parseHeatmapDateKey(cell.date).getUTCDate() === 1);
+    if (!firstOfMonthCell) return null;
+    return HEATMAP_MONTH_LABEL[parseHeatmapDateKey(firstOfMonthCell.date).getUTCMonth()]!;
   });
 }
 
