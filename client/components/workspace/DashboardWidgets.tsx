@@ -195,18 +195,19 @@ const RADAR_AXIS_VECTOR: Record<AttentionAxis, { dx: number; dy: number }> = {
   OVERDUE: { dx: 0, dy: 1 },
   DONE: { dx: -1, dy: 0 },
 };
-const RADAR_CENTER = 90;
-const RADAR_MAX_RADIUS = 70;
-const RADAR_RING_RADII = [70, 52, 34];
+const RADAR_VIEWBOX = 200;
+const RADAR_CENTER = 100;
+const RADAR_MAX_RADIUS = 68;
+const RADAR_RING_RADII = [RADAR_MAX_RADIUS, (RADAR_MAX_RADIUS * 2) / 3, RADAR_MAX_RADIUS / 3];
 const RADAR_SERIES_COLORS = ["#ff6b4a", "#5b9dff", "#3ecf8e", "#f5b642"];
 
-function radarPoint(axis: AttentionAxis, ratio: number): string {
+function radarVertex(axis: AttentionAxis, ratio: number): { x: number; y: number } {
   const { dx, dy } = RADAR_AXIS_VECTOR[axis];
-  return `${RADAR_CENTER + dx * RADAR_MAX_RADIUS * ratio},${RADAR_CENTER + dy * RADAR_MAX_RADIUS * ratio}`;
+  return { x: RADAR_CENTER + dx * RADAR_MAX_RADIUS * ratio, y: RADAR_CENTER + dy * RADAR_MAX_RADIUS * ratio };
 }
 
-function radarRingPoints(radius: number): string {
-  return RADAR_AXES.map((axis) => radarPoint(axis, radius / RADAR_MAX_RADIUS)).join(" ");
+function radarPoints(entry: RadarChartEntry): { x: number; y: number }[] {
+  return RADAR_AXES.map((axis) => radarVertex(axis, entry.normalized[axis]));
 }
 
 export function AttentionImbalanceWidget({
@@ -230,41 +231,52 @@ export function AttentionImbalanceWidget({
         <p className={EMPTY_STATE_CLASS}>{emptyMessage}</p>
       ) : (
         <div className="flex items-center gap-4">
-          <svg width="180" height="180" viewBox="0 0 180 180" className="flex-shrink-0">
+          <svg
+            width={RADAR_VIEWBOX}
+            height={RADAR_VIEWBOX}
+            viewBox={`0 0 ${RADAR_VIEWBOX} ${RADAR_VIEWBOX}`}
+            className="flex-shrink-0"
+          >
             {RADAR_RING_RADII.map((radius) => (
-              <polygon key={radius} points={radarRingPoints(radius)} fill="none" stroke="#232323" strokeWidth="1" />
+              <circle
+                key={radius}
+                cx={RADAR_CENTER}
+                cy={RADAR_CENTER}
+                r={radius}
+                fill="none"
+                stroke="#232323"
+                strokeWidth="1"
+              />
             ))}
-            <line
-              x1={RADAR_CENTER}
-              y1={RADAR_CENTER - RADAR_MAX_RADIUS}
-              x2={RADAR_CENTER}
-              y2={RADAR_CENTER + RADAR_MAX_RADIUS}
-              stroke="#232323"
-              strokeWidth="1"
-            />
-            <line
-              x1={RADAR_CENTER - RADAR_MAX_RADIUS}
-              y1={RADAR_CENTER}
-              x2={RADAR_CENTER + RADAR_MAX_RADIUS}
-              y2={RADAR_CENTER}
-              stroke="#232323"
-              strokeWidth="1"
-            />
             {entries.map((entry, index) => {
               const color = RADAR_SERIES_COLORS[index % RADAR_SERIES_COLORS.length]!;
-              const points = RADAR_AXES.map((axis) => radarPoint(axis, entry.normalized[axis])).join(" ");
-              return <polygon key={entry.key} points={points} fill={`${color}2e`} stroke={color} strokeWidth="2" />;
+              const vertices = radarPoints(entry);
+              const points = vertices.map((vertex) => `${vertex.x},${vertex.y}`).join(" ");
+              return (
+                <g key={entry.key}>
+                  <polygon
+                    points={points}
+                    fill={`${color}2e`}
+                    stroke={color}
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                  {vertices.map((vertex, vertexIndex) => (
+                    <circle key={RADAR_AXES[vertexIndex]} cx={vertex.x} cy={vertex.y} r="3.5" fill={color} />
+                  ))}
+                </g>
+              );
             })}
-            <text x={RADAR_CENTER} y="12" textAnchor="middle" fontSize="9" fill="#8f8f8a">
+            <text x={RADAR_CENTER} y="14" textAnchor="middle" fontSize="9.5" fill="#8f8f8a">
               TO DO
             </text>
-            <text x="172" y={RADAR_CENTER + 3} textAnchor="end" fontSize="9" fill="#8f8f8a">
+            <text x={RADAR_VIEWBOX - 10} y={RADAR_CENTER + 3} textAnchor="end" fontSize="9.5" fill="#8f8f8a">
               BLOCKED
             </text>
-            <text x={RADAR_CENTER} y="174" textAnchor="middle" fontSize="9" fill="#8f8f8a">
+            <text x={RADAR_CENTER} y={RADAR_VIEWBOX - 6} textAnchor="middle" fontSize="9.5" fill="#8f8f8a">
               OVERDUE
             </text>
-            <text x="8" y={RADAR_CENTER + 3} textAnchor="start" fontSize="9" fill="#8f8f8a">
+            <text x="10" y={RADAR_CENTER + 3} textAnchor="start" fontSize="9.5" fill="#8f8f8a">
               DONE
             </text>
           </svg>
