@@ -65,10 +65,12 @@ function heatmapWeekdayLabel(weeks: HeatmapCell[][], rowIndex: number): string {
   return date ? HEATMAP_WEEKDAY_LABEL[parseHeatmapDateKey(date).getUTCDay()]! : "";
 }
 
-// One label per week column: shown on every real month boundary. Columns now
-// span the full card width, so labels have enough room not to overlap —
-// don't skip any (a skipped month reads as a missing/oversized gap, e.g. Sep
-// jumping straight to Nov with Oct silently dropped).
+// Only the January boundary gets a visible label, kept to a single label
+// for the whole year instead of one per month. It's still found the same
+// way (the week column where the month actually changes), so it lands on
+// its real column rather than a hardcoded/guessed offset.
+const HEATMAP_JANUARY_MONTH_INDEX = 0;
+
 function heatmapMonthLabels(weeks: HeatmapCell[][]): (string | null)[] {
   let previousMonth: number | null = null;
 
@@ -78,7 +80,7 @@ function heatmapMonthLabels(weeks: HeatmapCell[][]): (string | null)[] {
     const month = parseHeatmapDateKey(date).getUTCMonth();
     const isNewMonth = month !== previousMonth;
     previousMonth = month;
-    return isNewMonth ? HEATMAP_MONTH_LABEL[month]! : null;
+    return isNewMonth && month === HEATMAP_JANUARY_MONTH_INDEX ? HEATMAP_MONTH_LABEL[month]! : null;
   });
 }
 
