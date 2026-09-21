@@ -48,10 +48,6 @@ const HEATMAP_MONTH_LABEL = [
 const HEATMAP_WEEKDAY_LABEL = ["", "Mon", "", "Wed", "", "Fri", ""];
 const HEATMAP_GAP_PX = "2px";
 const HEATMAP_GUTTER_CLASS = "w-6";
-// Slightly taller than wide (not a strict 1:1 square) so the grid claims a
-// bit more of the card's leftover height without turning back into the
-// visibly stretched rectangles this was previously flagged for.
-const HEATMAP_CELL_ASPECT_RATIO = "1 / 1.2";
 // One shared rhythm for the vertical spacing between the month labels, the
 // grid, and the legend, so none of those gaps drift out of sync with the
 // others.
@@ -96,16 +92,18 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-3`}>Rhythm of work — aggregated, not per-Member</div>
 
-      {/* Month labels, the grid, and the legend are one group that's
-          vertically centered in whatever height this card ends up with
-          (it's stretched to match its row sibling) rather than pinned to
-          the top with dead space left below the legend. Columns are 1fr,
-          not a fixed pixel size: cell width is derived from this card's
-          actual real width, so the grid always spans it exactly (never
-          wider, forcing horizontal scroll). Cells use a slightly
-          taller-than-wide aspect ratio (still reads as square, not a
-          stretched rectangle). */}
-      <div className={`flex flex-1 flex-col justify-center ${HEATMAP_BLOCK_GAP_CLASS}`}>
+      {/* Month labels, the grid, and the legend are one group that fills
+          whatever height this card ends up with (it's stretched to match
+          its row sibling): the month-label row and legend keep their
+          natural height, and the week-rows block grows (flex-1) to claim
+          everything left over, instead of sitting at its own tiny natural
+          size and getting centered inside dead space. Columns are 1fr, not
+          a fixed pixel size, so cell width is derived from this card's
+          actual real width (never wider, forcing horizontal scroll); rows
+          are 1fr too, so cell height is derived from the block's actual
+          real height rather than being capped by a width-only aspect
+          ratio. */}
+      <div className={`flex flex-1 flex-col ${HEATMAP_BLOCK_GAP_CLASS}`}>
         <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
           <div className={`${HEATMAP_GUTTER_CLASS} flex-shrink-0`} aria-hidden="true" />
           <div className="grid flex-1" style={gridColumnsStyle}>
@@ -116,7 +114,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
             ))}
           </div>
         </div>
-        <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
+        <div className="flex flex-1" style={{ gap: HEATMAP_GAP_PX }}>
           <div className={`flex ${HEATMAP_GUTTER_CLASS} flex-shrink-0 flex-col`} style={{ gap: HEATMAP_GAP_PX }}>
             {Array.from({ length: 7 }, (_, rowIndex) => (
               <div key={rowIndex} className="flex flex-1 items-center whitespace-nowrap text-[9px] text-ink-faint">
@@ -128,7 +126,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
             className="grid flex-1"
             style={{
               ...gridColumnsStyle,
-              gridTemplateRows: "repeat(7, auto)",
+              gridTemplateRows: "repeat(7, minmax(0, 1fr))",
               gridAutoFlow: "column",
             }}
           >
@@ -137,8 +135,8 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
                 <div
                   key={cell.date}
                   title={`${cell.date}: ${cell.count} completed`}
-                  className="w-full rounded-[2px]"
-                  style={{ aspectRatio: HEATMAP_CELL_ASPECT_RATIO, backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
+                  className="h-full w-full rounded-[2px]"
+                  style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
                 />
               ))
             )}
