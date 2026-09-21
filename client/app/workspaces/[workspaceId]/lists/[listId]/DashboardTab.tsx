@@ -46,7 +46,7 @@ const HEATMAP_MONTH_LABEL = [
 ];
 // Sun..Sat, GitHub-style: only every-other weekday gets a visible label to stay compact.
 const HEATMAP_WEEKDAY_LABEL = ["", "Mon", "", "Wed", "", "Fri", ""];
-const HEATMAP_GAP_PX = "2px";
+const HEATMAP_GAP_PX = "3px";
 const HEATMAP_GUTTER_CLASS = "w-6";
 // One shared rhythm for the vertical spacing between the month labels, the
 // grid, and the legend, so none of those gaps drift out of sync with the
@@ -90,7 +90,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
   return (
     <div className={`${CARD_CLASS} flex flex-col p-5`}>
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
-      <div className={`${WHY_TAG_CLASS} mb-3`}>Rhythm of work — aggregated, not per-Member</div>
+      <div className={`${WHY_TAG_CLASS} mb-4`}>Rhythm of work — aggregated, not per-Member</div>
 
       {/* Month labels, the grid, and the legend are one group that fills
           whatever height this card ends up with (it's stretched to match
@@ -108,7 +108,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
           <div className={`${HEATMAP_GUTTER_CLASS} flex-shrink-0`} aria-hidden="true" />
           <div className="grid flex-1" style={gridColumnsStyle}>
             {weeks.map((week, weekIndex) => (
-              <div key={week[0]!.date} className="min-w-0 whitespace-nowrap text-[9px] text-ink-faint">
+              <div key={week[0]!.date} className="min-w-0 whitespace-nowrap text-[10px] text-ink-faint">
                 {monthLabels[weekIndex]}
               </div>
             ))}
@@ -117,7 +117,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
         <div className="flex flex-1" style={{ gap: HEATMAP_GAP_PX }}>
           <div className={`flex ${HEATMAP_GUTTER_CLASS} flex-shrink-0 flex-col`} style={{ gap: HEATMAP_GAP_PX }}>
             {Array.from({ length: 7 }, (_, rowIndex) => (
-              <div key={rowIndex} className="flex flex-1 items-center whitespace-nowrap text-[9px] text-ink-faint">
+              <div key={rowIndex} className="flex flex-1 items-center whitespace-nowrap text-[10px] text-ink-faint">
                 {heatmapWeekdayLabel(weeks, rowIndex)}
               </div>
             ))}
@@ -142,16 +142,22 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
             )}
           </div>
         </div>
-        <div className="flex items-center justify-end gap-1.5">
-          <span className="text-[10px] text-ink-faint">Less</span>
-          {([0, 1, 2, 3, 4] as const).map((level) => (
-            <span
-              key={level}
-              className="h-[11px] w-[11px] rounded-[2.5px]"
-              style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[level] }}
-            />
-          ))}
-          <span className="text-[10px] text-ink-faint">More</span>
+        {/* Same gutter-offset shape as the month-label and week-rows above,
+            so the legend lines up under the grid's own column area rather
+            than the full card width (which includes the weekday gutter). */}
+        <div className="flex items-center" style={{ gap: HEATMAP_GAP_PX }}>
+          <div className={`${HEATMAP_GUTTER_CLASS} flex-shrink-0`} aria-hidden="true" />
+          <div className="flex flex-1 items-center justify-end gap-1.5">
+            <span className="text-[10px] text-ink-faint">Less</span>
+            {([0, 1, 2, 3, 4] as const).map((level) => (
+              <span
+                key={level}
+                className="h-[11px] w-[11px] rounded-[2.5px]"
+                style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[level] }}
+              />
+            ))}
+            <span className="text-[10px] text-ink-faint">More</span>
+          </div>
         </div>
       </div>
     </div>
