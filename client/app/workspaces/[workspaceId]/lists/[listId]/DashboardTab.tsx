@@ -51,7 +51,11 @@ const HEATMAP_GUTTER_CLASS = "w-6";
 // Slightly taller than wide (not a strict 1:1 square) so the grid claims a
 // bit more of the card's leftover height without turning back into the
 // visibly stretched rectangles this was previously flagged for.
-const HEATMAP_CELL_ASPECT_RATIO = "1 / 1.15";
+const HEATMAP_CELL_ASPECT_RATIO = "1 / 1.2";
+// One shared rhythm for the vertical spacing between the month labels, the
+// grid, and the legend, so none of those gaps drift out of sync with the
+// others.
+const HEATMAP_BLOCK_GAP_CLASS = "gap-2";
 
 function parseHeatmapDateKey(dateKey: string): Date {
   return new Date(`${dateKey}T00:00:00Z`);
@@ -92,64 +96,65 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
       <div className={`${WIDGET_TITLE_CLASS} mb-1`}>Completion Heatmap</div>
       <div className={`${WHY_TAG_CLASS} mb-3`}>Rhythm of work — aggregated, not per-Member</div>
 
-      {/* Month labels sit a small step below the subtitle, then the grid
-          follows immediately after them, and the legend follows right
-          after the grid — no flexible spacers between any of these, so
-          none of them ever drift apart. Columns are 1fr, not a fixed pixel
-          size: cell width is derived from this card's actual real width,
-          so the grid always spans it exactly (never wider, forcing
-          horizontal scroll). Cells use a slightly taller-than-wide aspect
-          ratio (still reads as square, not a stretched rectangle). Any
-          leftover vertical space is left below the legend, at the card's
-          bottom edge. */}
-      <div className="mt-1 flex" style={{ gap: HEATMAP_GAP_PX }}>
-        <div className={`${HEATMAP_GUTTER_CLASS} flex-shrink-0`} aria-hidden="true" />
-        <div className="grid flex-1" style={gridColumnsStyle}>
-          {weeks.map((week, weekIndex) => (
-            <div key={week[0]!.date} className="min-w-0 whitespace-nowrap text-[9px] text-ink-faint">
-              {monthLabels[weekIndex]}
-            </div>
+      {/* Month labels, the grid, and the legend are one group that's
+          vertically centered in whatever height this card ends up with
+          (it's stretched to match its row sibling) rather than pinned to
+          the top with dead space left below the legend. Columns are 1fr,
+          not a fixed pixel size: cell width is derived from this card's
+          actual real width, so the grid always spans it exactly (never
+          wider, forcing horizontal scroll). Cells use a slightly
+          taller-than-wide aspect ratio (still reads as square, not a
+          stretched rectangle). */}
+      <div className={`flex flex-1 flex-col justify-center ${HEATMAP_BLOCK_GAP_CLASS}`}>
+        <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
+          <div className={`${HEATMAP_GUTTER_CLASS} flex-shrink-0`} aria-hidden="true" />
+          <div className="grid flex-1" style={gridColumnsStyle}>
+            {weeks.map((week, weekIndex) => (
+              <div key={week[0]!.date} className="min-w-0 whitespace-nowrap text-[9px] text-ink-faint">
+                {monthLabels[weekIndex]}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex" style={{ gap: HEATMAP_GAP_PX }}>
+          <div className={`flex ${HEATMAP_GUTTER_CLASS} flex-shrink-0 flex-col`} style={{ gap: HEATMAP_GAP_PX }}>
+            {Array.from({ length: 7 }, (_, rowIndex) => (
+              <div key={rowIndex} className="flex flex-1 items-center whitespace-nowrap text-[9px] text-ink-faint">
+                {heatmapWeekdayLabel(weeks, rowIndex)}
+              </div>
+            ))}
+          </div>
+          <div
+            className="grid flex-1"
+            style={{
+              ...gridColumnsStyle,
+              gridTemplateRows: "repeat(7, auto)",
+              gridAutoFlow: "column",
+            }}
+          >
+            {weeks.flatMap((week) =>
+              week.map((cell) => (
+                <div
+                  key={cell.date}
+                  title={`${cell.date}: ${cell.count} completed`}
+                  className="w-full rounded-[2px]"
+                  style={{ aspectRatio: HEATMAP_CELL_ASPECT_RATIO, backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
+                />
+              ))
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-1.5">
+          <span className="text-[10px] text-ink-faint">Less</span>
+          {([0, 1, 2, 3, 4] as const).map((level) => (
+            <span
+              key={level}
+              className="h-[11px] w-[11px] rounded-[2.5px]"
+              style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[level] }}
+            />
           ))}
+          <span className="text-[10px] text-ink-faint">More</span>
         </div>
-      </div>
-      <div className="mt-1 flex" style={{ gap: HEATMAP_GAP_PX }}>
-        <div className={`flex ${HEATMAP_GUTTER_CLASS} flex-shrink-0 flex-col`} style={{ gap: HEATMAP_GAP_PX }}>
-          {Array.from({ length: 7 }, (_, rowIndex) => (
-            <div key={rowIndex} className="flex flex-1 items-center whitespace-nowrap text-[9px] text-ink-faint">
-              {heatmapWeekdayLabel(weeks, rowIndex)}
-            </div>
-          ))}
-        </div>
-        <div
-          className="grid flex-1"
-          style={{
-            ...gridColumnsStyle,
-            gridTemplateRows: "repeat(7, auto)",
-            gridAutoFlow: "column",
-          }}
-        >
-          {weeks.flatMap((week) =>
-            week.map((cell) => (
-              <div
-                key={cell.date}
-                title={`${cell.date}: ${cell.count} completed`}
-                className="w-full rounded-[2px]"
-                style={{ aspectRatio: HEATMAP_CELL_ASPECT_RATIO, backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
-              />
-            ))
-          )}
-        </div>
-      </div>
-      <div className="mt-2 flex items-center justify-end gap-1.5">
-        <span className="text-[10px] text-ink-faint">Less</span>
-        {([0, 1, 2, 3, 4] as const).map((level) => (
-          <span
-            key={level}
-            className="h-[11px] w-[11px] rounded-[2.5px]"
-            style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[level] }}
-          />
-        ))}
-        <span className="text-[10px] text-ink-faint">More</span>
       </div>
     </div>
   );
