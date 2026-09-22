@@ -23,33 +23,6 @@ export function CountTile({ label, value, valueColor }: { label: string; value: 
   );
 }
 
-function BreakdownRows({
-  entries,
-  total,
-}: {
-  entries: { label: string; count: number; barColorClassName: string }[];
-  total: number;
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      {entries.map((entry) => (
-        <div key={entry.label}>
-          <div className="mb-1 flex justify-between text-[12px]">
-            <span className="text-ink-muted">{entry.label}</span>
-            <span className="text-ink-faint">{entry.count}</span>
-          </div>
-          <div className="h-1.5 rounded-full bg-surface-4">
-            <div
-              className={`h-1.5 rounded-full ${entry.barColorClassName}`}
-              style={{ width: total > 0 ? `${(entry.count / total) * 100}%` : "0%" }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function BreakdownWidget({
   title,
   entries,
@@ -65,95 +38,21 @@ export function BreakdownWidget({
       {entries.length === 0 ? (
         <p className={EMPTY_STATE_CLASS}>No Items yet.</p>
       ) : (
-        <BreakdownRows entries={entries} total={total} />
-      )}
-    </div>
-  );
-}
-
-const BREAKDOWN_DONUT_SIZE = 96;
-const BREAKDOWN_DONUT_RADIUS = 34;
-const BREAKDOWN_DONUT_STROKE_WIDTH = 14;
-const BREAKDOWN_DONUT_CIRCUMFERENCE = 2 * Math.PI * BREAKDOWN_DONUT_RADIUS;
-
-function BreakdownDonut({
-  entries,
-  total,
-}: {
-  entries: { label: string; count: number; color: string }[];
-  total: number;
-}) {
-  const center = BREAKDOWN_DONUT_SIZE / 2;
-  let cumulativeLength = 0;
-
-  return (
-    <svg
-      width={BREAKDOWN_DONUT_SIZE}
-      height={BREAKDOWN_DONUT_SIZE}
-      viewBox={`0 0 ${BREAKDOWN_DONUT_SIZE} ${BREAKDOWN_DONUT_SIZE}`}
-      className="flex-shrink-0"
-    >
-      <circle
-        cx={center}
-        cy={center}
-        r={BREAKDOWN_DONUT_RADIUS}
-        fill="none"
-        stroke="#202020"
-        strokeWidth={BREAKDOWN_DONUT_STROKE_WIDTH}
-      />
-      {total > 0 &&
-        entries.map((entry) => {
-          if (entry.count === 0) return null;
-          const sliceLength = (entry.count / total) * BREAKDOWN_DONUT_CIRCUMFERENCE;
-          const dashOffset = -cumulativeLength;
-          cumulativeLength += sliceLength;
-          return (
-            <circle
-              key={entry.label}
-              cx={center}
-              cy={center}
-              r={BREAKDOWN_DONUT_RADIUS}
-              fill="none"
-              stroke={entry.color}
-              strokeWidth={BREAKDOWN_DONUT_STROKE_WIDTH}
-              strokeDasharray={`${sliceLength} ${BREAKDOWN_DONUT_CIRCUMFERENCE - sliceLength}`}
-              strokeDashoffset={dashOffset}
-              transform={`rotate(-90 ${center} ${center})`}
-            />
-          );
-        })}
-      <text x={center} y={center + 6} textAnchor="middle" fontSize="18" fontWeight="700" fill="#e5e5e0">
-        {total}
-      </text>
-    </svg>
-  );
-}
-
-// Same card as BreakdownWidget plus a donut summarizing the same entries —
-// kept as a separate export (rather than a flag on BreakdownWidget) so it
-// only touches the two callers that asked for it (List Dashboard's
-// Breakdown by Section / by State) without changing My Tasks Dashboard's
-// Breakdown by State / by List, which still render via BreakdownWidget.
-export function BreakdownWithDonutWidget({
-  title,
-  entries,
-  total,
-}: {
-  title: string;
-  entries: { label: string; count: number; barColorClassName: string; color: string }[];
-  total: number;
-}) {
-  return (
-    <div className={`${DASHBOARD_CARD_CLASS} p-5`}>
-      <div className={`${DASHBOARD_WIDGET_TITLE_CLASS} mb-4`}>{title}</div>
-      {entries.length === 0 ? (
-        <p className={EMPTY_STATE_CLASS}>No Items yet.</p>
-      ) : (
-        <div className="flex items-center gap-4">
-          <BreakdownDonut entries={entries} total={total} />
-          <div className="flex-1">
-            <BreakdownRows entries={entries} total={total} />
-          </div>
+        <div className="flex flex-col gap-3">
+          {entries.map((entry) => (
+            <div key={entry.label}>
+              <div className="mb-1 flex justify-between text-[12px]">
+                <span className="text-ink-muted">{entry.label}</span>
+                <span className="text-ink-faint">{entry.count}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-surface-4">
+                <div
+                  className={`h-1.5 rounded-full ${entry.barColorClassName}`}
+                  style={{ width: total > 0 ? `${(entry.count / total) * 100}%` : "0%" }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -367,12 +266,12 @@ export function AttentionImbalanceWidget({
       {entries.length === 0 ? (
         <p className={EMPTY_STATE_CLASS}>{emptyMessage}</p>
       ) : (
-        <div className="flex flex-1 items-center gap-4">
+        <div className="flex flex-1 items-center gap-12">
           <svg
             width={RADAR_VIEWBOX}
             height={RADAR_VIEWBOX}
             viewBox={`0 0 ${RADAR_VIEWBOX} ${RADAR_VIEWBOX}`}
-            className="flex-shrink-0 overflow-visible"
+            className="mr-8 flex-shrink-0 overflow-visible"
           >
             {RADAR_RING_RADII.map((radius) => (
               <circle
@@ -421,7 +320,7 @@ export function AttentionImbalanceWidget({
               );
             })}
           </svg>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-shrink-0 flex-col gap-2">
             {entries.map((entry, index) => (
               <div key={entry.key} className="flex items-center gap-2 text-[12px] text-ink">
                 <span

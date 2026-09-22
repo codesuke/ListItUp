@@ -2,7 +2,7 @@ import { Users } from "lucide-react";
 
 import {
   AttentionImbalanceWidget,
-  BreakdownWithDonutWidget,
+  BreakdownWidget,
   CompletionOverTimeWidget,
   CountTile,
   DASHBOARD_CARD_CLASS,
@@ -31,17 +31,6 @@ const STATE_BAR_COLOR: Record<StateBreakdownEntry["state"], string> = {
   BLOCKED: "bg-[#f5b642]",
   COMPLETE: "bg-[#3ecf8e]",
   ARCHIVED: "bg-[#525252]",
-};
-
-// Same colors as STATE_BAR_COLOR above, as literal CSS colors instead of
-// Tailwind classes — SVG stroke can't consume a bg-* class, so the donut
-// slices need the underlying color value directly.
-const STATE_DONUT_COLOR: Record<StateBreakdownEntry["state"], string> = {
-  TO_DO: "var(--ink-faint)",
-  IN_PROGRESS: "#5b9dff",
-  BLOCKED: "#f5b642",
-  COMPLETE: "#3ecf8e",
-  ARCHIVED: "#525252",
 };
 
 const HEATMAP_INTENSITY_COLOR: Record<HeatmapCell["intensity"], string> = {
@@ -309,24 +298,22 @@ export function DashboardTab({
       </div>
 
       <div className="grid grid-cols-3 gap-5">
-        <BreakdownWithDonutWidget
+        <BreakdownWidget
           title="Breakdown by Section"
           total={counts.total}
           entries={bySection.map((entry) => ({
             label: entry.sectionName,
             count: entry.count,
             barColorClassName: "bg-[#ff6b4a]",
-            color: "#ff6b4a",
           }))}
         />
-        <BreakdownWithDonutWidget
+        <BreakdownWidget
           title="Breakdown by State"
           total={counts.total}
           entries={byState.map((entry) => ({
             label: entry.label,
             count: entry.count,
             barColorClassName: STATE_BAR_COLOR[entry.state],
-            color: STATE_DONUT_COLOR[entry.state],
           }))}
         />
         <ProgressDonutWidget percent={progressPercent} />
