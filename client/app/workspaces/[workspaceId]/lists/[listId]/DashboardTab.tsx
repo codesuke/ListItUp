@@ -2,7 +2,7 @@ import { Users } from "lucide-react";
 
 import {
   AttentionImbalanceWidget,
-  BreakdownWidget,
+  BreakdownWithDonutWidget,
   CompletionOverTimeWidget,
   CountTile,
   DASHBOARD_CARD_CLASS,
@@ -33,6 +33,17 @@ const STATE_BAR_COLOR: Record<StateBreakdownEntry["state"], string> = {
   ARCHIVED: "bg-[#525252]",
 };
 
+// Same colors as STATE_BAR_COLOR above, as literal CSS colors instead of
+// Tailwind classes — SVG stroke can't consume a bg-* class, so the donut
+// slices need the underlying color value directly.
+const STATE_DONUT_COLOR: Record<StateBreakdownEntry["state"], string> = {
+  TO_DO: "var(--ink-faint)",
+  IN_PROGRESS: "#5b9dff",
+  BLOCKED: "#f5b642",
+  COMPLETE: "#3ecf8e",
+  ARCHIVED: "#525252",
+};
+
 const HEATMAP_INTENSITY_COLOR: Record<HeatmapCell["intensity"], string> = {
   0: "#202020",
   1: "rgba(255,107,74,0.25)",
@@ -57,12 +68,11 @@ function parseHeatmapDateKey(dateKey: string): Date {
   return new Date(`${dateKey}T00:00:00Z`);
 }
 
-// Row position doesn't line up with Sun=0..Sat=6 unless the window happens to
-// start on a Sunday, so the label is derived from the actual date rather than
-// the row index.
-function heatmapWeekdayLabel(weeks: HeatmapCell[][], rowIndex: number): string {
-  const date = weeks[0]?.[rowIndex]?.date;
-  return date ? HEATMAP_WEEKDAY_LABEL[parseHeatmapDateKey(date).getUTCDay()]! : "";
+// Grid row placement below is keyed off each cell's actual day-of-week
+// (Sun=0..Sat=6), so the gutter label for a given row uses that same
+// numbering directly.
+function heatmapWeekdayLabel(rowIndex: number): string {
+  return HEATMAP_WEEKDAY_LABEL[rowIndex]!;
 }
 
 // Columns are 7-day blocks, not calendar Sun-Sat weeks, so a month's 1st
@@ -115,7 +125,7 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
           <div className={`flex ${HEATMAP_GUTTER_CLASS} flex-shrink-0 flex-col`} style={{ gap: HEATMAP_GAP_PX }}>
             {Array.from({ length: 7 }, (_, rowIndex) => (
               <div key={rowIndex} className="flex flex-1 items-center whitespace-nowrap text-[10px] text-ink-faint">
-                {heatmapWeekdayLabel(weeks, rowIndex)}
+                {heatmapWeekdayLabel(rowIndex)}
               </div>
             ))}
           </div>
@@ -124,16 +134,19 @@ function CompletionHeatmapWidget({ weeks }: { weeks: HeatmapCell[][] }) {
             style={{
               ...gridColumnsStyle,
               gridTemplateRows: "repeat(7, minmax(0, 1fr))",
-              gridAutoFlow: "column",
             }}
           >
-            {weeks.flatMap((week) =>
+            {weeks.flatMap((week, weekIndex) =>
               week.map((cell) => (
                 <div
                   key={cell.date}
                   title={`${cell.date}: ${cell.count} completed`}
                   className="h-full w-full rounded-[2px]"
-                  style={{ backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity] }}
+                  style={{
+                    backgroundColor: HEATMAP_INTENSITY_COLOR[cell.intensity],
+                    gridColumn: weekIndex + 1,
+                    gridRow: parseHeatmapDateKey(cell.date).getUTCDay() + 1,
+                  }}
                 />
               ))
             )}
@@ -296,22 +309,24 @@ export function DashboardTab({
       </div>
 
       <div className="grid grid-cols-3 gap-5">
-        <BreakdownWidget
+        <BreakdownWithDonutWidget
           title="Breakdown by Section"
           total={counts.total}
           entries={bySection.map((entry) => ({
             label: entry.sectionName,
             count: entry.count,
             barColorClassName: "bg-[#ff6b4a]",
+            color: "#ff6b4a",
           }))}
         />
-        <BreakdownWidget
+        <BreakdownWithDonutWidget
           title="Breakdown by State"
           total={counts.total}
           entries={byState.map((entry) => ({
             label: entry.label,
             count: entry.count,
             barColorClassName: STATE_BAR_COLOR[entry.state],
+            color: STATE_DONUT_COLOR[entry.state],
           }))}
         />
         <ProgressDonutWidget percent={progressPercent} />
