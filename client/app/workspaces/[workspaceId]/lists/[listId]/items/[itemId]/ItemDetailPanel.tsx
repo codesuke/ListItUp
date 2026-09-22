@@ -296,7 +296,7 @@ export function ItemDetailPanel({
         </div>
 
         <div className="text-[13px] text-ink-muted">
-          Created by <span className="font-medium text-ink">{data.creatorName}</span> on{" "}
+          Created by <span className="font-medium text-ink">{data.creatorName}</span> ·{" "}
           <span className="text-ink">
             {data.createdAt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
           </span>
@@ -304,9 +304,11 @@ export function ItemDetailPanel({
       </div>
 
       {/* Properties strip: Status, Priority, Assignees, Due date, Labels —
-          the only place these fields appear. */}
-      <div className="mt-5 flex flex-wrap items-start gap-x-5 gap-y-3 border-y border-line-strong/60 py-3.5">
-        <div className="flex flex-col gap-1.5">
+          the only place these fields appear. Each property is a fluid
+          flex-1 column (same distribution as the Custom Fields row below)
+          so the row fills the content width instead of clustering left. */}
+      <div className="mt-5 flex flex-wrap items-start gap-x-6 gap-y-3 border-y border-line-strong/60 py-3.5">
+        <div className="flex min-w-[8rem] flex-1 flex-col gap-1.5">
           <span className={FIELD_LABEL_CLASS}>Status</span>
           {data.state === "ARCHIVED" ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -330,7 +332,7 @@ export function ItemDetailPanel({
           )}
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-[8rem] flex-1 flex-col gap-1.5">
           <span className={FIELD_LABEL_CLASS}>Priority</span>
           {data.canEdit ? (
             <FieldSelect
@@ -349,7 +351,7 @@ export function ItemDetailPanel({
           )}
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-[12rem] flex-[2] flex-col gap-1.5">
           <span className={FIELD_LABEL_CLASS}>Assignees</span>
           <div className="flex flex-wrap items-center gap-2">
             {data.assignees.map((assignee) => (
@@ -390,7 +392,7 @@ export function ItemDetailPanel({
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-[8rem] flex-1 flex-col gap-1.5">
           <span className={FIELD_LABEL_CLASS}>Due date</span>
           {data.canEdit ? (
             <input
@@ -409,7 +411,7 @@ export function ItemDetailPanel({
           )}
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-[12rem] flex-[2] flex-col gap-1.5">
           <span className={FIELD_LABEL_CLASS}>Labels</span>
           <div className="flex flex-wrap items-center gap-1.5">
             {data.labels.map((label) => (

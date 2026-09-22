@@ -49,7 +49,7 @@ export const SECTION_CLASS = "flex flex-col gap-3 border-t border-line-strong/60
 export const FIRST_SECTION_CLASS = "flex flex-col gap-3";
 // The heading + primary form is always the first block on the page, so it
 // never gets a leading divider.
-export const HEADING_SECTION_CLASS = "flex flex-col gap-4";
+export const HEADING_SECTION_CLASS = "flex flex-col gap-3";
 // The single content column below the Properties strip. Re-establishes its
 // own container-query context (`@container`) sized to its own rendered
 // width, so the field-grid breakpoints below react to the column's actual
