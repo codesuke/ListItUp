@@ -20,6 +20,7 @@ export type ItemDetailData = {
   priority: ItemPriority;
   dueDate: Date | null;
   blockerReason: string | null;
+  createdAt: Date;
   sectionId: string | null;
   creatorName: string;
   assignees: { userId: string; name: string }[];
@@ -195,6 +196,7 @@ export async function loadItemDetailData(
     priority: item.priority,
     dueDate: item.dueDate,
     blockerReason: item.blockerReason,
+    createdAt: item.createdAt,
     sectionId: item.sectionId,
     creatorName: item.creator.name,
     assignees: item.assignees.map((assignee) => ({ userId: assignee.userId, name: assignee.user.name })),

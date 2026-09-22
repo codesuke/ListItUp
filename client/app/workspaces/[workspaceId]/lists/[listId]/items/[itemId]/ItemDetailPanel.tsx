@@ -295,15 +295,17 @@ export function ItemDetailPanel({
           )}
         </div>
 
-        <div>
-          <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Created by</div>
-          <span className="text-[13px] text-ink">{data.creatorName}</span>
+        <div className="text-[13px] text-ink-muted">
+          Created by <span className="font-medium text-ink">{data.creatorName}</span> on{" "}
+          <span className="text-ink">
+            {data.createdAt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+          </span>
         </div>
       </div>
 
       {/* Properties strip: Status, Priority, Assignees, Due date, Labels —
           the only place these fields appear. */}
-      <div className="mt-6 flex flex-wrap items-start gap-x-6 gap-y-4 border-y border-line-strong/60 py-4">
+      <div className="mt-5 flex flex-wrap items-start gap-x-5 gap-y-3 border-y border-line-strong/60 py-3.5">
         <div className="flex flex-col gap-1.5">
           <span className={FIELD_LABEL_CLASS}>Status</span>
           {data.state === "ARCHIVED" ? (
@@ -471,7 +473,7 @@ export function ItemDetailPanel({
       )}
 
       {/* Main content, single column, dividers only (no card wrappers) */}
-      <div className={`mt-8 ${COLUMN_CLASS}`}>
+      <div className={`mt-6 ${COLUMN_CLASS}`}>
         {/* Custom Fields */}
         <div className={FIRST_SECTION_CLASS}>
           <div className={FIELD_LABEL_CLASS}>Custom Fields</div>
@@ -526,49 +528,56 @@ export function ItemDetailPanel({
         {/* Dependencies */}
         <div className={SECTION_CLASS}>
           <div className={FIELD_LABEL_CLASS}>Dependencies</div>
-          <div className="flex flex-col gap-1">
-            {data.blockedBy.map((blocker) => (
-              <div key={blocker.id} className="flex items-center gap-2 py-1 text-[13px]">
-                <ArrowLeft className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
-                <span className="text-ink-muted">Blocked by</span>
-                <Link
-                  href={`/workspaces/${workspaceId}/lists/${blocker.listId}/items/${blocker.id}`}
-                  className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
-                >
-                  {blocker.title}
-                </Link>
-                {data.canEdit && (
-                  <form action={boundRemoveDependency(blocker.id, data.itemId)}>
-                    <button type="submit" className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
-                      Remove
-                    </button>
-                  </form>
-                )}
+          {hasDependencies ? (
+            <>
+              <div className="flex flex-col gap-1">
+                {data.blockedBy.map((blocker) => (
+                  <div key={blocker.id} className="flex items-center gap-2 py-1 text-[13px]">
+                    <ArrowLeft className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
+                    <span className="text-ink-muted">Blocked by</span>
+                    <Link
+                      href={`/workspaces/${workspaceId}/lists/${blocker.listId}/items/${blocker.id}`}
+                      className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
+                    >
+                      {blocker.title}
+                    </Link>
+                    {data.canEdit && (
+                      <form action={boundRemoveDependency(blocker.id, data.itemId)}>
+                        <button type="submit" className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
+                          Remove
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                ))}
+                {data.blocking.map((blocked) => (
+                  <div key={blocked.id} className="flex items-center gap-2 py-1 text-[13px]">
+                    <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
+                    <span className="text-ink-muted">Blocks</span>
+                    <Link
+                      href={`/workspaces/${workspaceId}/lists/${blocked.listId}/items/${blocked.id}`}
+                      className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
+                    >
+                      {blocked.title}
+                    </Link>
+                    {data.canEdit && (
+                      <form action={boundRemoveDependency(data.itemId, blocked.id)}>
+                        <button type="submit" className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
+                          Remove
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-            {data.blocking.map((blocked) => (
-              <div key={blocked.id} className="flex items-center gap-2 py-1 text-[13px]">
-                <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
-                <span className="text-ink-muted">Blocks</span>
-                <Link
-                  href={`/workspaces/${workspaceId}/lists/${blocked.listId}/items/${blocked.id}`}
-                  className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
-                >
-                  {blocked.title}
-                </Link>
-                {data.canEdit && (
-                  <form action={boundRemoveDependency(data.itemId, blocked.id)}>
-                    <button type="submit" className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
-                      Remove
-                    </button>
-                  </form>
-                )}
-              </div>
-            ))}
-            {!hasDependencies && <span className="text-[13px] text-ink-faint">None.</span>}
-          </div>
-          {dependenciesForm &&
-            (hasDependencies ? dependenciesForm : <RevealAddControl label="+ Add dependency">{dependenciesForm}</RevealAddControl>)}
+              {dependenciesForm && <div className="flex justify-end">{dependenciesForm}</div>}
+            </>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[13px] text-ink-faint">None.</span>
+              {dependenciesForm && <RevealAddControl label="+ Add dependency">{dependenciesForm}</RevealAddControl>}
+            </div>
+          )}
         </div>
 
         {/* Attachments */}
@@ -579,31 +588,34 @@ export function ItemDetailPanel({
               {ATTACHMENT_ERROR_MESSAGE[attachmentError] ?? "Couldn't attach that file."}
             </p>
           )}
-          <ul className="flex flex-col gap-1.5">
-            {data.attachments.map((attachment) => (
-              <li
-                key={attachment.id}
-                className="flex items-center justify-between gap-2 text-[13px] animate-in fade-in-0 slide-in-from-bottom-1 duration-200"
-              >
-                <a
-                  href={`/api/workspaces/${workspaceId}/lists/${listId}/items/${data.itemId}/attachments/${attachment.id}`}
-                  className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
-                >
-                  {attachment.fileName}
-                </a>
-                <span className="flex-shrink-0 text-[11px] text-ink-faint">
-                  {formatAttachmentSize(attachment.sizeBytes)} · {attachment.uploaderName}
-                </span>
-              </li>
-            ))}
-            {data.attachments.length === 0 && <li className="text-[13px] text-ink-faint">None yet.</li>}
-          </ul>
-          {attachmentsForm &&
-            (data.attachments.length > 0 ? (
-              attachmentsForm
-            ) : (
-              <RevealAddControl label="+ Add attachment">{attachmentsForm}</RevealAddControl>
-            ))}
+          {data.attachments.length > 0 ? (
+            <>
+              <ul className="flex flex-col gap-1.5">
+                {data.attachments.map((attachment) => (
+                  <li
+                    key={attachment.id}
+                    className="flex items-center justify-between gap-2 text-[13px] animate-in fade-in-0 slide-in-from-bottom-1 duration-200"
+                  >
+                    <a
+                      href={`/api/workspaces/${workspaceId}/lists/${listId}/items/${data.itemId}/attachments/${attachment.id}`}
+                      className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
+                    >
+                      {attachment.fileName}
+                    </a>
+                    <span className="flex-shrink-0 text-[11px] text-ink-faint">
+                      {formatAttachmentSize(attachment.sizeBytes)} · {attachment.uploaderName}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {attachmentsForm && <div className="flex justify-end">{attachmentsForm}</div>}
+            </>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[13px] text-ink-faint">None yet.</span>
+              {attachmentsForm && <RevealAddControl label="+ Add attachment">{attachmentsForm}</RevealAddControl>}
+            </div>
+          )}
         </div>
 
         {/* Activity: Comments / Private note */}
@@ -615,25 +627,28 @@ export function ItemDetailPanel({
         {/* Child Items */}
         <div className={SECTION_CLASS}>
           <div className={FIELD_LABEL_CLASS}>Child Items</div>
-          <ul className="flex flex-col gap-1.5">
-            {data.children.map((child) => (
-              <li key={child.id}>
-                <Link
-                  href={`/workspaces/${workspaceId}/lists/${listId}/items/${child.id}`}
-                  className="text-[13px] text-ink transition-colors duration-150 hover:underline"
-                >
-                  ↳ {child.title}
-                </Link>
-              </li>
-            ))}
-            {data.children.length === 0 && <li className="text-[13px] text-ink-faint">None yet.</li>}
-          </ul>
-          {addChildForm &&
-            (data.children.length > 0 ? (
-              addChildForm
-            ) : (
-              <RevealAddControl label="+ Add child Item">{addChildForm}</RevealAddControl>
-            ))}
+          {data.children.length > 0 ? (
+            <>
+              <ul className="flex flex-col gap-1.5">
+                {data.children.map((child) => (
+                  <li key={child.id}>
+                    <Link
+                      href={`/workspaces/${workspaceId}/lists/${listId}/items/${child.id}`}
+                      className="text-[13px] text-ink transition-colors duration-150 hover:underline"
+                    >
+                      ↳ {child.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {addChildForm && <div className="flex justify-end">{addChildForm}</div>}
+            </>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[13px] text-ink-faint">None yet.</span>
+              {addChildForm && <RevealAddControl label="+ Add child Item">{addChildForm}</RevealAddControl>}
+            </div>
+          )}
         </div>
       </div>
     </div>

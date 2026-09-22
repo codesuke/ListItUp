@@ -43,7 +43,7 @@ export const COMPACT_PRIMARY_BUTTON_CLASS =
 // Every section below the Properties strip shares this wrapper so spacing
 // and the divider rhythm stay consistent regardless of how much content a
 // section has, instead of each block picking its own ad hoc gap.
-export const SECTION_CLASS = "flex flex-col gap-3 border-t border-line-strong/60 pt-6";
+export const SECTION_CLASS = "flex flex-col gap-3 border-t border-line-strong/60 pt-5";
 // The first section after the Properties strip uses this instead, the same
 // way the page heading never gets a leading divider.
 export const FIRST_SECTION_CLASS = "flex flex-col gap-3";
@@ -55,7 +55,7 @@ export const HEADING_SECTION_CLASS = "flex flex-col gap-4";
 // width, so the field-grid breakpoints below react to the column's actual
 // width — not the viewport's — and never overflow the 380px Item drawer
 // the way a `sm:`-viewport breakpoint would.
-export const COLUMN_CLASS = "@container flex min-w-0 flex-col gap-8";
+export const COLUMN_CLASS = "@container flex min-w-0 flex-col gap-5";
 // `@lg` (container query), not `sm` (viewport), for the same reason as
 // COLUMN_CLASS above: this panel also renders inside the 380px Item
 // drawer, and a viewport breakpoint would widen this control past the
