@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 
 import type { ItemState } from "@/generated/prisma/client";
 
+import { PROPERTY_CHIP_CONTROL_CLASS } from "./panel-styles";
+
 // ARCHIVED isn't offered here — archiving is a dedicated Archive/Restore
 // action (on the Item detail panel) that preserves the prior state to
 // return to, rather than a state a User picks from this list (#38).
@@ -13,6 +15,16 @@ const STATES: { value: Exclude<ItemState, "ARCHIVED">; label: string; color: str
   { value: "BLOCKED", label: "Blocked", color: "#f5b642" },
   { value: "COMPLETE", label: "Complete", color: "#3ecf8e" },
 ];
+
+// Shared with the read-only status chip so both the editable picker and
+// the plain display use the exact same color per state.
+export const STATE_COLOR: Record<ItemState, string> = {
+  TO_DO: "#8f8f8a",
+  IN_PROGRESS: "#5b9dff",
+  BLOCKED: "#f5b642",
+  COMPLETE: "#3ecf8e",
+  ARCHIVED: "#5a5a56",
+};
 
 export function StatePillControl({
   currentState,
@@ -25,11 +37,12 @@ export function StatePillControl({
 }) {
   const [selected, setSelected] = useState<ItemState>(currentState);
   const formRef = useRef<HTMLFormElement>(null);
+  const activeColor = STATES.find((state) => state.value === selected)?.color ?? "#8f8f8a";
 
   function selectState(state: ItemState) {
     setSelected(state);
     // Blocked needs a reason typed first — every other state can submit
-    // immediately on click, once the hidden input's value has updated.
+    // immediately on change, once the hidden input's value has updated.
     if (state !== "BLOCKED") {
       requestAnimationFrame(() => formRef.current?.requestSubmit());
     }
@@ -38,25 +51,19 @@ export function StatePillControl({
   return (
     <form ref={formRef} action={boundTransition} className="flex flex-col gap-2">
       <input type="hidden" name="state" value={selected} />
-      <div className="flex flex-wrap gap-1.5">
-        {STATES.map((state) => {
-          const isActive = selected === state.value;
-          return (
-            <button
-              key={state.value}
-              type="button"
-              onClick={() => selectState(state.value)}
-              className="rounded-full border px-2.5 py-[5px] text-[11.5px] font-semibold transition-colors duration-150"
-              style={
-                isActive
-                  ? { borderColor: state.color, color: state.color, backgroundColor: `${state.color}24` }
-                  : { borderColor: "#333333", color: "#8f8f8a" }
-              }
-            >
+      <div className="relative inline-flex items-center">
+        <span className="pointer-events-none absolute left-[11px] h-[6px] w-[6px] rounded-full" style={{ backgroundColor: activeColor }} />
+        <select
+          value={selected}
+          onChange={(event) => selectState(event.target.value as ItemState)}
+          className={`w-auto pl-6 text-ink-muted ${PROPERTY_CHIP_CONTROL_CLASS}`}
+        >
+          {STATES.map((state) => (
+            <option key={state.value} value={state.value}>
               {state.label}
-            </button>
-          );
-        })}
+            </option>
+          ))}
+        </select>
       </div>
 
       {selected === "BLOCKED" && (

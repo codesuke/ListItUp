@@ -21,6 +21,12 @@ function itemPath(workspaceId: string, listId: string, itemId: string): string {
 
 const VALID_PRIORITIES: readonly ItemPriority[] = ["LOW", "NORMAL", "HIGH"];
 
+// Each field is only included in the update when its key is actually
+// present in the submitted FormData — the panel now submits Title,
+// Priority, and Due date as independent single-field edits (not one shared
+// form), so treating a missing key the same as an explicit empty value
+// would silently clear whichever fields weren't part of that particular
+// submission.
 export async function updateItemDetailsAction(
   workspaceId: string,
   listId: string,
@@ -28,18 +34,20 @@ export async function updateItemDetailsAction(
   formData: FormData
 ): Promise<void> {
   const session = await requireAuthenticatedSession(itemPath(workspaceId, listId, itemId));
-  const title = String(formData.get("title") ?? "").trim();
-  const sectionId = String(formData.get("sectionId") ?? "");
-  const priority = String(formData.get("priority") ?? "");
-  const dueDateRaw = String(formData.get("dueDate") ?? "");
+  const title = formData.has("title") ? String(formData.get("title") ?? "").trim() : undefined;
+  const sectionId = formData.has("sectionId") ? String(formData.get("sectionId") ?? "") : undefined;
+  const priority = formData.has("priority") ? String(formData.get("priority") ?? "") : undefined;
+  const dueDateRaw = formData.has("dueDate") ? String(formData.get("dueDate") ?? "") : undefined;
 
   await updateItem(prisma, {
     actorUserId: session.user.id,
     itemId,
     ...(title ? { title } : {}),
-    sectionId: sectionId || null,
-    ...(VALID_PRIORITIES.includes(priority as ItemPriority) ? { priority: priority as ItemPriority } : {}),
-    dueDate: dueDateRaw ? new Date(dueDateRaw) : null,
+    ...(sectionId !== undefined ? { sectionId: sectionId || null } : {}),
+    ...(priority !== undefined && VALID_PRIORITIES.includes(priority as ItemPriority)
+      ? { priority: priority as ItemPriority }
+      : {}),
+    ...(dueDateRaw !== undefined ? { dueDate: dueDateRaw ? new Date(dueDateRaw) : null } : {}),
   });
   revalidatePath(itemPath(workspaceId, listId, itemId));
 }
