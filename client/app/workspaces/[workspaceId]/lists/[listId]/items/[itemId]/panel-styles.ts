@@ -5,41 +5,19 @@
 
 export const FIELD_LABEL_CLASS =
   "font-[family-name:var(--font-mono-label)] text-[10.5px] uppercase tracking-[0.08em] text-ink-faint";
-// The Labels chip style — a fully-rounded pill. Kept as its own constant
-// (distinct from the Properties-strip chips below) since Labels chips
-// weren't asked to change shape, only the always-open add controls beside
-// them were.
 export const CHIP_CLASS =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2.5 py-1 text-[12px] text-ink-muted animate-in fade-in-0 zoom-in-95 duration-150";
-// The Properties-strip chip style (Status/Priority/Assignee/Due date) — a
-// compact rounded-rect pill, not the fully-rounded Labels shape. Static
-// display version (a <span>); PROPERTY_CHIP_CONTROL_CLASS below is the same
-// footprint for an interactive <select>/<input>. No text color baked in so
-// callers can apply exactly one color class (e.g. red for High priority)
-// without fighting an existing one in plain string concatenation.
-export const PROPERTY_CHIP_CLASS =
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-line-strong bg-surface-3 px-[11px] py-[6px] text-[12.5px]";
-export const PROPERTY_CHIP_CONTROL_CLASS =
-  "rounded-[7px] border border-line-strong bg-surface-3 px-[11px] py-[6px] text-[12.5px] transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none";
-// The "+ Label" / "+ Assignee" add-control trigger — a dashed chip at the
-// same footprint as PROPERTY_CHIP_CLASS, matching the properties strip
-// instead of the plain text link used for the empty-state sections below.
-export const DASHED_ADD_CHIP_CLASS =
-  "inline-flex items-center gap-1 rounded-[7px] border border-dashed border-line-strong px-[11px] py-[6px] text-[12.5px] text-ink-faint transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink-muted";
-// Fixed 30x30 footprint (not self-stretch — this sits beside a multi-line
-// title block, not a single-line input, so stretching to match sibling
-// height blew this up into a full-height bar). No border/background until
-// hovered, so it reads as a quiet icon button, not a boxed control.
-export const OVERFLOW_BTN_CLASS =
-  "flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center self-start rounded-[6px] border border-transparent text-ink-muted transition-colors duration-150 hover:border-line-strong hover:bg-surface-3 hover:text-ink";
+// Same visual weight as CHIP_CLASS above, but for an interactive control
+// (a <select> or date <input>) rather than a static span — used by the
+// Properties strip so Priority/Due date read as chips, not input boxes.
+export const CHIP_CONTROL_CLASS =
+  "rounded-full border border-line-strong bg-surface-3 px-2.5 py-1 text-[12px] text-ink-muted transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none";
 // self-stretch (not a fixed height) so this always matches the rendered
 // height of the input/select it sits beside in a flex row, regardless of
 // that row's font size or padding — a fixed h-6 drifted out of sync with
 // INPUT_CLASS and looked visibly shorter than its sibling control. Sits at
 // the same bg-surface-3 elevation as INPUT_CLASS below, one step up from
 // GHOST_BUTTON_CLASS's resting state, since it doubles as this row's submit.
-// Only ever placed beside a single-line control (never the multi-line
-// title block — that's OVERFLOW_BTN_CLASS above).
 export const SMALL_ICON_BTN_CLASS =
   "flex w-8 flex-shrink-0 items-center justify-center self-stretch rounded-[6px] border border-line-strong bg-surface-3 text-ink-muted transition-colors duration-150 hover:bg-surface-4 hover:text-ink";
 export const INPUT_CLASS =
@@ -51,9 +29,15 @@ export const INPUT_CLASS =
 // other control on this page.
 export const GHOST_BUTTON_CLASS =
   "rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[12.5px] font-medium text-ink-muted transition-colors duration-150 hover:border-[#ff6b4a] hover:bg-surface-4 hover:text-ink";
-// The brand-orange "commit" identity, sized for the one remaining inline,
-// row-level Save (Personal note) that sits in an already-compact context —
-// every other field on this panel now auto-saves without a button.
+// The one truly primary, data-committing action on this panel: the
+// title/section form's Save. Every other action (Add, Link, Attach,
+// Restore, …) stays on GHOST_BUTTON_CLASS so the page has exactly one loud
+// color, not six.
+export const PRIMARY_BUTTON_CLASS =
+  "rounded-[6px] bg-[#ff6b4a] px-3 py-1.5 text-[12.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]";
+// Same orange identity as PRIMARY_BUTTON_CLASS, sized down for the one
+// remaining inline, row-level Save (Personal note) that sits in an
+// already-compact context.
 export const COMPACT_PRIMARY_BUTTON_CLASS =
   "rounded-[6px] bg-[#ff6b4a] px-2.5 py-1 text-[11.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]";
 // Every section below the Properties strip shares this wrapper so spacing

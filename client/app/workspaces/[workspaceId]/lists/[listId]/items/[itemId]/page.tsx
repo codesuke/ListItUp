@@ -44,7 +44,7 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-canvas px-10 pb-16 pt-8 text-ink animate-in fade-in duration-200">
-      <div className="max-w-[920px]">
+      <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex items-center gap-4">
           <span className="h-px w-14 bg-[#ff6b4a]" />
           <a
