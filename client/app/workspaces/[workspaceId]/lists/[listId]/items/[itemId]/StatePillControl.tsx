@@ -4,14 +4,17 @@ import { useRef, useState } from "react";
 
 import type { ItemState } from "@/generated/prisma/client";
 
+import { FieldSelect } from "./FieldSelect";
+import { CHIP_CONTROL_CLASS, COMPACT_PRIMARY_BUTTON_CLASS, INPUT_CLASS } from "./panel-styles";
+
 // ARCHIVED isn't offered here — archiving is a dedicated Archive/Restore
 // action (on the Item detail panel) that preserves the prior state to
 // return to, rather than a state a User picks from this list (#38).
-const STATES: { value: Exclude<ItemState, "ARCHIVED">; label: string; color: string }[] = [
-  { value: "TO_DO", label: "To Do", color: "#8f8f8a" },
-  { value: "IN_PROGRESS", label: "In Progress", color: "#5b9dff" },
-  { value: "BLOCKED", label: "Blocked", color: "#f5b642" },
-  { value: "COMPLETE", label: "Complete", color: "#3ecf8e" },
+const STATES: { value: Exclude<ItemState, "ARCHIVED">; label: string }[] = [
+  { value: "TO_DO", label: "To Do" },
+  { value: "IN_PROGRESS", label: "In Progress" },
+  { value: "BLOCKED", label: "Blocked" },
+  { value: "COMPLETE", label: "Complete" },
 ];
 
 export function StatePillControl({
@@ -29,7 +32,7 @@ export function StatePillControl({
   function selectState(state: ItemState) {
     setSelected(state);
     // Blocked needs a reason typed first — every other state can submit
-    // immediately on click, once the hidden input's value has updated.
+    // immediately on change, once the hidden input's value has updated.
     if (state !== "BLOCKED") {
       requestAnimationFrame(() => formRef.current?.requestSubmit());
     }
@@ -38,26 +41,18 @@ export function StatePillControl({
   return (
     <form ref={formRef} action={boundTransition} className="flex flex-col gap-2">
       <input type="hidden" name="state" value={selected} />
-      <div className="flex flex-wrap gap-1.5">
-        {STATES.map((state) => {
-          const isActive = selected === state.value;
-          return (
-            <button
-              key={state.value}
-              type="button"
-              onClick={() => selectState(state.value)}
-              className="rounded-full border px-2.5 py-[5px] text-[11.5px] font-semibold transition-colors duration-150"
-              style={
-                isActive
-                  ? { borderColor: state.color, color: state.color, backgroundColor: `${state.color}24` }
-                  : { borderColor: "#333333", color: "#8f8f8a" }
-              }
-            >
-              {state.label}
-            </button>
-          );
-        })}
-      </div>
+      <FieldSelect
+        value={selected}
+        onChange={(event) => selectState(event.target.value as ItemState)}
+        wrapperClassName="w-auto"
+        controlClassName={CHIP_CONTROL_CLASS}
+      >
+        {STATES.map((state) => (
+          <option key={state.value} value={state.value}>
+            {state.label}
+          </option>
+        ))}
+      </FieldSelect>
 
       {selected === "BLOCKED" && (
         <>
@@ -67,12 +62,9 @@ export function StatePillControl({
             defaultValue={currentBlockerReason ?? ""}
             placeholder="Blocker reason (required)"
             required
-            className="rounded-[6px] border border-line-strong bg-surface-3 px-3 py-2 text-[12.5px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
+            className={`w-auto ${INPUT_CLASS}`}
           />
-          <button
-            type="submit"
-            className="self-start rounded-[6px] bg-[#ff6b4a] px-3 py-1.5 text-[12.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
-          >
+          <button type="submit" className={`self-start ${COMPACT_PRIMARY_BUTTON_CLASS}`}>
             Save
           </button>
         </>

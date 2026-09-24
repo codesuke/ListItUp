@@ -1,9 +1,7 @@
-import { ArrowLeft, ArrowRight, EllipsisVertical, Lock, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Lock, Plus } from "lucide-react";
 import Link from "next/link";
 
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MemberAvatar } from "@/components/workspace/MemberAvatar";
-import { StatusBadge, type StatusBadgeTone } from "@/components/workspace/StatusBadge";
 import { formatAttachmentSize } from "@/lib/item/item-attachments";
 
 import { ActivityTabs } from "./ActivityTabs";
@@ -46,10 +44,10 @@ const STATE_LABEL: Record<string, string> = {
   ARCHIVED: "Archived",
 };
 
-const PRIORITY_BADGE: Record<ItemDetailData["priority"], { tone: StatusBadgeTone; label: string }> = {
-  HIGH: { tone: "red", label: "High" },
-  NORMAL: { tone: "blue", label: "Normal" },
-  LOW: { tone: "muted", label: "Low" },
+const PRIORITY_BADGE: Record<ItemDetailData["priority"], { label: string }> = {
+  HIGH: { label: "High" },
+  NORMAL: { label: "Normal" },
+  LOW: { label: "Low" },
 };
 
 // Keyed by the Route Handler's ?attachmentError= value (#39).
@@ -66,14 +64,12 @@ export function ItemDetailPanel({
   attachmentError,
   boundUpdateDetails,
   boundTransition,
-  boundArchive,
   boundRestore,
   boundAddAssignee,
   boundRemoveAssignee,
   boundAddChild,
   boundApplyExistingLabel,
   boundRemoveLabel,
-  boundCreateAndApplyLabel,
   boundSetCustomFieldValue,
   boundDefineCustomField,
   boundAddDependency,
@@ -85,14 +81,12 @@ export function ItemDetailPanel({
   attachmentError?: string;
   boundUpdateDetails: (formData: FormData) => Promise<void>;
   boundTransition: (formData: FormData) => Promise<void>;
-  boundArchive: () => Promise<void>;
   boundRestore: () => Promise<void>;
   boundAddAssignee: (formData: FormData) => Promise<void>;
   boundRemoveAssignee: (userId: string) => () => Promise<void>;
   boundAddChild: (formData: FormData) => Promise<void>;
   boundApplyExistingLabel: (formData: FormData) => Promise<void>;
   boundRemoveLabel: (labelId: string) => () => Promise<void>;
-  boundCreateAndApplyLabel: (formData: FormData) => Promise<void>;
   boundSetCustomFieldValue: (definitionId: string) => (formData: FormData) => Promise<void>;
   boundDefineCustomField: (formData: FormData) => Promise<void>;
   boundAddDependency: (formData: FormData) => Promise<void>;
@@ -106,7 +100,6 @@ export function ItemDetailPanel({
   );
   const priorityBadge = PRIORITY_BADGE[data.priority];
   const hasDependencies = data.blockedBy.length > 0 || data.blocking.length > 0;
-  const canArchive = data.canEdit && data.state !== "ARCHIVED";
 
   const dependenciesForm = data.canEdit && (
     <form action={boundAddDependency} className="flex flex-wrap items-center gap-2">
@@ -155,6 +148,22 @@ export function ItemDetailPanel({
       />
       <button type="submit" className={GHOST_BUTTON_CLASS}>
         Attach
+      </button>
+    </form>
+  );
+
+  const addFieldForm = data.canDefineCustomFields && (
+    <form action={boundDefineCustomField} className="flex flex-wrap items-center gap-2">
+      <input type="text" name="name" placeholder="New field name" required className={INPUT_CLASS} />
+      <FieldSelect name="type" defaultValue="TEXT">
+        <option value="TEXT">Text</option>
+        <option value="NUMBER">Number</option>
+        <option value="DROPDOWN">Dropdown</option>
+        <option value="DATE">Date</option>
+      </FieldSelect>
+      <input type="text" name="options" placeholder="Dropdown options, comma-separated" className={INPUT_CLASS} />
+      <button type="submit" className={GHOST_BUTTON_CLASS}>
+        Define field
       </button>
     </form>
   );
@@ -241,57 +250,34 @@ export function ItemDetailPanel({
         </Link>
       )}
 
-      {/* Header: title/Section form, Created by, overflow menu */}
+      {/* Header: title/Section form, Created by */}
       <div className={HEADING_SECTION_CLASS}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            {data.canEdit ? (
-              <form id={DETAILS_FORM_ID} action={boundUpdateDetails} className="flex flex-col gap-4">
-                <input
-                  type="text"
-                  name="title"
-                  defaultValue={data.title}
-                  className="-mx-2 w-[calc(100%+1rem)] rounded-[6px] bg-transparent px-2 py-1 text-[22px] font-semibold leading-snug tracking-tight text-ink transition-colors duration-150 hover:bg-surface-3 focus:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]/50"
-                />
-                <div className="max-w-xs">
-                  <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Section</div>
-                  <FieldSelect name="sectionId" defaultValue={data.sectionId ?? ""} wrapperClassName="w-full">
-                    <option value="">No Section</option>
-                    {data.sections.map((section) => (
-                      <option key={section.id} value={section.id}>
-                        {section.name}
-                      </option>
-                    ))}
-                  </FieldSelect>
-                </div>
-                <button type="submit" className={`self-start ${PRIMARY_BUTTON_CLASS}`}>
-                  Save
-                </button>
-              </form>
-            ) : (
-              <h1 className="text-[22px] font-semibold leading-snug tracking-tight text-ink">{data.title}</h1>
-            )}
-          </div>
-
-          {canArchive && (
-            <DropdownMenu>
-              <DropdownMenuTrigger className={SMALL_ICON_BTN_CLASS} aria-label="More actions">
-                <EllipsisVertical className="h-3.5 w-3.5" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="min-w-[9rem] rounded-[8px] border border-line-strong bg-surface-2 p-1 text-ink shadow-lg ring-0"
-              >
-                <form action={boundArchive}>
-                  <button
-                    type="submit"
-                    className="w-full rounded-[6px] px-2.5 py-1.5 text-left text-[12.5px] text-ink-muted transition-colors duration-150 hover:bg-surface-4 hover:text-ink"
-                  >
-                    Archive task
-                  </button>
-                </form>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        <div className="min-w-0">
+          {data.canEdit ? (
+            <form id={DETAILS_FORM_ID} action={boundUpdateDetails} className="flex flex-col gap-4">
+              <input
+                type="text"
+                name="title"
+                defaultValue={data.title}
+                className="-mx-2 w-[calc(100%+1rem)] rounded-[6px] bg-transparent px-2 py-1 text-[22px] font-semibold leading-snug tracking-tight text-ink transition-colors duration-150 hover:bg-surface-3 focus:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]/50"
+              />
+              <div className="max-w-xs">
+                <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Section</div>
+                <FieldSelect name="sectionId" defaultValue={data.sectionId ?? ""} wrapperClassName="w-full">
+                  <option value="">No Section</option>
+                  {data.sections.map((section) => (
+                    <option key={section.id} value={section.id}>
+                      {section.name}
+                    </option>
+                  ))}
+                </FieldSelect>
+              </div>
+              <button type="submit" className={`self-start ${PRIMARY_BUTTON_CLASS}`}>
+                Save
+              </button>
+            </form>
+          ) : (
+            <h1 className="text-[22px] font-semibold leading-snug tracking-tight text-ink">{data.title}</h1>
           )}
         </div>
 
@@ -304,168 +290,153 @@ export function ItemDetailPanel({
       </div>
 
       {/* Properties strip: Status, Priority, Assignees, Due date, Labels —
-          the only place these fields appear. Each property is a fluid
-          flex-1 column (same distribution as the Custom Fields row below)
-          so the row fills the content width instead of clustering left. */}
-      <div className="mt-5 flex flex-wrap items-start gap-x-6 gap-y-3 border-y border-line-strong/60 py-3.5">
-        <div className="flex min-w-[8rem] flex-1 flex-col gap-1.5">
-          <span className={FIELD_LABEL_CLASS}>Status</span>
-          {data.state === "ARCHIVED" ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={CHIP_CLASS}>Archived</span>
-              {data.canEdit && (
-                <form action={boundRestore}>
-                  <button type="submit" className={GHOST_BUTTON_CLASS}>
-                    Restore
-                  </button>
-                </form>
-              )}
-            </div>
-          ) : data.canEdit ? (
-            <StatePillControl
-              currentState={data.state}
-              currentBlockerReason={data.blockerReason}
-              boundTransition={boundTransition}
-            />
-          ) : (
-            <span className={CHIP_CLASS}>{STATE_LABEL[data.state]}</span>
-          )}
-        </div>
+          the only place these fields appear. A single row, every chip/control
+          sharing one 30px height (CHIP_CLASS/CHIP_CONTROL_CLASS), so it reads
+          as one aligned line instead of labeled columns; it only wraps if the
+          viewport can't fit the whole row. */}
+      <div className="mt-5 flex flex-wrap items-center gap-2 border-y border-line-strong/60 py-3.5">
+        {/* Status */}
+        {data.state === "ARCHIVED" ? (
+          <>
+            <span className={CHIP_CLASS}>Archived</span>
+            {data.canEdit && (
+              <form action={boundRestore}>
+                <button type="submit" className={GHOST_BUTTON_CLASS}>
+                  Restore
+                </button>
+              </form>
+            )}
+          </>
+        ) : data.canEdit ? (
+          <StatePillControl
+            currentState={data.state}
+            currentBlockerReason={data.blockerReason}
+            boundTransition={boundTransition}
+          />
+        ) : (
+          <span className={CHIP_CLASS}>{STATE_LABEL[data.state]}</span>
+        )}
 
-        <div className="flex min-w-[8rem] flex-1 flex-col gap-1.5">
-          <span className={FIELD_LABEL_CLASS}>Priority</span>
-          {data.canEdit ? (
+        {/* Priority — same chip size/shape as the rest; only High tints red */}
+        {data.canEdit ? (
+          <FieldSelect
+            name="priority"
+            form={DETAILS_FORM_ID}
+            defaultValue={data.priority}
+            wrapperClassName="w-auto"
+            controlClassName={CHIP_CONTROL_CLASS}
+          >
+            <option value="LOW">Low</option>
+            <option value="NORMAL">Normal</option>
+            <option value="HIGH">High</option>
+          </FieldSelect>
+        ) : (
+          <span
+            className={`inline-flex h-[30px] items-center whitespace-nowrap rounded-[7px] border px-[11px] box-border text-[12px] ${
+              data.priority === "HIGH"
+                ? "border-[#f2545b66] bg-[#f2545b1a] text-[#f2545b]"
+                : "border-line-strong bg-surface-3 text-ink-muted"
+            }`}
+          >
+            {priorityBadge.label}
+          </span>
+        )}
+
+        {/* Assignees */}
+        {data.assignees.map((assignee) => (
+          <span key={assignee.userId} className={CHIP_CLASS}>
+            <MemberAvatar name={assignee.name} />
+            {assignee.name}
+            {data.canEdit && (
+              <form action={boundRemoveAssignee(assignee.userId)}>
+                <button
+                  type="submit"
+                  aria-label={`Remove ${assignee.name}`}
+                  className="text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]"
+                >
+                  ×
+                </button>
+              </form>
+            )}
+          </span>
+        ))}
+        {data.assignees.length === 0 && <span className="text-[13px] text-ink-faint">No one yet.</span>}
+        {data.canEdit && unassignedMembers.length > 0 && (
+          <form action={boundAddAssignee} className="flex items-center gap-2">
+            <FieldSelect name="userId" required defaultValue="" wrapperClassName="min-w-0" controlClassName={CHIP_CONTROL_CLASS}>
+              <option value="" disabled>
+                Add an Assignee…
+              </option>
+              {unassignedMembers.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.name}
+                </option>
+              ))}
+            </FieldSelect>
+            <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Add assignee">
+              <Plus className="h-3 w-3" />
+            </button>
+          </form>
+        )}
+
+        {/* Due date */}
+        {data.canEdit ? (
+          <input
+            type="date"
+            name="dueDate"
+            form={DETAILS_FORM_ID}
+            defaultValue={data.dueDate ? data.dueDate.toISOString().slice(0, 10) : ""}
+            className={`w-auto ${CHIP_CONTROL_CLASS}`}
+          />
+        ) : (
+          <span className={CHIP_CLASS}>
+            {data.dueDate
+              ? data.dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+              : "None"}
+          </span>
+        )}
+
+        {/* Divider before Labels */}
+        <span aria-hidden="true" className="h-[30px] w-px flex-shrink-0 bg-line-strong/60" />
+
+        {/* Labels — existing label chips, then "Apply a Label" to attach one.
+            No inline label-creation UI here; that lives elsewhere. */}
+        {data.labels.map((label) => (
+          <span key={label.id} className={CHIP_CLASS}>
+            {label.name}
+            {data.canEdit && (
+              <form action={boundRemoveLabel(label.id)}>
+                <button type="submit" className="text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
+                  ×
+                </button>
+              </form>
+            )}
+          </span>
+        ))}
+        {data.labels.length === 0 && <span className="text-[13px] text-ink-faint">None yet.</span>}
+        {data.canEdit && data.availableLabels.length > 0 && (
+          <form action={boundApplyExistingLabel} className="flex items-center gap-2">
             <FieldSelect
-              name="priority"
-              form={DETAILS_FORM_ID}
-              defaultValue={data.priority}
-              wrapperClassName="w-auto"
+              name="labelId"
+              required
+              defaultValue=""
+              wrapperClassName={BOUNDED_CONTROL_CLASS}
               controlClassName={CHIP_CONTROL_CLASS}
             >
-              <option value="LOW">Low</option>
-              <option value="NORMAL">Normal</option>
-              <option value="HIGH">High</option>
+              <option value="" disabled>
+                Apply a Label…
+              </option>
+              {data.availableLabels.map((label) => (
+                <option key={label.id} value={label.id}>
+                  {label.name}
+                </option>
+              ))}
             </FieldSelect>
-          ) : (
-            <StatusBadge tone={priorityBadge.tone}>{priorityBadge.label}</StatusBadge>
-          )}
-        </div>
-
-        <div className="flex min-w-[12rem] flex-[2] flex-col gap-1.5">
-          <span className={FIELD_LABEL_CLASS}>Assignees</span>
-          <div className="flex flex-wrap items-center gap-2">
-            {data.assignees.map((assignee) => (
-              <span key={assignee.userId} className={CHIP_CLASS}>
-                <MemberAvatar name={assignee.name} />
-                {assignee.name}
-                {data.canEdit && (
-                  <form action={boundRemoveAssignee(assignee.userId)}>
-                    <button
-                      type="submit"
-                      aria-label={`Remove ${assignee.name}`}
-                      className="text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]"
-                    >
-                      ×
-                    </button>
-                  </form>
-                )}
-              </span>
-            ))}
-            {data.assignees.length === 0 && <span className="text-[13px] text-ink-faint">No one yet.</span>}
-            {data.canEdit && unassignedMembers.length > 0 && (
-              <form action={boundAddAssignee} className="flex items-center gap-2">
-                <FieldSelect name="userId" required defaultValue="" wrapperClassName="min-w-0" controlClassName={CHIP_CONTROL_CLASS}>
-                  <option value="" disabled>
-                    Add an Assignee…
-                  </option>
-                  {unassignedMembers.map((member) => (
-                    <option key={member.userId} value={member.userId}>
-                      {member.name}
-                    </option>
-                  ))}
-                </FieldSelect>
-                <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Add assignee">
-                  <Plus className="h-3 w-3" />
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-
-        <div className="flex min-w-[8rem] flex-1 flex-col gap-1.5">
-          <span className={FIELD_LABEL_CLASS}>Due date</span>
-          {data.canEdit ? (
-            <input
-              type="date"
-              name="dueDate"
-              form={DETAILS_FORM_ID}
-              defaultValue={data.dueDate ? data.dueDate.toISOString().slice(0, 10) : ""}
-              className={`w-auto ${CHIP_CONTROL_CLASS}`}
-            />
-          ) : (
-            <span className="text-[13px] text-ink">
-              {data.dueDate
-                ? data.dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
-                : "None"}
-            </span>
-          )}
-        </div>
-
-        <div className="flex min-w-[12rem] flex-[2] flex-col gap-1.5">
-          <span className={FIELD_LABEL_CLASS}>Labels</span>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {data.labels.map((label) => (
-              <span key={label.id} className={CHIP_CLASS}>
-                {label.name}
-                {data.canEdit && (
-                  <form action={boundRemoveLabel(label.id)}>
-                    <button type="submit" className="text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
-                      ×
-                    </button>
-                  </form>
-                )}
-              </span>
-            ))}
-            {data.labels.length === 0 && <span className="text-[13px] text-ink-faint">None yet.</span>}
-            {data.canEdit && data.availableLabels.length > 0 && (
-              <form action={boundApplyExistingLabel} className="flex flex-wrap items-center gap-2">
-                <FieldSelect
-                  name="labelId"
-                  required
-                  defaultValue=""
-                  wrapperClassName={BOUNDED_CONTROL_CLASS}
-                  controlClassName={CHIP_CONTROL_CLASS}
-                >
-                  <option value="" disabled>
-                    Apply a Label…
-                  </option>
-                  {data.availableLabels.map((label) => (
-                    <option key={label.id} value={label.id}>
-                      {label.name}
-                    </option>
-                  ))}
-                </FieldSelect>
-                <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Apply label">
-                  <Plus className="h-3 w-3" />
-                </button>
-              </form>
-            )}
-            {data.canCreateLabel && (
-              <form action={boundCreateAndApplyLabel} className="flex flex-wrap items-center gap-2">
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="New Label name"
-                  required
-                  className={`${INPUT_CLASS} ${BOUNDED_CONTROL_CLASS}`}
-                />
-                <button type="submit" className={GHOST_BUTTON_CLASS}>
-                  Create &amp; apply
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
+            <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Apply label">
+              <Plus className="h-3 w-3" />
+            </button>
+          </form>
+        )}
       </div>
 
       {data.state === "BLOCKED" && !data.canEdit && data.blockerReason && (
@@ -479,51 +450,42 @@ export function ItemDetailPanel({
         {/* Custom Fields */}
         <div className={FIRST_SECTION_CLASS}>
           <div className={FIELD_LABEL_CLASS}>Custom Fields</div>
-          <div className="flex flex-wrap gap-4">
-            {data.customFieldDefinitions.map((definition) =>
-              data.canEdit ? (
-                <AutoSaveCustomField
-                  key={definition.id}
-                  definition={definition}
-                  defaultValue={data.customFieldValues[definition.id] ?? ""}
-                  action={boundSetCustomFieldValue(definition.id)}
-                />
-              ) : (
-                <div key={definition.id} className="flex min-w-[10rem] flex-1 flex-col gap-1.5">
-                  <span className={FIELD_LABEL_CLASS}>{definition.name}</span>
-                  <span
-                    className={`text-[13px] ${
-                      definition.type === "DROPDOWN" ? "text-ink" : "font-[family-name:var(--font-mono-label)] text-ink"
-                    }`}
-                  >
-                    {data.customFieldValues[definition.id] ?? "—"}
-                  </span>
+          {data.customFieldDefinitions.length > 0 ? (
+            <>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,14rem))] gap-4">
+                {data.customFieldDefinitions.map((definition) =>
+                  data.canEdit ? (
+                    <AutoSaveCustomField
+                      key={definition.id}
+                      definition={definition}
+                      defaultValue={data.customFieldValues[definition.id] ?? ""}
+                      action={boundSetCustomFieldValue(definition.id)}
+                    />
+                  ) : (
+                    <div key={definition.id} className="flex w-full flex-col gap-1.5">
+                      <span className={FIELD_LABEL_CLASS}>{definition.name}</span>
+                      <span
+                        className={`text-[13px] ${
+                          definition.type === "DROPDOWN" ? "text-ink" : "font-[family-name:var(--font-mono-label)] text-ink"
+                        }`}
+                      >
+                        {data.customFieldValues[definition.id] ?? "—"}
+                      </span>
+                    </div>
+                  )
+                )}
+              </div>
+              {addFieldForm && (
+                <div className="flex justify-end">
+                  <RevealAddControl label="+ Add field">{addFieldForm}</RevealAddControl>
                 </div>
-              )
-            )}
-            {data.customFieldDefinitions.length === 0 && (
+              )}
+            </>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-[13px] text-ink-faint">None defined yet.</span>
-            )}
-          </div>
-          {data.canDefineCustomFields && (
-            <form action={boundDefineCustomField} className="flex flex-wrap items-center gap-2">
-              <input type="text" name="name" placeholder="New field name" required className={INPUT_CLASS} />
-              <FieldSelect name="type" defaultValue="TEXT">
-                <option value="TEXT">Text</option>
-                <option value="NUMBER">Number</option>
-                <option value="DROPDOWN">Dropdown</option>
-                <option value="DATE">Date</option>
-              </FieldSelect>
-              <input
-                type="text"
-                name="options"
-                placeholder="Dropdown options, comma-separated"
-                className={INPUT_CLASS}
-              />
-              <button type="submit" className={GHOST_BUTTON_CLASS}>
-                Define field
-              </button>
-            </form>
+              {addFieldForm && <RevealAddControl label="+ Add field">{addFieldForm}</RevealAddControl>}
+            </div>
           )}
         </div>
 

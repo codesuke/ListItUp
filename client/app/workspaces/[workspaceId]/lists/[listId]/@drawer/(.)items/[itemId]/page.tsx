@@ -6,8 +6,6 @@ import {
   addItemDependencyAction,
   addNoteAction,
   applyExistingLabelAction,
-  archiveItemAction,
-  createAndApplyLabelAction,
   defineCustomFieldAction,
   removeItemAssigneeAction,
   removeItemDependencyAction,
@@ -52,14 +50,12 @@ export default async function ItemDrawerPage({ params }: Props) {
         data={data}
         boundUpdateDetails={updateItemDetailsAction.bind(null, workspaceId, listId, itemId)}
         boundTransition={transitionItemStateAction.bind(null, workspaceId, listId, itemId)}
-        boundArchive={archiveItemAction.bind(null, workspaceId, listId, itemId)}
         boundRestore={restoreItemAction.bind(null, workspaceId, listId, itemId)}
         boundAddAssignee={addItemAssigneeAction.bind(null, workspaceId, listId, itemId)}
         boundRemoveAssignee={(userId) => removeItemAssigneeAction.bind(null, workspaceId, listId, itemId, userId)}
         boundAddChild={addChildItemAction.bind(null, workspaceId, listId, itemId)}
         boundApplyExistingLabel={applyExistingLabelAction.bind(null, workspaceId, listId, itemId)}
         boundRemoveLabel={(labelId) => removeItemLabelAction.bind(null, workspaceId, listId, itemId, labelId)}
-        boundCreateAndApplyLabel={createAndApplyLabelAction.bind(null, workspaceId, listId, itemId)}
         boundSetCustomFieldValue={(definitionId) =>
           setItemCustomFieldValueAction.bind(null, workspaceId, listId, itemId, definitionId)
         }

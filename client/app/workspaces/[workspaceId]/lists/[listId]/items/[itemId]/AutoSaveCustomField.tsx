@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 
 import { FieldSelect } from "./FieldSelect";
 import type { CustomFieldDefinitionSummary } from "./page-data";
-import { FIELD_LABEL_CLASS, INPUT_CLASS } from "./panel-styles";
+import { CUSTOM_FIELD_CONTROL_CLASS, FIELD_LABEL_CLASS } from "./panel-styles";
 
 // Matches the settings page's own save-confirmation timing
 // (NotificationPreferencesForm's SAVED_INDICATOR_DURATION_MS) so "Saved"
@@ -39,7 +39,7 @@ export function AutoSaveCustomField({
   }
 
   return (
-    <div className="flex min-w-[10rem] flex-1 flex-col gap-1.5">
+    <div className="flex w-full flex-col gap-1.5">
       <div className="flex items-center gap-2">
         <span className={FIELD_LABEL_CLASS}>{definition.name}</span>
         {(isPending || justSaved) && (
@@ -49,7 +49,12 @@ export function AutoSaveCustomField({
         )}
       </div>
       {definition.type === "DROPDOWN" ? (
-        <FieldSelect defaultValue={defaultValue} onChange={(event) => commit(event.target.value)} wrapperClassName="w-full">
+        <FieldSelect
+          defaultValue={defaultValue}
+          onChange={(event) => commit(event.target.value)}
+          wrapperClassName="w-full"
+          controlClassName={CUSTOM_FIELD_CONTROL_CLASS}
+        >
           <option value="">—</option>
           {definition.options.map((option) => (
             <option key={option} value={option}>
@@ -62,7 +67,7 @@ export function AutoSaveCustomField({
           type={definition.type === "DATE" ? "date" : definition.type === "NUMBER" ? "number" : "text"}
           defaultValue={defaultValue}
           onBlur={(event) => commit(event.target.value)}
-          className={`w-full ${INPUT_CLASS}`}
+          className={`w-full ${CUSTOM_FIELD_CONTROL_CLASS}`}
         />
       )}
     </div>

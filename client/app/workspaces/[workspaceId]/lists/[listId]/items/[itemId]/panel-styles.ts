@@ -5,23 +5,32 @@
 
 export const FIELD_LABEL_CLASS =
   "font-[family-name:var(--font-mono-label)] text-[10.5px] uppercase tracking-[0.08em] text-ink-faint";
+// Every chip/control in the Properties strip (Status, Priority, Assignee,
+// Due date, Label, Apply-a-Label) shares this fixed 30px height and
+// box-border sizing so none of them render taller/shorter than the others
+// on that single row, regardless of font metrics or whether it's a static
+// span or an interactive control.
 export const CHIP_CLASS =
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2.5 py-1 text-[12px] text-ink-muted animate-in fade-in-0 zoom-in-95 duration-150";
+  "inline-flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-line-strong bg-surface-3 px-[11px] box-border text-[12px] text-ink-muted animate-in fade-in-0 zoom-in-95 duration-150";
 // Same visual weight as CHIP_CLASS above, but for an interactive control
 // (a <select> or date <input>) rather than a static span — used by the
 // Properties strip so Priority/Due date read as chips, not input boxes.
 export const CHIP_CONTROL_CLASS =
-  "rounded-full border border-line-strong bg-surface-3 px-2.5 py-1 text-[12px] text-ink-muted transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none";
-// self-stretch (not a fixed height) so this always matches the rendered
-// height of the input/select it sits beside in a flex row, regardless of
-// that row's font size or padding — a fixed h-6 drifted out of sync with
-// INPUT_CLASS and looked visibly shorter than its sibling control. Sits at
-// the same bg-surface-3 elevation as INPUT_CLASS below, one step up from
-// GHOST_BUTTON_CLASS's resting state, since it doubles as this row's submit.
+  "h-[30px] rounded-[7px] border border-line-strong bg-surface-3 px-[11px] box-border text-[12px] text-ink-muted transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none";
+// Fixed 30px to match CHIP_CLASS/CHIP_CONTROL_CLASS — the Properties strip
+// is now a single row where every chip and control shares one height, so
+// this button (the row's Add-assignee / Apply-label submit) needs a fixed
+// height instead of stretching to whatever its sibling happens to render.
 export const SMALL_ICON_BTN_CLASS =
-  "flex w-8 flex-shrink-0 items-center justify-center self-stretch rounded-[6px] border border-line-strong bg-surface-3 text-ink-muted transition-colors duration-150 hover:bg-surface-4 hover:text-ink";
+  "flex h-[30px] w-8 flex-shrink-0 items-center justify-center rounded-[7px] border border-line-strong bg-surface-3 text-ink-muted transition-colors duration-150 hover:bg-surface-4 hover:text-ink";
 export const INPUT_CLASS =
   "rounded-[6px] border border-line-strong bg-surface-3 px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none";
+// Custom Field value controls (Effort, House, Target Env, …) — same visual
+// language as INPUT_CLASS, plus a fixed height so a text/number/date <input>
+// and a DROPDOWN <select> render at the exact same height. Native <select>
+// chrome doesn't line up with an <input>'s height even given identical
+// padding, so this pins it explicitly rather than leaving it to the browser.
+export const CUSTOM_FIELD_CONTROL_CLASS = `${INPUT_CLASS} h-9 box-border`;
 // Secondary actions (Attach, Link, Add Note, Restore, …). A filled surface,
 // not just a border on transparent background, so it always reads as a
 // pressable control — resting one step below the surface-3 inputs and
