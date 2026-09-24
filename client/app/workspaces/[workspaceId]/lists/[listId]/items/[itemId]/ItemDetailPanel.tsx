@@ -6,6 +6,7 @@ import { formatAttachmentSize } from "@/lib/item/item-attachments";
 
 import { ActivityTabs } from "./ActivityTabs";
 import { AutoSaveCustomField } from "./AutoSaveCustomField";
+import { AutoSubmitField } from "./AutoSubmitField";
 import { FieldSelect } from "./FieldSelect";
 import type { ItemDetailData } from "./page-data";
 import {
@@ -19,21 +20,21 @@ import {
   GHOST_BUTTON_CLASS,
   HEADING_SECTION_CLASS,
   INPUT_CLASS,
-  PRIMARY_BUTTON_CLASS,
   SECTION_CLASS,
   SMALL_ICON_BTN_CLASS,
 } from "./panel-styles";
 import { RevealAddControl } from "./RevealAddControl";
 import { StatePillControl } from "./StatePillControl";
 
-// The title/Section form's id — Priority and Due date live in the
+// The title/section form's id — Priority and Due date live in the
 // Properties strip, physically apart from this form in the DOM, but the
 // underlying Server Action (updateItemDetailsAction) reads all four fields
-// from one FormData and unconditionally overwrites sectionId/dueDate even
-// when absent. Splitting them into their own auto-saving forms would silently
-// null out the fields that weren't included, so they stay wired to this one
-// form via the `form` attribute instead — one Save, four fields, exactly the
-// existing behavior, just laid out in two places.
+// (title, sectionId, priority, dueDate) from one FormData and
+// unconditionally overwrites sectionId/dueDate even when absent. Splitting
+// them into separate forms would silently null out whichever fields
+// weren't included, so they stay wired to this one form via the `form`
+// attribute instead, each auto-submitting itself (AutoSubmitField) on its
+// own change/blur.
 const DETAILS_FORM_ID = "item-details-form";
 
 const STATE_LABEL: Record<string, string> = {
@@ -255,26 +256,21 @@ export function ItemDetailPanel({
         <div className="min-w-0">
           {data.canEdit ? (
             <form id={DETAILS_FORM_ID} action={boundUpdateDetails} className="flex flex-col gap-4">
-              <input
-                type="text"
-                name="title"
-                defaultValue={data.title}
-                className="-mx-2 w-[calc(100%+1rem)] rounded-[6px] bg-transparent px-2 py-1 text-[22px] font-semibold leading-snug tracking-tight text-ink transition-colors duration-150 hover:bg-surface-3 focus:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]/50"
-              />
-              <div className="max-w-xs">
-                <div className={`${FIELD_LABEL_CLASS} mb-1.5`}>Section</div>
-                <FieldSelect name="sectionId" defaultValue={data.sectionId ?? ""} wrapperClassName="w-full">
-                  <option value="">No Section</option>
-                  {data.sections.map((section) => (
-                    <option key={section.id} value={section.id}>
-                      {section.name}
-                    </option>
-                  ))}
-                </FieldSelect>
-              </div>
-              <button type="submit" className={`self-start ${PRIMARY_BUTTON_CLASS}`}>
-                Save
-              </button>
+              <AutoSubmitField on="blur">
+                <input
+                  type="text"
+                  name="title"
+                  defaultValue={data.title}
+                  className="-mx-2 w-[calc(100%+1rem)] rounded-[6px] bg-transparent px-2 py-1 text-[22px] font-semibold leading-snug tracking-tight text-ink transition-colors duration-150 hover:bg-surface-3 focus:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]/50"
+                />
+              </AutoSubmitField>
+              {/* Section isn't user-editable from this page (moving an Item
+                  between Sections happens on the List/Board view) — this
+                  hidden field just carries the Item's current Section
+                  through so Title/Priority/Due-date saves don't null it
+                  out, since updateItemDetailsAction reads all four fields
+                  from one FormData. */}
+              <input type="hidden" name="sectionId" defaultValue={data.sectionId ?? ""} />
             </form>
           ) : (
             <h1 className="text-[22px] font-semibold leading-snug tracking-tight text-ink">{data.title}</h1>
@@ -319,17 +315,19 @@ export function ItemDetailPanel({
 
         {/* Priority — same chip size/shape as the rest; only High tints red */}
         {data.canEdit ? (
-          <FieldSelect
-            name="priority"
-            form={DETAILS_FORM_ID}
-            defaultValue={data.priority}
-            wrapperClassName="w-auto"
-            controlClassName={CHIP_CONTROL_CLASS}
-          >
-            <option value="LOW">Low</option>
-            <option value="NORMAL">Normal</option>
-            <option value="HIGH">High</option>
-          </FieldSelect>
+          <AutoSubmitField>
+            <FieldSelect
+              name="priority"
+              form={DETAILS_FORM_ID}
+              defaultValue={data.priority}
+              wrapperClassName="w-auto"
+              controlClassName={CHIP_CONTROL_CLASS}
+            >
+              <option value="LOW">Low</option>
+              <option value="NORMAL">Normal</option>
+              <option value="HIGH">High</option>
+            </FieldSelect>
+          </AutoSubmitField>
         ) : (
           <span
             className={`inline-flex h-[30px] items-center whitespace-nowrap rounded-[7px] border px-[11px] box-border text-[12px] ${
@@ -381,13 +379,15 @@ export function ItemDetailPanel({
 
         {/* Due date */}
         {data.canEdit ? (
-          <input
-            type="date"
-            name="dueDate"
-            form={DETAILS_FORM_ID}
-            defaultValue={data.dueDate ? data.dueDate.toISOString().slice(0, 10) : ""}
-            className={`w-auto ${CHIP_CONTROL_CLASS}`}
-          />
+          <AutoSubmitField>
+            <input
+              type="date"
+              name="dueDate"
+              form={DETAILS_FORM_ID}
+              defaultValue={data.dueDate ? data.dueDate.toISOString().slice(0, 10) : ""}
+              className={`w-auto ${CHIP_CONTROL_CLASS}`}
+            />
+          </AutoSubmitField>
         ) : (
           <span className={CHIP_CLASS}>
             {data.dueDate
