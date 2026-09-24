@@ -1,0 +1,20 @@
+#!/bin/sh
+# Auto-corrects commit author/committer identity if it doesn't match the
+# repo's configured git identity. Guards against the author being set via
+# GIT_AUTHOR_* env overrides (e.g. by an agent/tool) instead of git config.
+correct_name=$(git config user.name)
+correct_email=$(git config user.email)
+
+if [ -z "$correct_name" ] || [ -z "$correct_email" ]; then
+  exit 0
+fi
+
+author_email=$(git log -1 --format='%ae')
+committer_email=$(git log -1 --format='%ce')
+
+if [ "$author_email" != "$correct_email" ] || [ "$committer_email" != "$correct_email" ]; then
+  GIT_COMMITTER_NAME="$correct_name" GIT_COMMITTER_EMAIL="$correct_email" \
+    git commit --amend --no-edit --quiet \
+    --author="$correct_name <$correct_email>"
+  echo "post-commit: corrected author/committer identity to $correct_name <$correct_email>"
+fi

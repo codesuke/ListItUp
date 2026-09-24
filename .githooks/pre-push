@@ -1,0 +1,28 @@
+#!/bin/sh
+# Refuses to push any commit whose author/committer email doesn't match the
+# repo's configured git identity. Last line of defense behind post-commit.
+correct_email=$(git config user.email)
+zero=0000000000000000000000000000000000000000
+
+if [ -z "$correct_email" ]; then
+  exit 0
+fi
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  if [ "$remote_sha" = "$zero" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  bad=$(git log "$range" --format='%H %an <%ae> / committer %cn <%ce>' | \
+        grep -v -- "<$correct_email>.*<$correct_email>")
+
+  if [ -n "$bad" ]; then
+    echo "pre-push: blocked — commit(s) with an author/committer email other than <$correct_email>:" >&2
+    echo "$bad" >&2
+    exit 1
+  fi
+done
+exit 0
