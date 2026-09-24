@@ -294,7 +294,7 @@ export function ItemDetailPanel({
           sharing one 30px height (CHIP_CLASS/CHIP_CONTROL_CLASS), so it reads
           as one aligned line instead of labeled columns; it only wraps if the
           viewport can't fit the whole row. */}
-      <div className="mt-5 flex flex-wrap items-center gap-2 border-y border-line-strong/60 py-3.5">
+      <div className="mt-5 flex flex-wrap items-center gap-2 border-b border-line-strong/60 pb-3.5">
         {/* Status */}
         {data.state === "ARCHIVED" ? (
           <>
