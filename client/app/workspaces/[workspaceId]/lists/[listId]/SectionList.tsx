@@ -4,21 +4,36 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Check,
-  ChevronDown,
   ChevronRight,
-  ChevronUp,
-  Copy,
   Link2,
   MessageSquare,
+  MoreHorizontal,
   Paperclip,
-  Pencil,
-  Trash2,
+  Plus,
+  Search,
 } from "lucide-react";
 
 import { MemberAvatar } from "@/components/workspace/MemberAvatar";
+import { RevealAddControl } from "@/components/workspace/RevealAddControl";
 import { StatusBadge, type StatusBadgeTone } from "@/components/workspace/StatusBadge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import type { ItemSummary, SectionWithItems } from "./page-data";
+
+// Key used for the unsectioned Items group in the per-section "add item"
+// open/collapsed state maps below — sections are keyed by their real id, and
+// this group has none.
+const UNSECTIONED_KEY = "__unsectioned__";
+
+function sectionDomId(key: string): string {
+  return `list-section-${key}`;
+}
 
 const STATE_DOT_COLOR: Record<ItemSummary["state"], string> = {
   TO_DO: "#5a5a56",
@@ -34,17 +49,28 @@ const PRIORITY_LABEL: Record<ItemSummary["priority"], string> = {
   HIGH: "High",
 };
 
-function itemBadge(item: ItemSummary): { tone: StatusBadgeTone; label: string } | null {
-  if (item.state === "COMPLETE") return { tone: "green", label: "Complete" };
-  if (item.state === "BLOCKED") return { tone: "amber", label: "Blocked" };
-  if (item.dueDate) {
-    return {
-      tone: "blue",
-      label: item.dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-    };
-  }
-  return { tone: "muted", label: "Undated" };
-}
+const PRIORITY_COLOR: Record<ItemSummary["priority"], string> = {
+  LOW: "text-ink-faint",
+  NORMAL: "text-ink-muted",
+  HIGH: "text-[#ff8a70]",
+};
+
+// Status column always shows one of these, distinct from the Due date
+// column — never merged into a single pill the way the old badge was.
+const STATUS_BADGE: Record<ItemSummary["state"], { tone: StatusBadgeTone; label: string }> = {
+  TO_DO: { tone: "muted", label: "Open" },
+  IN_PROGRESS: { tone: "blue", label: "In Progress" },
+  BLOCKED: { tone: "amber", label: "Blocked" },
+  COMPLETE: { tone: "green", label: "Complete" },
+  ARCHIVED: { tone: "muted", label: "Archived" },
+};
+
+const COLUMN_WIDTH = {
+  priority: "w-16",
+  assignee: "w-40",
+  dueDate: "w-16",
+  status: "w-24",
+};
 
 function CompleteToggle({
   checked,
@@ -78,9 +104,73 @@ function CompleteToggle({
 function FacetIcon({ icon: Icon, count }: { icon: React.ComponentType<{ className?: string }>; count: number }) {
   if (count === 0) return null;
   return (
-    <span className="flex items-center gap-[3px] font-[family-name:var(--font-mono-label)] text-[11px] text-ink-faint">
+    <span className="flex flex-shrink-0 items-center gap-[3px] font-[family-name:var(--font-mono-label)] text-[11px] text-ink-faint">
       <Icon className="h-3 w-3" /> {count}
     </span>
+  );
+}
+
+function PriorityCell({ priority }: { priority: ItemSummary["priority"] }) {
+  return (
+    <span
+      className={`${COLUMN_WIDTH.priority} flex-shrink-0 text-right font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.04em] ${PRIORITY_COLOR[priority]}`}
+    >
+      {PRIORITY_LABEL[priority]}
+    </span>
+  );
+}
+
+function AssigneeCell({ assignees }: { assignees: ItemSummary["assignees"] }) {
+  if (assignees.length === 0) {
+    return <span className={`${COLUMN_WIDTH.assignee} flex-shrink-0 text-left text-[13px] text-ink-faint`}>—</span>;
+  }
+
+  const [first, ...rest] = assignees;
+  return (
+    <span className={`flex ${COLUMN_WIDTH.assignee} flex-shrink-0 items-center gap-1.5 text-left`}>
+      <span className="flex flex-shrink-0 -space-x-1.5">
+        {assignees.slice(0, 3).map((assignee) => (
+          <MemberAvatar key={assignee.userId} name={assignee.name} />
+        ))}
+      </span>
+      <span className="min-w-0 truncate text-[13px] text-ink-muted">
+        {first.name}
+        {rest.length > 0 ? ` +${rest.length}` : ""}
+      </span>
+    </span>
+  );
+}
+
+function DueDateCell({ dueDate }: { dueDate: Date | null }) {
+  return (
+    <span
+      className={`${COLUMN_WIDTH.dueDate} flex-shrink-0 text-right font-[family-name:var(--font-mono-label)] text-[11px] text-ink-muted`}
+    >
+      {dueDate ? dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
+    </span>
+  );
+}
+
+function StatusCell({ state }: { state: ItemSummary["state"] }) {
+  const { tone, label } = STATUS_BADGE[state];
+  return (
+    <span className={`flex ${COLUMN_WIDTH.status} flex-shrink-0 justify-end`}>
+      <StatusBadge tone={tone}>{label}</StatusBadge>
+    </span>
+  );
+}
+
+function ColumnHeaders() {
+  const headerClass =
+    "flex-shrink-0 font-[family-name:var(--font-mono-label)] text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-faint";
+  return (
+    <div className="flex items-center gap-2.5 px-2.5 pb-1 pt-0.5">
+      <span className="min-w-0 flex-1" />
+      <span className={`${headerClass} ${COLUMN_WIDTH.priority} text-right`}>Priority</span>
+      <span className={`${headerClass} ${COLUMN_WIDTH.assignee} text-left`}>Assignee</span>
+      <span className={`${headerClass} ${COLUMN_WIDTH.dueDate} text-right`}>Due date</span>
+      <span className={`${headerClass} ${COLUMN_WIDTH.status} text-right`}>Status</span>
+    </div>
   );
 }
 
@@ -97,8 +187,6 @@ function ItemRow({
   indented: boolean;
   boundComplete: (formData: FormData) => Promise<void>;
 }) {
-  const badge = itemBadge(item);
-
   return (
     <div
       className={`flex items-center gap-2.5 rounded-[8px] py-2 pr-2.5 transition-colors duration-150 hover:bg-surface-3 ${
@@ -116,11 +204,6 @@ function ItemRow({
         {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
         {item.title}
       </Link>
-      {item.priority !== "NORMAL" && (
-        <span className="whitespace-nowrap font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.04em] text-ink-muted">
-          {PRIORITY_LABEL[item.priority]}
-        </span>
-      )}
       {item.labels.map((label) => (
         <span
           key={label.id}
@@ -132,12 +215,10 @@ function ItemRow({
       <FacetIcon icon={Link2} count={item.dependencyCount} />
       <FacetIcon icon={MessageSquare} count={item.noteCount} />
       <FacetIcon icon={Paperclip} count={item.attachmentCount} />
-      <div className="flex flex-shrink-0 -space-x-1.5">
-        {item.assignees.map((assignee) => (
-          <MemberAvatar key={assignee.userId} name={assignee.name} />
-        ))}
-      </div>
-      {badge && <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>}
+      <PriorityCell priority={item.priority} />
+      <AssigneeCell assignees={item.assignees} />
+      <DueDateCell dueDate={item.dueDate} />
+      <StatusCell state={item.state} />
     </div>
   );
 }
@@ -177,9 +258,11 @@ function ArchivedItemRow({
 function AddItemForm({
   sectionId,
   boundAddItem,
+  autoFocus,
 }: {
   sectionId: string | null;
   boundAddItem: (formData: FormData) => Promise<void>;
+  autoFocus?: boolean;
 }) {
   return (
     <form action={boundAddItem} className="flex items-center gap-2 px-2.5 py-2">
@@ -190,6 +273,7 @@ function AddItemForm({
         name="title"
         placeholder="Add an Item"
         required
+        autoFocus={autoFocus}
         className="flex-1 bg-transparent text-[13.5px] text-ink placeholder:text-ink-faint focus:outline-none"
       />
       <button type="submit" className="text-xs text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
@@ -199,53 +283,69 @@ function AddItemForm({
   );
 }
 
-function SectionActionButton({
-  label,
-  onClick,
-  icon: Icon,
-}: {
-  label: string;
-  onClick: () => void;
-  icon: React.ComponentType<{ className?: string }>;
-}) {
+function SectionAddButton({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-ink-faint transition-colors duration-150 hover:bg-surface-4 hover:text-ink"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="flex flex-shrink-0 items-center gap-1 rounded-[6px] px-2 py-1 text-[12px] font-medium text-[#ff8a70] transition-colors duration-150 hover:bg-surface-4 hover:text-[#ff6b4a]"
     >
-      <Icon className="h-3.5 w-3.5" />
+      <Plus className="h-3.5 w-3.5" /> Add
     </button>
   );
 }
 
-function SectionActionForm({
-  label,
-  action,
-  hiddenFields,
-  icon: Icon,
+function callSectionAction(action: (formData: FormData) => Promise<void>, fields: Record<string, string>) {
+  const formData = new FormData();
+  for (const [name, value] of Object.entries(fields)) {
+    formData.set(name, value);
+  }
+  return action(formData);
+}
+
+function SectionOverflowMenu({
+  sectionId,
+  onRename,
+  boundDuplicateSection,
+  boundMoveSection,
+  boundDeleteSection,
 }: {
-  label: string;
-  action: (formData: FormData) => Promise<void>;
-  hiddenFields: Record<string, string>;
-  icon: React.ComponentType<{ className?: string }>;
+  sectionId: string;
+  onRename: () => void;
+  boundDuplicateSection: (formData: FormData) => Promise<void>;
+  boundMoveSection: (formData: FormData) => Promise<void>;
+  boundDeleteSection: (formData: FormData) => Promise<void>;
 }) {
   return (
-    <form action={action}>
-      {Object.entries(hiddenFields).map(([name, value]) => (
-        <input key={name} type="hidden" name={name} value={value} />
-      ))}
-      <button
-        type="submit"
-        aria-label={label}
-        title={label}
-        className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-ink-faint transition-colors duration-150 hover:bg-surface-4 hover:text-ink"
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label="Section actions"
+        title="Section actions"
+        className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-ink-faint outline-none transition-colors duration-150 hover:bg-surface-4 hover:text-ink"
       >
-        <Icon className="h-3.5 w-3.5" />
-      </button>
-    </form>
+        <MoreHorizontal className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onRename}>Rename</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void callSectionAction(boundDuplicateSection, { sectionId })}>
+          Duplicate
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void callSectionAction(boundMoveSection, { sectionId, direction: "up" })}>
+          Move up
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void callSectionAction(boundMoveSection, { sectionId, direction: "down" })}>
+          Move down
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={() => void callSectionAction(boundDeleteSection, { sectionId })}
+        >
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -288,6 +388,8 @@ export function SectionList({
   const [hideEmpty, setHideEmpty] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [search, setSearch] = useState("");
+  const [addOpenIds, setAddOpenIds] = useState<Set<string>>(new Set());
 
   function toggleCollapsed(sectionId: string) {
     setCollapsedIds((current) => {
@@ -301,8 +403,46 @@ export function SectionList({
     });
   }
 
-  const visibleSections = hideEmpty ? sections.filter((section) => section.items.length > 0) : sections;
-  const showUnsectioned = unsectionedItems.length > 0 || (!hideEmpty && canManage);
+  function toggleAddOpen(key: string) {
+    setAddOpenIds((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const matchesSearch = (item: ItemSummary) =>
+    normalizedSearch === "" || item.title.toLowerCase().includes(normalizedSearch);
+
+  const searchedSections = sections.map((section) => ({
+    ...section,
+    items: section.items.filter(matchesSearch),
+  }));
+  const searchedUnsectionedItems = unsectionedItems.filter(matchesSearch);
+
+  const visibleSections = hideEmpty ? searchedSections.filter((section) => section.items.length > 0) : searchedSections;
+  const showUnsectioned =
+    searchedUnsectionedItems.length > 0 || (!hideEmpty && canManage && normalizedSearch === "");
+
+  function handleNewTask() {
+    const targetKey = visibleSections[0]?.id ?? UNSECTIONED_KEY;
+    setShowArchived(false);
+    setCollapsedIds((current) => {
+      if (!current.has(targetKey)) return current;
+      const next = new Set(current);
+      next.delete(targetKey);
+      return next;
+    });
+    setAddOpenIds((current) => new Set(current).add(targetKey));
+    requestAnimationFrame(() => {
+      document.getElementById(sectionDomId(targetKey))?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
 
   const chipClass = (active: boolean) =>
     active
@@ -311,50 +451,73 @@ export function SectionList({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        {canManage && (
-          <form action={boundAddSection} className="flex items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5">
+            <Search className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
             <input
               type="text"
-              name="name"
-              placeholder="New Section name"
-              required
-              className="rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search Items…"
+              className="w-48 bg-transparent text-[13px] text-ink placeholder:text-ink-faint focus:outline-none"
             />
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 rounded-[6px] bg-[#ff6b4a] px-3 py-[7px] text-[13px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
-            >
-              Add Section
-            </button>
-          </form>
-        )}
+          </div>
+
+          {canManage && (
+            <RevealAddControl label="+ Section">
+              <form action={boundAddSection} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Section name"
+                  required
+                  autoFocus
+                  className="rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 rounded-[6px] bg-[#ff6b4a] px-3 py-[7px] text-[13px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
+                >
+                  Add
+                </button>
+              </form>
+            </RevealAddControl>
+          )}
+
+          {canManage && (
+            <form action={boundSetGroupBy} className="flex items-center gap-2">
+              <select
+                name="groupBy"
+                defaultValue={groupBy}
+                className="rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] text-ink"
+              >
+                <option value="SECTION">Section</option>
+              </select>
+              <button type="submit" className={chipClass(false)}>
+                Add Rule: grouped by Section
+              </button>
+            </form>
+          )}
+
+          <button type="button" onClick={() => setHideEmpty((current) => !current)} className={chipClass(hideEmpty)}>
+            Hide empty Sections
+          </button>
+
+          <button type="button" onClick={() => setShowArchived((current) => !current)} className={chipClass(showArchived)}>
+            Archived ({archivedItems.length})
+          </button>
+        </div>
 
         {canManage && (
-          <form action={boundSetGroupBy} className="flex items-center gap-2">
-            <select
-              name="groupBy"
-              defaultValue={groupBy}
-              className="rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] text-ink"
-            >
-              <option value="SECTION">Section</option>
-            </select>
-            <button
-              type="submit"
-              className={chipClass(false)}
-            >
-              Add Rule: grouped by Section
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={handleNewTask}
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-[6px] bg-[#ff6b4a] px-3 py-[7px] text-[13px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
+          >
+            <Plus className="h-3.5 w-3.5" /> New Task
+          </button>
         )}
-
-        <button type="button" onClick={() => setHideEmpty((current) => !current)} className={chipClass(hideEmpty)}>
-          Hide empty Sections
-        </button>
-
-        <button type="button" onClick={() => setShowArchived((current) => !current)} className={chipClass(showArchived)}>
-          Archived ({archivedItems.length})
-        </button>
       </div>
 
       {showArchived ? (
@@ -376,9 +539,11 @@ export function SectionList({
         </div>
       ) : visibleSections.length === 0 && !showUnsectioned ? (
         <div className="rounded-[12px] border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
-          {sections.length === 0
-            ? "No Sections yet."
-            : "Every Section is empty — toggle “Hide empty Sections” off to see them."}
+          {normalizedSearch !== ""
+            ? "No Items match your search."
+            : sections.length === 0
+              ? "No Sections yet."
+              : "Every Section is empty — toggle “Hide empty Sections” off to see them."}
         </div>
       ) : (
         <div className="rounded-[12px] border border-line bg-surface-2 p-2">
@@ -387,7 +552,11 @@ export function SectionList({
             const isRenaming = renamingId === section.id;
 
             return (
-              <div key={section.id} className={index > 0 ? "mt-2" : undefined}>
+              <div
+                key={section.id}
+                id={sectionDomId(section.id)}
+                className={index > 0 ? "mt-2" : undefined}
+              >
                 <div className="flex items-center gap-2 px-2.5 py-2.5">
                   <button
                     type="button"
@@ -437,30 +606,16 @@ export function SectionList({
 
                   {canManage && !isRenaming && (
                     <div className="flex items-center gap-0.5">
-                      <SectionActionButton label="Rename Section" icon={Pencil} onClick={() => setRenamingId(section.id)} />
-                      <SectionActionForm
-                        label="Duplicate Section"
-                        icon={Copy}
-                        action={boundDuplicateSection}
-                        hiddenFields={{ sectionId: section.id }}
+                      <SectionOverflowMenu
+                        sectionId={section.id}
+                        onRename={() => setRenamingId(section.id)}
+                        boundDuplicateSection={boundDuplicateSection}
+                        boundMoveSection={boundMoveSection}
+                        boundDeleteSection={boundDeleteSection}
                       />
-                      <SectionActionForm
-                        label="Move Section up"
-                        icon={ChevronUp}
-                        action={boundMoveSection}
-                        hiddenFields={{ sectionId: section.id, direction: "up" }}
-                      />
-                      <SectionActionForm
-                        label="Move Section down"
-                        icon={ChevronDown}
-                        action={boundMoveSection}
-                        hiddenFields={{ sectionId: section.id, direction: "down" }}
-                      />
-                      <SectionActionForm
-                        label="Delete Section"
-                        icon={Trash2}
-                        action={boundDeleteSection}
-                        hiddenFields={{ sectionId: section.id }}
+                      <SectionAddButton
+                        open={addOpenIds.has(section.id)}
+                        onToggle={() => toggleAddOpen(section.id)}
                       />
                     </div>
                   )}
@@ -471,18 +626,23 @@ export function SectionList({
                     {section.items.length === 0 ? (
                       <div className="px-3 py-4 text-center text-xs text-ink-faint">No Items yet.</div>
                     ) : (
-                      section.items.map((item) => (
-                        <ItemRow
-                          key={item.id}
-                          item={item}
-                          workspaceId={workspaceId}
-                          listId={listId}
-                          indented={item.hasParent}
-                          boundComplete={boundCompleteItem}
-                        />
-                      ))
+                      <>
+                        <ColumnHeaders />
+                        {section.items.map((item) => (
+                          <ItemRow
+                            key={item.id}
+                            item={item}
+                            workspaceId={workspaceId}
+                            listId={listId}
+                            indented={item.hasParent}
+                            boundComplete={boundCompleteItem}
+                          />
+                        ))}
+                      </>
                     )}
-                    {canManage && <AddItemForm sectionId={section.id} boundAddItem={boundAddItem} />}
+                    {canManage && addOpenIds.has(section.id) && (
+                      <AddItemForm sectionId={section.id} boundAddItem={boundAddItem} autoFocus />
+                    )}
                   </div>
                 )}
               </div>
@@ -490,12 +650,23 @@ export function SectionList({
           })}
 
           {showUnsectioned && (
-            <div className={visibleSections.length > 0 ? "mt-2" : undefined}>
+            <div
+              id={sectionDomId(UNSECTIONED_KEY)}
+              className={visibleSections.length > 0 ? "mt-2" : undefined}
+            >
               <div className="flex items-center gap-2 px-2.5 py-2.5">
                 <span className="text-[13px] font-semibold text-ink">No Section</span>
-                <StatusBadge tone="muted">{unsectionedItems.length}</StatusBadge>
+                <StatusBadge tone="muted">{searchedUnsectionedItems.length}</StatusBadge>
+                <div className="flex-1" />
+                {canManage && (
+                  <SectionAddButton
+                    open={addOpenIds.has(UNSECTIONED_KEY)}
+                    onToggle={() => toggleAddOpen(UNSECTIONED_KEY)}
+                  />
+                )}
               </div>
-              {unsectionedItems.map((item) => (
+              {searchedUnsectionedItems.length > 0 && <ColumnHeaders />}
+              {searchedUnsectionedItems.map((item) => (
                 <ItemRow
                   key={item.id}
                   item={item}
@@ -505,7 +676,9 @@ export function SectionList({
                   boundComplete={boundCompleteItem}
                 />
               ))}
-              {canManage && <AddItemForm sectionId={null} boundAddItem={boundAddItem} />}
+              {canManage && addOpenIds.has(UNSECTIONED_KEY) && (
+                <AddItemForm sectionId={null} boundAddItem={boundAddItem} autoFocus />
+              )}
             </div>
           )}
         </div>

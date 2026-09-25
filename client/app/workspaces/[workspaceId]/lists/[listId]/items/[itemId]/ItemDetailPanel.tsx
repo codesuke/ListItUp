@@ -23,7 +23,7 @@ import {
   SECTION_CLASS,
   SMALL_ICON_BTN_CLASS,
 } from "./panel-styles";
-import { RevealAddControl } from "./RevealAddControl";
+import { RevealAddControl } from "@/components/workspace/RevealAddControl";
 import { StatePillControl } from "./StatePillControl";
 
 // The title/section form's id — Priority and Due date live in the
