@@ -22,6 +22,14 @@ export const STATE_COLOR: Record<ItemState, string> = {
   ARCHIVED: "#525252",
 };
 
+// The one function that turns an Item's status into a color — the status
+// dot, the bar, and the milestone diamond all call this (not a raw
+// STATE_COLOR[...] lookup of their own), so there is exactly one place
+// that could ever be wrong, not three separate ones that could drift.
+export function statusColor(state: ItemState): string {
+  return STATE_COLOR[state];
+}
+
 // Text color for each bar background, chosen for contrast — reuses the
 // app's existing light/dark text tokens rather than new hex values.
 export const STATE_BAR_TEXT: Record<ItemState, string> = {

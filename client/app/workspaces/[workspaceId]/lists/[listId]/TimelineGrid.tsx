@@ -5,7 +5,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-reac
 
 import { MemberAvatar } from "@/components/workspace/MemberAvatar";
 import type { ItemState } from "@/generated/prisma/client";
-import { STATE_BAR_TEXT, STATE_COLOR, STATE_LABEL, STATUS_ORDER } from "@/lib/list/list-timeline";
+import { STATE_BAR_TEXT, STATE_LABEL, statusColor, STATUS_ORDER } from "@/lib/list/list-timeline";
 
 export type TimelineGridDay = { dayNumber: number; weekdayLabel: string; shortLabel: string; year: number };
 export type TimelineGridWeek = { label: string; dayCount: number };
@@ -223,7 +223,7 @@ export function TimelineGrid({
         <div className="flex items-center gap-4">
           {STATUS_ORDER.map((state) => (
             <span key={state} className="flex items-center gap-1.5 text-[11px] text-ink-faint">
-              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: STATE_COLOR[state] }} />
+              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: statusColor(state) }} />
               {STATE_LABEL[state]}
             </span>
           ))}
@@ -240,7 +240,7 @@ export function TimelineGrid({
           onScroll={updateVisibleRange}
           className="max-h-[70vh] overflow-auto rounded-lg border border-line bg-surface-1"
         >
-          <div className="grid" style={{ gridTemplateColumns, gridTemplateRows }}>
+          <div className="isolate grid" style={{ gridTemplateColumns, gridTemplateRows }}>
             <div
               className="sticky top-0 left-0 z-30 flex items-center border-b border-r border-line bg-surface-1 pl-4 text-[13px] font-semibold text-ink"
               style={{ gridColumn: 1, gridRow: "1 / 3" }}
@@ -315,7 +315,7 @@ export function TimelineGrid({
                 return (
                   <div
                     key={row.key}
-                    className="sticky left-0 z-10 flex items-center justify-between border-b border-line bg-surface-1 px-4 pt-3.5 pb-1.5"
+                    className="sticky left-0 z-10 flex items-center justify-between border-b border-r border-line bg-surface-1 px-4 pt-3.5 pb-1.5"
                     style={{ gridColumn: 1, gridRow }}
                   >
                     <span className="truncate text-[12px] font-semibold text-ink">{row.sectionName}</span>
@@ -330,17 +330,28 @@ export function TimelineGrid({
               const barSpanDays = item.endDayIndex - item.startDayIndex + 1;
               const barWidthPx = barSpanDays * columnWidth;
 
+              // Both calls go through the same statusColor() lookup — a
+              // dev-only guard in case a future edit ever makes the dot and
+              // the bar/diamond read from two different places again.
+              const dotColor = statusColor(item.state);
+              const barColor = statusColor(item.state);
+              if (process.env.NODE_ENV !== "production" && dotColor !== barColor) {
+                console.error(
+                  `Timeline: dot/bar color mismatch for "${item.title}" (${item.id}, status ${item.state}): dot=${dotColor} bar=${barColor}`
+                );
+              }
+
               return (
                 <Fragment key={row.key}>
                   <a
                     href={item.href}
-                    className="sticky left-0 z-10 flex items-center gap-2.5 border-b border-line bg-surface-1 px-4 text-sm text-ink transition-colors duration-150 hover:bg-surface-2"
+                    className="sticky left-0 z-10 flex items-center gap-2.5 border-b border-r border-line bg-surface-1 px-4 text-sm text-ink transition-colors duration-150 hover:bg-surface-2"
                     style={{ gridColumn: 1, gridRow }}
                   >
                     <span
                       data-testid={`dot-${item.id}`}
                       className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                      style={{ backgroundColor: STATE_COLOR[item.state] }}
+                      style={{ backgroundColor: dotColor }}
                     />
                     <span className="min-w-0 flex-1 truncate">
                       {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
@@ -370,7 +381,7 @@ export function TimelineGrid({
                           width: MILESTONE_SIZE,
                           height: MILESTONE_SIZE,
                           marginLeft: columnWidth / 2 - MILESTONE_SIZE / 2,
-                          backgroundColor: STATE_COLOR[item.state],
+                          backgroundColor: barColor,
                           transform: "rotate(45deg)",
                         }}
                       />
@@ -389,7 +400,7 @@ export function TimelineGrid({
                         style={{
                           top: (TASK_ROW_HEIGHT - BAR_HEIGHT) / 2,
                           height: BAR_HEIGHT,
-                          backgroundColor: STATE_COLOR[item.state],
+                          backgroundColor: barColor,
                           color: STATE_BAR_TEXT[item.state],
                         }}
                       >
