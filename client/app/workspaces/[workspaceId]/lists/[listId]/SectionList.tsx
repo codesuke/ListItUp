@@ -64,13 +64,13 @@ const STATUS_BADGE: Record<ItemSummary["state"], { tone: StatusBadgeTone; label:
   ARCHIVED: { tone: "muted", label: "Archived" },
 };
 
-const COLUMN_WIDTH = {
-  extras: "w-28",
-  priority: "w-16",
-  assignee: "w-40",
-  dueDate: "w-16",
-  status: "w-24",
-};
+// One grid template, shared by every Section's header row and every task
+// row (active and the "No Section" group), so Priority/Assignee/Due
+// date/Status land in the same physical columns everywhere — a real CSS
+// grid track's width never depends on what any row puts inside it, unlike
+// flex-basis, which is what let a heavily-labeled Item drift out of
+// alignment before.
+const ROW_GRID_COLS = "grid-cols-[minmax(0,1fr)_4rem_13rem_4rem_6rem]";
 
 function CompleteToggle({
   checked,
@@ -110,76 +110,74 @@ function FacetIcon({ icon: Icon, count }: { icon: React.ComponentType<{ classNam
   );
 }
 
-// Labels and the dependency/note/attachment counts live in one fixed-width
-// slot butted up against Priority instead of trailing the title with an
-// unbounded width — a Section with a heavily-labeled Item would otherwise
-// grow that gap and knock Priority/Assignee/Due date/Status out of pixel
-// alignment with every other row. Overflow clips (rightmost facet icons win)
-// rather than reflowing the row.
-function ExtrasCell({
-  labels,
-  dependencyCount,
-  noteCount,
-  attachmentCount,
-}: {
-  labels: ItemSummary["labels"];
-  dependencyCount: number;
-  noteCount: number;
-  attachmentCount: number;
-}) {
-  return (
-    <span className={`flex ${COLUMN_WIDTH.extras} flex-shrink-0 items-center justify-end gap-1.5 overflow-hidden`}>
-      {labels.map((label) => (
-        <span
-          key={label.id}
-          className="max-w-[56px] flex-shrink-0 truncate whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2 py-0.5 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted animate-in fade-in-0 zoom-in-95 duration-150"
-        >
-          {label.name}
-        </span>
-      ))}
-      <FacetIcon icon={Link2} count={dependencyCount} />
-      <FacetIcon icon={MessageSquare} count={noteCount} />
-      <FacetIcon icon={Paperclip} count={attachmentCount} />
-    </span>
-  );
-}
-
 function PriorityCell({ priority }: { priority: ItemSummary["priority"] }) {
   return (
     <span
-      className={`${COLUMN_WIDTH.priority} flex-shrink-0 text-right font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.04em] ${PRIORITY_COLOR[priority]}`}
+      className={`text-right font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.04em] ${PRIORITY_COLOR[priority]}`}
     >
       {PRIORITY_LABEL[priority]}
     </span>
   );
 }
 
-function AssigneeCell({ assignees }: { assignees: ItemSummary["assignees"] }) {
-  if (assignees.length === 0) {
-    return <span className={`${COLUMN_WIDTH.assignee} flex-shrink-0 text-left text-[13px] text-ink-faint`}>—</span>;
-  }
+// Labels and the dependency/note/attachment counts integrate into the
+// Assignee column instead of getting a column of their own between the task
+// title and Priority — they share this cell's fixed grid track, so they
+// never affect where Priority/Due date/Status land.
+function AssigneeCell({
+  assignees,
+  labels,
+  dependencyCount,
+  noteCount,
+  attachmentCount,
+}: {
+  assignees: ItemSummary["assignees"];
+  labels: ItemSummary["labels"];
+  dependencyCount: number;
+  noteCount: number;
+  attachmentCount: number;
+}) {
+  const hasExtras = labels.length > 0 || dependencyCount > 0 || noteCount > 0 || attachmentCount > 0;
 
-  const [first, ...rest] = assignees;
   return (
-    <span className={`flex ${COLUMN_WIDTH.assignee} flex-shrink-0 items-center gap-1.5 text-left`}>
-      <span className="flex flex-shrink-0 -space-x-1.5">
-        {assignees.slice(0, 3).map((assignee) => (
-          <MemberAvatar key={assignee.userId} name={assignee.name} />
-        ))}
-      </span>
-      <span className="min-w-0 truncate text-[13px] text-ink-muted">
-        {first.name}
-        {rest.length > 0 ? ` +${rest.length}` : ""}
-      </span>
-    </span>
+    <div className="flex min-w-0 items-center gap-1.5 text-left">
+      {assignees.length === 0 ? (
+        <span className="text-[13px] text-ink-faint">—</span>
+      ) : (
+        <>
+          <span className="flex flex-shrink-0 -space-x-1.5">
+            {assignees.slice(0, 3).map((assignee) => (
+              <MemberAvatar key={assignee.userId} name={assignee.name} />
+            ))}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-[13px] text-ink-muted">
+            {assignees[0].name}
+            {assignees.length > 1 ? ` +${assignees.length - 1}` : ""}
+          </span>
+        </>
+      )}
+      {hasExtras && (
+        <span className="flex w-14 flex-shrink-0 items-center justify-end gap-1 overflow-hidden">
+          {labels.slice(0, 1).map((label) => (
+            <span
+              key={label.id}
+              className="max-w-[40px] truncate whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-1.5 py-0.5 font-[family-name:var(--font-mono-label)] text-[10px] text-ink-muted"
+            >
+              {label.name}
+            </span>
+          ))}
+          <FacetIcon icon={Link2} count={dependencyCount} />
+          <FacetIcon icon={MessageSquare} count={noteCount} />
+          <FacetIcon icon={Paperclip} count={attachmentCount} />
+        </span>
+      )}
+    </div>
   );
 }
 
 function DueDateCell({ dueDate }: { dueDate: Date | null }) {
   return (
-    <span
-      className={`${COLUMN_WIDTH.dueDate} flex-shrink-0 text-right font-[family-name:var(--font-mono-label)] text-[11px] text-ink-muted`}
-    >
+    <span className="text-right font-[family-name:var(--font-mono-label)] text-[11px] text-ink-muted">
       {dueDate ? dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
     </span>
   );
@@ -188,7 +186,7 @@ function DueDateCell({ dueDate }: { dueDate: Date | null }) {
 function StatusCell({ state }: { state: ItemSummary["state"] }) {
   const { tone, label } = STATUS_BADGE[state];
   return (
-    <span className={`flex ${COLUMN_WIDTH.status} flex-shrink-0 justify-end`}>
+    <span className="flex justify-end">
       <StatusBadge tone={tone}>{label}</StatusBadge>
     </span>
   );
@@ -196,17 +194,14 @@ function StatusCell({ state }: { state: ItemSummary["state"] }) {
 
 function ColumnHeaders() {
   const headerClass =
-    "flex-shrink-0 font-[family-name:var(--font-mono-label)] text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-faint";
+    "font-[family-name:var(--font-mono-label)] text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-faint";
   return (
-    <div className="flex items-center gap-2.5 px-2.5 pb-1 pt-0.5">
-      <span className="min-w-0 flex-1" />
-      <div className="flex flex-shrink-0 items-center gap-2.5">
-        <span className={COLUMN_WIDTH.extras} />
-        <span className={`${headerClass} ${COLUMN_WIDTH.priority} text-right`}>Priority</span>
-        <span className={`${headerClass} ${COLUMN_WIDTH.assignee} text-left`}>Assignee</span>
-        <span className={`${headerClass} ${COLUMN_WIDTH.dueDate} text-right`}>Due date</span>
-        <span className={`${headerClass} ${COLUMN_WIDTH.status} text-right`}>Status</span>
-      </div>
+    <div className={`grid ${ROW_GRID_COLS} items-center gap-2.5 px-2.5 pb-1 pt-0.5`}>
+      <span />
+      <span className={`${headerClass} text-right`}>Priority</span>
+      <span className={`${headerClass} text-left`}>Assignee</span>
+      <span className={`${headerClass} text-right`}>Due date</span>
+      <span className={`${headerClass} text-right`}>Status</span>
     </div>
   );
 }
@@ -226,33 +221,33 @@ function ItemRow({
 }) {
   return (
     <div
-      className={`flex items-center gap-2.5 rounded-[8px] py-2 pr-2.5 transition-colors duration-150 hover:bg-surface-3 ${
+      className={`grid ${ROW_GRID_COLS} items-center gap-2.5 rounded-[8px] py-2 pr-2.5 transition-colors duration-150 hover:bg-surface-3 ${
         indented ? "pl-[52px]" : "pl-2.5"
       }`}
     >
-      <CompleteToggle checked={item.state === "COMPLETE"} itemId={item.id} boundComplete={boundComplete} />
-      {!indented && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: STATE_DOT_COLOR[item.state] }} />}
-      <Link
-        href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-        className={`min-w-0 flex-1 truncate text-[13.5px] transition-colors duration-150 hover:underline ${
-          item.state === "COMPLETE" ? "text-ink-faint line-through" : "text-ink"
-        }`}
-      >
-        {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
-        {item.title}
-      </Link>
-      <div className="flex flex-shrink-0 items-center gap-2.5">
-        <ExtrasCell
-          labels={item.labels}
-          dependencyCount={item.dependencyCount}
-          noteCount={item.noteCount}
-          attachmentCount={item.attachmentCount}
-        />
-        <PriorityCell priority={item.priority} />
-        <AssigneeCell assignees={item.assignees} />
-        <DueDateCell dueDate={item.dueDate} />
-        <StatusCell state={item.state} />
+      <div className="flex min-w-0 items-center gap-2.5">
+        <CompleteToggle checked={item.state === "COMPLETE"} itemId={item.id} boundComplete={boundComplete} />
+        {!indented && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: STATE_DOT_COLOR[item.state] }} />}
+        <Link
+          href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
+          className={`min-w-0 flex-1 truncate text-[13.5px] transition-colors duration-150 hover:underline ${
+            item.state === "COMPLETE" ? "text-ink-faint line-through" : "text-ink"
+          }`}
+        >
+          {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
+          {item.title}
+        </Link>
       </div>
+      <PriorityCell priority={item.priority} />
+      <AssigneeCell
+        assignees={item.assignees}
+        labels={item.labels}
+        dependencyCount={item.dependencyCount}
+        noteCount={item.noteCount}
+        attachmentCount={item.attachmentCount}
+      />
+      <DueDateCell dueDate={item.dueDate} />
+      <StatusCell state={item.state} />
     </div>
   );
 }
