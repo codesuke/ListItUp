@@ -65,6 +65,7 @@ const STATUS_BADGE: Record<ItemSummary["state"], { tone: StatusBadgeTone; label:
 };
 
 const COLUMN_WIDTH = {
+  extras: "w-28",
   priority: "w-16",
   assignee: "w-40",
   dueDate: "w-16",
@@ -105,6 +106,40 @@ function FacetIcon({ icon: Icon, count }: { icon: React.ComponentType<{ classNam
   return (
     <span className="flex flex-shrink-0 items-center gap-[3px] font-[family-name:var(--font-mono-label)] text-[11px] text-ink-faint">
       <Icon className="h-3 w-3" /> {count}
+    </span>
+  );
+}
+
+// Labels and the dependency/note/attachment counts live in one fixed-width
+// slot butted up against Priority instead of trailing the title with an
+// unbounded width — a Section with a heavily-labeled Item would otherwise
+// grow that gap and knock Priority/Assignee/Due date/Status out of pixel
+// alignment with every other row. Overflow clips (rightmost facet icons win)
+// rather than reflowing the row.
+function ExtrasCell({
+  labels,
+  dependencyCount,
+  noteCount,
+  attachmentCount,
+}: {
+  labels: ItemSummary["labels"];
+  dependencyCount: number;
+  noteCount: number;
+  attachmentCount: number;
+}) {
+  return (
+    <span className={`flex ${COLUMN_WIDTH.extras} flex-shrink-0 items-center justify-end gap-1.5 overflow-hidden`}>
+      {labels.map((label) => (
+        <span
+          key={label.id}
+          className="max-w-[56px] flex-shrink-0 truncate whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2 py-0.5 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted animate-in fade-in-0 zoom-in-95 duration-150"
+        >
+          {label.name}
+        </span>
+      ))}
+      <FacetIcon icon={Link2} count={dependencyCount} />
+      <FacetIcon icon={MessageSquare} count={noteCount} />
+      <FacetIcon icon={Paperclip} count={attachmentCount} />
     </span>
   );
 }
@@ -165,10 +200,13 @@ function ColumnHeaders() {
   return (
     <div className="flex items-center gap-2.5 px-2.5 pb-1 pt-0.5">
       <span className="min-w-0 flex-1" />
-      <span className={`${headerClass} ${COLUMN_WIDTH.priority} text-right`}>Priority</span>
-      <span className={`${headerClass} ${COLUMN_WIDTH.assignee} text-left`}>Assignee</span>
-      <span className={`${headerClass} ${COLUMN_WIDTH.dueDate} text-right`}>Due date</span>
-      <span className={`${headerClass} ${COLUMN_WIDTH.status} text-right`}>Status</span>
+      <div className="flex flex-shrink-0 items-center gap-2.5">
+        <span className={COLUMN_WIDTH.extras} />
+        <span className={`${headerClass} ${COLUMN_WIDTH.priority} text-right`}>Priority</span>
+        <span className={`${headerClass} ${COLUMN_WIDTH.assignee} text-left`}>Assignee</span>
+        <span className={`${headerClass} ${COLUMN_WIDTH.dueDate} text-right`}>Due date</span>
+        <span className={`${headerClass} ${COLUMN_WIDTH.status} text-right`}>Status</span>
+      </div>
     </div>
   );
 }
@@ -203,21 +241,18 @@ function ItemRow({
         {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
         {item.title}
       </Link>
-      {item.labels.map((label) => (
-        <span
-          key={label.id}
-          className="whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2 py-0.5 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted animate-in fade-in-0 zoom-in-95 duration-150"
-        >
-          {label.name}
-        </span>
-      ))}
-      <FacetIcon icon={Link2} count={item.dependencyCount} />
-      <FacetIcon icon={MessageSquare} count={item.noteCount} />
-      <FacetIcon icon={Paperclip} count={item.attachmentCount} />
-      <PriorityCell priority={item.priority} />
-      <AssigneeCell assignees={item.assignees} />
-      <DueDateCell dueDate={item.dueDate} />
-      <StatusCell state={item.state} />
+      <div className="flex flex-shrink-0 items-center gap-2.5">
+        <ExtrasCell
+          labels={item.labels}
+          dependencyCount={item.dependencyCount}
+          noteCount={item.noteCount}
+          attachmentCount={item.attachmentCount}
+        />
+        <PriorityCell priority={item.priority} />
+        <AssigneeCell assignees={item.assignees} />
+        <DueDateCell dueDate={item.dueDate} />
+        <StatusCell state={item.state} />
+      </div>
     </div>
   );
 }
