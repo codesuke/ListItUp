@@ -179,22 +179,27 @@ export function ItemDetailPanel({
   );
 
   const comments = (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3.5">
       {data.notes.map((note) => (
-        <div key={note.id} className="flex gap-2">
+        <div key={note.id} className="flex gap-2.5">
           <MemberAvatar name={note.authorName} />
-          <div className="min-w-0 text-[13px] text-ink-muted">
-            <span className="font-medium text-ink">{note.authorName}</span> — {note.body}
-            {note.mentions.length > 0 && (
-              <span className="ml-1 text-[#ff8a70]">{note.mentions.map((mention) => `@${mention.name}`).join(" ")}</span>
-            )}
-            <div className="mt-0.5 text-[11px] text-ink-faint">
-              {note.createdAt.toLocaleString(undefined, {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[13px] font-medium text-ink">{note.authorName}</span>
+              <span className="text-[11px] text-ink-faint">
+                {note.createdAt.toLocaleString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+            <div className="mt-1 text-[13px] leading-relaxed text-ink-muted">
+              {note.body}
+              {note.mentions.length > 0 && (
+                <span className="ml-1 text-[#ff8a70]">{note.mentions.map((mention) => `@${mention.name}`).join(" ")}</span>
+              )}
             </div>
           </div>
         </div>
@@ -204,15 +209,19 @@ export function ItemDetailPanel({
         <form action={boundAddNote} className="flex flex-col gap-2">
           <textarea name="body" placeholder="Add a Note…" required rows={2} className={`w-full ${INPUT_CLASS}`} />
           {data.mentionCandidates.length > 0 && (
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-1.5">
               {data.mentionCandidates.map((candidate) => (
-                <label key={candidate.userId} className="flex items-center gap-1.5 text-[12px] text-ink-muted">
-                  <input type="checkbox" name="mentionedUserIds" value={candidate.userId} />@{candidate.name}
+                <label
+                  key={candidate.userId}
+                  className="cursor-pointer rounded-full border border-line-strong bg-surface-3 px-2.5 py-1 text-[11.5px] font-medium text-ink-muted transition-colors duration-150 has-[:checked]:border-[#ff6b4a] has-[:checked]:bg-[#ff6b4a24] has-[:checked]:text-[#ff6b4a]"
+                >
+                  <input type="checkbox" name="mentionedUserIds" value={candidate.userId} className="sr-only" />
+                  {`@${candidate.name}`}
                 </label>
               ))}
             </div>
           )}
-          <button type="submit" className={`self-start ${GHOST_BUTTON_CLASS}`}>
+          <button type="submit" className={`self-end ${COMPACT_PRIMARY_BUTTON_CLASS}`}>
             Add Note
           </button>
         </form>
@@ -233,7 +242,7 @@ export function ItemDetailPanel({
           rows={2}
           className={`w-full ${INPUT_CLASS}`}
         />
-        <button type="submit" className={`self-start ${COMPACT_PRIMARY_BUTTON_CLASS}`}>
+        <button type="submit" className={`self-end ${COMPACT_PRIMARY_BUTTON_CLASS}`}>
           Save
         </button>
       </form>
@@ -600,7 +609,7 @@ export function ItemDetailPanel({
                       href={`/workspaces/${workspaceId}/lists/${listId}/items/${child.id}`}
                       className="text-[13px] text-ink transition-colors duration-150 hover:underline"
                     >
-                      ↳ {child.title}
+                      {child.title}
                     </Link>
                   </li>
                 ))}
