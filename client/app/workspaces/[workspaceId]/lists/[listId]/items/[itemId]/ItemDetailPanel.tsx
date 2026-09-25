@@ -543,7 +543,11 @@ export function ItemDetailPanel({
                   </div>
                 ))}
               </div>
-              {dependenciesForm && <div className="flex justify-end">{dependenciesForm}</div>}
+              {dependenciesForm && (
+                <div className="flex justify-end">
+                  <RevealAddControl label="+ Add dependency">{dependenciesForm}</RevealAddControl>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -581,7 +585,11 @@ export function ItemDetailPanel({
                   </li>
                 ))}
               </ul>
-              {attachmentsForm && <div className="flex justify-end">{attachmentsForm}</div>}
+              {attachmentsForm && (
+                <div className="flex justify-end">
+                  <RevealAddControl label="+ Add attachment">{attachmentsForm}</RevealAddControl>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -614,7 +622,11 @@ export function ItemDetailPanel({
                   </li>
                 ))}
               </ul>
-              {addChildForm && <div className="flex justify-end">{addChildForm}</div>}
+              {addChildForm && (
+                <div className="flex justify-end">
+                  <RevealAddControl label="+ Add child Item">{addChildForm}</RevealAddControl>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-3">
