@@ -9,6 +9,9 @@ import {
   groupDaysByWeek,
   groupTimelineItems,
   isMilestoneItem,
+  STATE_COLOR,
+  STATE_LABEL,
+  STATUS_ORDER,
 } from "./list-timeline";
 
 function candidate(overrides: {
@@ -186,6 +189,25 @@ function candidate(overrides: {
   const items = buildTimelineItems([candidate({ id: "a", sectionId: null, dueDate: new Date("2026-10-01") })]);
   const groups = groupTimelineItems(items, []);
   assert.deepEqual(groups, [{ sectionId: null, sectionName: "No Section", items }]);
+}
+
+// STATE_COLOR is the Timeline view's only status-color lookup — its
+// status dot, bar, milestone diamond, and legend all import this same
+// object, so this pins the exact hex values (matching SectionList's
+// STATE_DOT_COLOR) against accidental drift, and guards against a missing
+// entry silently falling back to no color.
+{
+  assert.deepEqual(STATE_COLOR, {
+    TO_DO: "#5a5a56",
+    IN_PROGRESS: "#5b9dff",
+    BLOCKED: "#f5b642",
+    COMPLETE: "#3ecf8e",
+    ARCHIVED: "#525252",
+  });
+  for (const state of STATUS_ORDER) {
+    assert.match(STATE_COLOR[state], /^#[0-9a-f]{6}$/i, `STATE_COLOR[${state}] is not a valid hex color`);
+    assert.ok(STATE_LABEL[state], `STATE_LABEL is missing an entry for ${state}`);
+  }
 }
 
 console.log("list timeline test passed");

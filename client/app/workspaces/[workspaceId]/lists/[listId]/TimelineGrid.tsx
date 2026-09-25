@@ -5,6 +5,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-reac
 
 import { MemberAvatar } from "@/components/workspace/MemberAvatar";
 import type { ItemState } from "@/generated/prisma/client";
+import { STATE_BAR_TEXT, STATE_COLOR, STATE_LABEL, STATUS_ORDER } from "@/lib/list/list-timeline";
 
 export type TimelineGridDay = { dayNumber: number; weekdayLabel: string; shortLabel: string; year: number };
 export type TimelineGridWeek = { label: string; dayCount: number };
@@ -53,36 +54,6 @@ const MILESTONE_SIZE = 16;
 // tooltip rather than clipping to an unreadable sliver of text.
 const MIN_LABEL_BAR_WIDTH = 44;
 const TODAY_MARKER_COLOR = "#f2545b";
-
-const STATUS_ORDER: ItemState[] = ["TO_DO", "IN_PROGRESS", "BLOCKED", "COMPLETE"];
-
-const STATE_LABEL: Record<ItemState, string> = {
-  TO_DO: "To Do",
-  IN_PROGRESS: "In Progress",
-  BLOCKED: "Blocked",
-  COMPLETE: "Complete",
-  ARCHIVED: "Archived",
-};
-
-// Same palette as SectionList's status dots — kept in sync there rather
-// than introducing a second source of truth for status color.
-const STATE_COLOR: Record<ItemState, string> = {
-  TO_DO: "#5a5a56",
-  IN_PROGRESS: "#5b9dff",
-  BLOCKED: "#f5b642",
-  COMPLETE: "#3ecf8e",
-  ARCHIVED: "#525252",
-};
-
-// Text color for each bar background, chosen for contrast — reuses the
-// app's existing light/dark text tokens rather than new hex values.
-const STATE_BAR_TEXT: Record<ItemState, string> = {
-  TO_DO: "#F5F4F0",
-  IN_PROGRESS: "#0d0d0d",
-  BLOCKED: "#1a0800",
-  COMPLETE: "#0d0d0d",
-  ARCHIVED: "#F5F4F0",
-};
 
 type BodyRow =
   | { kind: "group"; key: string; sectionName: string; taskCount: number; height: number }
@@ -280,10 +251,10 @@ export function TimelineGrid({
             {weekPlacements.map((week) => (
               <div
                 key={week.label}
-                className="sticky top-0 z-20 flex items-center justify-center border-b border-r border-line bg-surface-1 px-2 text-[11px] text-ink-muted"
+                className="sticky top-0 z-20 flex items-center justify-center overflow-hidden border-b border-r border-line bg-surface-1 px-2"
                 style={{ gridColumn: `${week.colStart} / span ${week.dayCount}`, gridRow: 1 }}
               >
-                {week.label}
+                <span className="min-w-0 truncate text-[11px] text-ink-muted">{week.label}</span>
               </div>
             ))}
 
@@ -366,7 +337,11 @@ export function TimelineGrid({
                     className="sticky left-0 z-10 flex items-center gap-2.5 border-b border-line bg-surface-1 px-4 text-sm text-ink transition-colors duration-150 hover:bg-surface-2"
                     style={{ gridColumn: 1, gridRow }}
                   >
-                    <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: STATE_COLOR[item.state] }} />
+                    <span
+                      data-testid={`dot-${item.id}`}
+                      className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                      style={{ backgroundColor: STATE_COLOR[item.state] }}
+                    />
                     <span className="min-w-0 flex-1 truncate">
                       {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
                       {item.title}
@@ -389,6 +364,7 @@ export function TimelineGrid({
                       title={`${item.title} — ${item.dateLabel}`}
                     >
                       <span
+                        data-testid={`bar-${item.id}`}
                         className="flex-shrink-0 rounded-[3px]"
                         style={{
                           width: MILESTONE_SIZE,
@@ -408,6 +384,7 @@ export function TimelineGrid({
                       <a
                         href={item.href}
                         title={`${item.title} — ${item.dateLabel}`}
+                        data-testid={`bar-${item.id}`}
                         className="absolute left-0.5 right-0.5 flex items-center gap-1.5 overflow-hidden rounded-[7px] px-2.5"
                         style={{
                           top: (TASK_ROW_HEIGHT - BAR_HEIGHT) / 2,

@@ -1,5 +1,37 @@
 import type { ItemPriority, ItemState } from "@/generated/prisma/client";
 
+export const STATUS_ORDER: ItemState[] = ["TO_DO", "IN_PROGRESS", "BLOCKED", "COMPLETE"];
+
+export const STATE_LABEL: Record<ItemState, string> = {
+  TO_DO: "To Do",
+  IN_PROGRESS: "In Progress",
+  BLOCKED: "Blocked",
+  COMPLETE: "Complete",
+  ARCHIVED: "Archived",
+};
+
+// The Timeline view's single source of truth for status color — its
+// status dot, bar, milestone diamond, and legend all import this same
+// object rather than each keeping their own copy, so they cannot drift
+// apart. Same palette as SectionList's STATE_DOT_COLOR.
+export const STATE_COLOR: Record<ItemState, string> = {
+  TO_DO: "#5a5a56",
+  IN_PROGRESS: "#5b9dff",
+  BLOCKED: "#f5b642",
+  COMPLETE: "#3ecf8e",
+  ARCHIVED: "#525252",
+};
+
+// Text color for each bar background, chosen for contrast — reuses the
+// app's existing light/dark text tokens rather than new hex values.
+export const STATE_BAR_TEXT: Record<ItemState, string> = {
+  TO_DO: "#F5F4F0",
+  IN_PROGRESS: "#0d0d0d",
+  BLOCKED: "#1a0800",
+  COMPLETE: "#0d0d0d",
+  ARCHIVED: "#F5F4F0",
+};
+
 export type TimelineItem = {
   id: string;
   title: string;

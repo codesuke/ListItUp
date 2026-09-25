@@ -10,6 +10,7 @@ const TEST_FILES = [
   "lib/seo/site-metadata.test.ts",
   "lib/ui/member-display.test.ts",
   "lib/list/list-timeline.test.ts",
+  "app/workspaces/[workspaceId]/lists/[listId]/TimelineGrid.test.tsx",
   "lib/report/list-dashboard.test.ts",
   "lib/auth/auth-config.test.ts",
   "lib/auth/verification-resend.test.ts",
