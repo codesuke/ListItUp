@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Link2,
   MessageSquare,
-  MoreHorizontal,
   Paperclip,
   Plus,
   Search,
@@ -304,13 +303,19 @@ function callSectionAction(action: (formData: FormData) => Promise<void>, fields
   return action(formData);
 }
 
-function SectionOverflowMenu({
+// Section management (rename/duplicate/reorder/delete) lives behind the
+// Section's own name instead of a separate icon — clicking the name it's
+// already showing opens the same actions without adding a new visible
+// control to the header.
+function SectionNameMenu({
+  name,
   sectionId,
   onRename,
   boundDuplicateSection,
   boundMoveSection,
   boundDeleteSection,
 }: {
+  name: string;
   sectionId: string;
   onRename: () => void;
   boundDuplicateSection: (formData: FormData) => Promise<void>;
@@ -320,13 +325,13 @@ function SectionOverflowMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label="Section actions"
+        aria-label={`${name} Section actions`}
         title="Section actions"
-        className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-ink-faint outline-none transition-colors duration-150 hover:bg-surface-4 hover:text-ink"
+        className="rounded-[4px] bg-transparent p-0 text-[13px] font-semibold text-ink outline-none transition-colors duration-150 hover:text-ink-muted"
       >
-        <MoreHorizontal className="h-3.5 w-3.5" />
+        {name}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="start">
         <DropdownMenuItem onClick={onRename}>Rename</DropdownMenuItem>
         <DropdownMenuItem onClick={() => void callSectionAction(boundDuplicateSection, { sectionId })}>
           Duplicate
@@ -596,6 +601,15 @@ export function SectionList({
                         Cancel
                       </button>
                     </form>
+                  ) : canManage ? (
+                    <SectionNameMenu
+                      name={section.name}
+                      sectionId={section.id}
+                      onRename={() => setRenamingId(section.id)}
+                      boundDuplicateSection={boundDuplicateSection}
+                      boundMoveSection={boundMoveSection}
+                      boundDeleteSection={boundDeleteSection}
+                    />
                   ) : (
                     <span className="text-[13px] font-semibold text-ink">{section.name}</span>
                   )}
@@ -605,19 +619,10 @@ export function SectionList({
                   <div className="flex-1" />
 
                   {canManage && !isRenaming && (
-                    <div className="flex items-center gap-0.5">
-                      <SectionOverflowMenu
-                        sectionId={section.id}
-                        onRename={() => setRenamingId(section.id)}
-                        boundDuplicateSection={boundDuplicateSection}
-                        boundMoveSection={boundMoveSection}
-                        boundDeleteSection={boundDeleteSection}
-                      />
-                      <SectionAddButton
-                        open={addOpenIds.has(section.id)}
-                        onToggle={() => toggleAddOpen(section.id)}
-                      />
-                    </div>
+                    <SectionAddButton
+                      open={addOpenIds.has(section.id)}
+                      onToggle={() => toggleAddOpen(section.id)}
+                    />
                   )}
                 </div>
 
