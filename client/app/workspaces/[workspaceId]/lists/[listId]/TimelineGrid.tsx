@@ -53,7 +53,6 @@ const MILESTONE_SIZE = 16;
 // tooltip rather than clipping to an unreadable sliver of text.
 const MIN_LABEL_BAR_WIDTH = 44;
 const TODAY_MARKER_COLOR = "#f2545b";
-const MILESTONE_COLOR = "#ff6b4a";
 
 const STATUS_ORDER: ItemState[] = ["TO_DO", "IN_PROGRESS", "BLOCKED", "COMPLETE"];
 
@@ -380,21 +379,26 @@ export function TimelineGrid({
                   </a>
 
                   {item.isMilestone ? (
+                    // Spans from the milestone's own day column all the way to
+                    // the grid's right edge so the label has a bounded,
+                    // truncating box to flow into instead of overflowing
+                    // adjacent columns/rows unclipped.
                     <div
-                      className="relative flex items-center border-b border-line"
-                      style={{ gridColumn: item.startDayIndex + 2, gridRow }}
+                      className="flex items-center gap-2 overflow-hidden border-b border-line"
+                      style={{ gridColumn: `${item.startDayIndex + 2} / -1`, gridRow }}
                       title={`${item.title} — ${item.dateLabel}`}
                     >
                       <span
-                        className="absolute left-1/2 rounded-[3px]"
+                        className="flex-shrink-0 rounded-[3px]"
                         style={{
                           width: MILESTONE_SIZE,
                           height: MILESTONE_SIZE,
-                          backgroundColor: MILESTONE_COLOR,
-                          transform: "translateX(-50%) rotate(45deg)",
+                          marginLeft: columnWidth / 2 - MILESTONE_SIZE / 2,
+                          backgroundColor: STATE_COLOR[item.state],
+                          transform: "rotate(45deg)",
                         }}
                       />
-                      <span className="absolute left-1/2 whitespace-nowrap pl-3 text-[12px] text-ink">{item.title}</span>
+                      <span className="min-w-0 flex-1 truncate text-[12px] text-ink">{item.title}</span>
                     </div>
                   ) : (
                     <div
@@ -414,7 +418,7 @@ export function TimelineGrid({
                       >
                         <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-current opacity-70" />
                         {barWidthPx >= MIN_LABEL_BAR_WIDTH && (
-                          <span className="truncate text-[11px] font-medium">{item.title}</span>
+                          <span className="min-w-0 flex-1 truncate text-[11px] font-medium">{item.title}</span>
                         )}
                       </a>
                     </div>

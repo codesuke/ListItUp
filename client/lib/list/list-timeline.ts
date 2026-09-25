@@ -45,11 +45,12 @@ export function getTimelineDateRange(items: TimelineItem[]): TimelineDateRange |
   };
 }
 
-// A zero-duration Item (no start date, or start === due) renders as a
-// milestone marker instead of a bar (spec section 4).
+// A genuine zero-duration Item — an explicit start date equal to its due
+// date — renders as a milestone marker instead of a bar (spec section 4).
+// An Item with no start date at all isn't a milestone; it renders as a
+// single-day bar (dayOffset positions it using dueDate as both edges).
 export function isMilestoneItem(item: TimelineItem): boolean {
-  const barStart = item.startDate ?? item.dueDate;
-  return barStart.getTime() === item.dueDate.getTime();
+  return item.startDate !== null && item.startDate.getTime() === item.dueDate.getTime();
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;

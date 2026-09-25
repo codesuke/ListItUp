@@ -87,11 +87,13 @@ function candidate(overrides: {
   assert.equal(range?.end.toISOString(), new Date("2026-10-20").toISOString());
 }
 
-// isMilestoneItem: zero-duration Items (no start date, or start === due)
-// are milestones; anything spanning more than one day is a bar.
+// isMilestoneItem: only a genuine zero-duration Item (an explicit start
+// date equal to its due date) is a milestone. An Item with no start date
+// at all is not a milestone — it renders as a single-day bar instead, not
+// a diamond, since it never declared a zero-duration start.
 {
   const noStart = buildTimelineItems([candidate({ id: "a", dueDate: new Date("2026-10-05") })])[0];
-  assert.equal(isMilestoneItem(noStart), true);
+  assert.equal(isMilestoneItem(noStart), false);
 
   const sameDayStart = buildTimelineItems([
     candidate({ id: "b", startDate: new Date("2026-10-05"), dueDate: new Date("2026-10-05") }),
