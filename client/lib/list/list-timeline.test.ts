@@ -1,11 +1,22 @@
 import assert from "node:assert/strict";
 
-import { buildTimelineItems, computeBarPosition, getTimelineDateRange } from "./list-timeline";
+import {
+  buildTimelineDayRange,
+  buildTimelineDays,
+  buildTimelineItems,
+  dayOffset,
+  getTimelineDateRange,
+  groupDaysByWeek,
+  groupTimelineItems,
+  isMilestoneItem,
+} from "./list-timeline";
 
 function candidate(overrides: {
   id: string;
   startDate?: Date | null;
   dueDate: Date | null;
+  sectionId?: string | null;
+  assignees?: { userId: string; name: string }[];
 }) {
   return {
     id: overrides.id,
@@ -13,6 +24,8 @@ function candidate(overrides: {
     state: "TO_DO" as const,
     priority: "NORMAL" as const,
     hasParent: false,
+    sectionId: overrides.sectionId ?? null,
+    assignees: overrides.assignees ?? [],
     startDate: overrides.startDate ?? null,
     dueDate: overrides.dueDate,
   };
@@ -74,35 +87,103 @@ function candidate(overrides: {
   assert.equal(range?.end.toISOString(), new Date("2026-10-20").toISOString());
 }
 
-// computeBarPosition: a bar spans from its start (startDate, or dueDate
-// when absent) to its due date, as a percentage of the shared range.
+// isMilestoneItem: zero-duration Items (no start date, or start === due)
+// are milestones; anything spanning more than one day is a bar.
 {
-  const range = { start: new Date("2026-10-01"), end: new Date("2026-10-11") };
+  const noStart = buildTimelineItems([candidate({ id: "a", dueDate: new Date("2026-10-05") })])[0];
+  assert.equal(isMilestoneItem(noStart), true);
 
-  const withStart = buildTimelineItems([
-    candidate({ id: "a", startDate: new Date("2026-10-03"), dueDate: new Date("2026-10-08") }),
+  const sameDayStart = buildTimelineItems([
+    candidate({ id: "b", startDate: new Date("2026-10-05"), dueDate: new Date("2026-10-05") }),
   ])[0];
-  const withStartPosition = computeBarPosition(withStart, range);
-  assert.equal(withStartPosition.leftPercent, 20);
-  assert.equal(withStartPosition.widthPercent, 50);
+  assert.equal(isMilestoneItem(sameDayStart), true);
 
-  const withoutStart = buildTimelineItems([candidate({ id: "b", dueDate: new Date("2026-10-01") })])[0];
-  const withoutStartPosition = computeBarPosition(withoutStart, range);
-  assert.equal(withoutStartPosition.leftPercent, 0);
-  // Floored to the minimum visible width rather than 0, since a
-  // single-day bar still needs to render as something.
-  assert.equal(withoutStartPosition.widthPercent, 2);
+  const spanning = buildTimelineItems([
+    candidate({ id: "c", startDate: new Date("2026-10-01"), dueDate: new Date("2026-10-05") }),
+  ])[0];
+  assert.equal(isMilestoneItem(spanning), false);
 }
 
-// computeBarPosition doesn't divide by zero when the range collapses to a
-// single day (e.g. the only Timeline Item has no start date).
+// dayOffset counts whole UTC calendar days, and is negative when `date`
+// comes before `from`.
 {
-  const singleDay = new Date("2026-10-05");
-  const range = { start: singleDay, end: singleDay };
-  const item = buildTimelineItems([candidate({ id: "solo", dueDate: singleDay })])[0];
-  const position = computeBarPosition(item, range);
-  assert.equal(Number.isFinite(position.leftPercent), true);
-  assert.equal(Number.isFinite(position.widthPercent), true);
+  assert.equal(dayOffset(new Date("2026-10-05T00:00:00.000Z"), new Date("2026-10-01T00:00:00.000Z")), 4);
+  assert.equal(dayOffset(new Date("2026-10-01T00:00:00.000Z"), new Date("2026-10-05T00:00:00.000Z")), -4);
+  assert.equal(dayOffset(new Date("2026-10-01T23:59:00.000Z"), new Date("2026-10-01T00:00:00.000Z")), 0);
+}
+
+// buildTimelineDayRange pads the Item range by a few days on each side, and
+// widens it to include today so the Today marker always lands on-grid.
+{
+  const range = { start: new Date("2026-10-10T00:00:00.000Z"), end: new Date("2026-10-15T00:00:00.000Z") };
+  const today = new Date("2026-10-12T00:00:00.000Z");
+  const dayRange = buildTimelineDayRange(range, today);
+  assert.equal(dayRange.start.toISOString(), "2026-10-07T00:00:00.000Z");
+  assert.equal(dayRange.end.toISOString(), "2026-10-18T00:00:00.000Z");
+
+  const farFutureToday = new Date("2026-12-01T00:00:00.000Z");
+  const widenedForToday = buildTimelineDayRange(range, farFutureToday);
+  assert.equal(widenedForToday.end.toISOString(), farFutureToday.toISOString());
+}
+
+// buildTimelineDays enumerates every UTC day in the range, inclusive.
+{
+  const days = buildTimelineDays({
+    start: new Date("2026-10-01T00:00:00.000Z"),
+    end: new Date("2026-10-03T00:00:00.000Z"),
+  });
+  assert.deepEqual(
+    days.map((d) => d.toISOString()),
+    ["2026-10-01T00:00:00.000Z", "2026-10-02T00:00:00.000Z", "2026-10-03T00:00:00.000Z"]
+  );
+}
+
+// groupDaysByWeek splits a run of days on Sunday boundaries; the first and
+// last groups may be partial weeks.
+{
+  const days = buildTimelineDays({
+    start: new Date("2026-10-01T00:00:00.000Z"), // Thursday
+    end: new Date("2026-10-11T00:00:00.000Z"), // Sunday
+  });
+  const weeks = groupDaysByWeek(days);
+  assert.deepEqual(
+    weeks.map((w) => w.dayCount),
+    [3, 7, 1]
+  );
+  assert.equal(weeks[0]!.start.toISOString(), "2026-10-01T00:00:00.000Z");
+  assert.equal(weeks[1]!.start.getUTCDay(), 0);
+}
+
+// groupTimelineItems buckets Items by Section in Section order, appends a
+// "No Section" bucket last, and drops empty Sections.
+{
+  const items = buildTimelineItems([
+    candidate({ id: "a", sectionId: "s1", dueDate: new Date("2026-10-01") }),
+    candidate({ id: "b", sectionId: "s2", dueDate: new Date("2026-10-02") }),
+    candidate({ id: "c", sectionId: null, dueDate: new Date("2026-10-03") }),
+  ]);
+  const groups = groupTimelineItems(items, [
+    { id: "s1", name: "Development" },
+    { id: "empty", name: "Empty Section" },
+    { id: "s2", name: "Design" },
+  ]);
+  assert.deepEqual(
+    groups.map((g) => [g.sectionName, g.items.map((i) => i.id)]),
+    [
+      ["Development", ["a"]],
+      ["Design", ["b"]],
+      ["No Section", ["c"]],
+    ]
+  );
+}
+
+// groupTimelineItems collapses to a single unsectioned group when the List
+// doesn't use Sections at all — the Timeline view renders that as a flat
+// list rather than one lone group header.
+{
+  const items = buildTimelineItems([candidate({ id: "a", sectionId: null, dueDate: new Date("2026-10-01") })]);
+  const groups = groupTimelineItems(items, []);
+  assert.deepEqual(groups, [{ sectionId: null, sectionName: "No Section", items }]);
 }
 
 console.log("list timeline test passed");

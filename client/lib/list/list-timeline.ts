@@ -6,8 +6,10 @@ export type TimelineItem = {
   state: ItemState;
   priority: ItemPriority;
   hasParent: boolean;
+  sectionId: string | null;
+  assignees: { userId: string; name: string }[];
   // Optional and independent of dueDate — a bar renders from startDate to
-  // dueDate when present, or as a single-day marker at dueDate otherwise.
+  // dueDate when present, or as a milestone marker at dueDate otherwise.
   startDate: Date | null;
   dueDate: Date;
 };
@@ -28,8 +30,8 @@ export function buildTimelineItems(items: TimelineCandidate[]): TimelineItem[] {
 export type TimelineDateRange = { start: Date; end: Date };
 
 // The earliest bar-start and latest due date across all Timeline Items —
-// used to position each bar along a shared horizontal axis. Pure — unit
-// tested directly without a database.
+// the span the day-column grid has to cover. Pure — unit tested directly
+// without a database.
 export function getTimelineDateRange(items: TimelineItem[]): TimelineDateRange | null {
   if (items.length === 0) {
     return null;
@@ -43,24 +45,107 @@ export function getTimelineDateRange(items: TimelineItem[]): TimelineDateRange |
   };
 }
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-// A single-day (no start date) bar still needs to be visible against the
-// full date range, so its rendered width has a floor.
-const MIN_BAR_WIDTH_PERCENT = 2;
-
-export type TimelineBarPosition = { leftPercent: number; widthPercent: number };
-
-// Where an Item's bar sits along the shared axis, as percentages of the
-// range's total span. Pure — unit tested directly without a database. The
-// span is floored at one day so a single-Item range (start === end)
-// doesn't divide by zero.
-export function computeBarPosition(item: TimelineItem, range: TimelineDateRange): TimelineBarPosition {
-  const rangeSpanMs = Math.max(range.end.getTime() - range.start.getTime(), MS_PER_DAY);
+// A zero-duration Item (no start date, or start === due) renders as a
+// milestone marker instead of a bar (spec section 4).
+export function isMilestoneItem(item: TimelineItem): boolean {
   const barStart = item.startDate ?? item.dueDate;
-  const leftPercent = ((barStart.getTime() - range.start.getTime()) / rangeSpanMs) * 100;
-  const widthPercent = Math.max(
-    ((item.dueDate.getTime() - barStart.getTime()) / rangeSpanMs) * 100,
-    MIN_BAR_WIDTH_PERCENT
-  );
-  return { leftPercent, widthPercent };
+  return barStart.getTime() === item.dueDate.getTime();
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Item due/start dates are stored as UTC midnight — day math compares UTC
+// calendar days so it lands the same regardless of the server's local
+// timezone, same convention as lib/calendar/month-grid.ts.
+function startOfDayUTC(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+// Whole UTC calendar days between two dates (can be negative) — how many
+// day columns a bar/marker sits from the grid's first column.
+export function dayOffset(date: Date, from: Date): number {
+  return Math.round((startOfDayUTC(date).getTime() - startOfDayUTC(from).getTime()) / MS_PER_DAY);
+}
+
+// Item date ranges only cover Items that happen to have dates near each
+// other — padding keeps bars from butting against the grid's edge, and
+// widening to include today keeps the Today marker always on-grid.
+const RANGE_PADDING_DAYS = 3;
+
+export function buildTimelineDayRange(range: TimelineDateRange, today: Date): TimelineDateRange {
+  const paddedStart = new Date(startOfDayUTC(range.start).getTime() - RANGE_PADDING_DAYS * MS_PER_DAY);
+  const paddedEnd = new Date(startOfDayUTC(range.end).getTime() + RANGE_PADDING_DAYS * MS_PER_DAY);
+  const todayStart = startOfDayUTC(today);
+  return {
+    start: paddedStart.getTime() < todayStart.getTime() ? paddedStart : todayStart,
+    end: paddedEnd.getTime() > todayStart.getTime() ? paddedEnd : todayStart,
+  };
+}
+
+export function buildTimelineDays(dayRange: TimelineDateRange): Date[] {
+  const days: Date[] = [];
+  for (let time = dayRange.start.getTime(); time <= dayRange.end.getTime(); time += MS_PER_DAY) {
+    days.push(new Date(time));
+  }
+  return days;
+}
+
+export type TimelineWeekGroup = { start: Date; end: Date; dayCount: number };
+
+// Groups a contiguous run of day columns into calendar weeks (Sun–Sat) for
+// the date header's top row (spec section 2) — the week at either edge of
+// the range may be partial.
+export function groupDaysByWeek(days: Date[]): TimelineWeekGroup[] {
+  const groups: TimelineWeekGroup[] = [];
+  for (const day of days) {
+    const currentGroup = groups.at(-1);
+    if (currentGroup && day.getUTCDay() !== 0) {
+      currentGroup.end = day;
+      currentGroup.dayCount += 1;
+      continue;
+    }
+    groups.push({ start: day, end: day, dayCount: 1 });
+  }
+  return groups;
+}
+
+export type TimelineGroup = { sectionId: string | null; sectionName: string; items: TimelineItem[] };
+
+const NO_SECTION_NAME = "No Section";
+
+// Groups Timeline Items under their List Section, in Section order, with a
+// trailing "No Section" bucket — mirrors the List/Board views' own Section
+// grouping (page-data.ts's sections/unsectionedItems split) rather than
+// inventing a second one. A List that doesn't use Sections collapses to a
+// single unsectioned group, which the Timeline view then renders as a flat
+// list instead of one lone group header.
+export function groupTimelineItems(
+  items: TimelineItem[],
+  sections: { id: string; name: string }[]
+): TimelineGroup[] {
+  const itemsBySectionId = new Map<string, TimelineItem[]>();
+  const unsectionedItems: TimelineItem[] = [];
+  for (const item of items) {
+    if (item.sectionId === null) {
+      unsectionedItems.push(item);
+      continue;
+    }
+    const bucket = itemsBySectionId.get(item.sectionId) ?? [];
+    bucket.push(item);
+    itemsBySectionId.set(item.sectionId, bucket);
+  }
+
+  const groups: TimelineGroup[] = sections
+    .map((section) => ({
+      sectionId: section.id,
+      sectionName: section.name,
+      items: itemsBySectionId.get(section.id) ?? [],
+    }))
+    .filter((group) => group.items.length > 0);
+
+  if (unsectionedItems.length > 0) {
+    groups.push({ sectionId: null, sectionName: NO_SECTION_NAME, items: unsectionedItems });
+  }
+
+  return groups;
 }

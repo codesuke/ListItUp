@@ -458,7 +458,13 @@ export default async function ListPage({ params, searchParams }: Props) {
             now={now}
           />
         ) : activeTab === "timeline" ? (
-          <TimelineView items={data.timelineItems} workspaceId={workspaceId} listId={listId} />
+          <TimelineView
+            items={data.timelineItems}
+            sections={data.sections.map((section) => ({ id: section.id, name: section.name }))}
+            workspaceId={workspaceId}
+            listId={listId}
+            now={now}
+          />
         ) : activeTab === "files" ? (
           <FilesView entries={data.filesViewEntries} workspaceId={workspaceId} listId={listId} />
         ) : activeTab === "dashboard" ? (

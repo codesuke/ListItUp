@@ -1,30 +1,72 @@
-import type { ItemState } from "@/generated/prisma/client";
-import { computeBarPosition, getTimelineDateRange, type TimelineItem } from "@/lib/list/list-timeline";
+import {
+  buildTimelineDayRange,
+  buildTimelineDays,
+  dayOffset,
+  getTimelineDateRange,
+  groupDaysByWeek,
+  groupTimelineItems,
+  isMilestoneItem,
+  type TimelineItem,
+} from "@/lib/list/list-timeline";
 
-const STATE_BAR_COLOR: Record<ItemState, string> = {
-  TO_DO: "bg-neutral-500",
-  IN_PROGRESS: "bg-sky-500",
-  BLOCKED: "bg-[#ff6b4a]",
-  COMPLETE: "bg-emerald-500",
-  ARCHIVED: "bg-neutral-700",
-};
+import { TimelineGrid, type TimelineGridGroup, type TimelineGridWeek } from "./TimelineGrid";
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function formatShortDate(date: Date): string {
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+function itemDateLabel(item: TimelineItem): string {
+  const barStart = item.startDate ?? item.dueDate;
+  return barStart.getTime() === item.dueDate.getTime()
+    ? formatShortDate(item.dueDate)
+    : `${formatShortDate(barStart)} – ${formatShortDate(item.dueDate)}`;
+}
+
+function toGridGroup(
+  group: { sectionId: string | null; sectionName: string; items: TimelineItem[] },
+  dayRangeStart: Date,
+  workspaceId: string,
+  listId: string
+): TimelineGridGroup {
+  return {
+    sectionId: group.sectionId,
+    sectionName: group.sectionName,
+    items: group.items.map((item) => {
+      const barStart = item.startDate ?? item.dueDate;
+      return {
+        id: item.id,
+        title: item.title,
+        state: item.state,
+        hasParent: item.hasParent,
+        href: `/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`,
+        assignees: item.assignees,
+        startDayIndex: dayOffset(barStart, dayRangeStart),
+        endDayIndex: dayOffset(item.dueDate, dayRangeStart),
+        isMilestone: isMilestoneItem(item),
+        dateLabel: itemDateLabel(item),
+      };
+    }),
+  };
 }
 
 export function TimelineView({
   items,
+  sections,
   workspaceId,
   listId,
+  now,
 }: {
   items: TimelineItem[];
+  sections: { id: string; name: string }[];
   workspaceId: string;
   listId: string;
+  now: Date;
 }) {
-  const range = getTimelineDateRange(items);
+  const itemRange = getTimelineDateRange(items);
 
-  if (!range) {
+  if (!itemRange) {
     return (
       <div className="mt-10 rounded-lg border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
         No Items with a due date yet.
@@ -32,40 +74,32 @@ export function TimelineView({
     );
   }
 
-  return (
-    <div className="mt-6">
-      <div className="mb-2 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-ink-muted">
-        <span>{formatDate(range.start)}</span>
-        <span>{formatDate(range.end)}</span>
-      </div>
-      <div className="flex flex-col gap-2 rounded-lg border border-line bg-surface-1 p-4">
-        {items.map((item) => {
-          const { leftPercent, widthPercent } = computeBarPosition(item, range);
+  const dayRange = buildTimelineDayRange(itemRange, now);
+  const days = buildTimelineDays(dayRange);
+  const weeks: TimelineGridWeek[] = groupDaysByWeek(days).map((week) => ({
+    label: `${formatShortDate(week.start)} – ${formatShortDate(week.end)}`,
+    dayCount: week.dayCount,
+  }));
+  const rawGroups = groupTimelineItems(items, sections);
+  const isFlatList = rawGroups.length === 1 && rawGroups[0]!.sectionId === null;
+  const groups = rawGroups.map((group) => toGridGroup(group, dayRange.start, workspaceId, listId));
+  const assigneeOptions = Array.from(
+    new Map(items.flatMap((item) => item.assignees).map((assignee) => [assignee.userId, assignee])).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
-          return (
-            <div key={item.id} className="flex items-center gap-3">
-              <a
-                href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-                className="w-48 flex-shrink-0 truncate text-sm text-ink transition-colors duration-150 hover:text-ink hover:underline"
-              >
-                {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
-                {item.title}
-              </a>
-              <div className="relative h-5 flex-1 rounded bg-surface-2">
-                <div
-                  className={`absolute h-full rounded ${STATE_BAR_COLOR[item.state]}`}
-                  style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
-                  title={
-                    item.startDate
-                      ? `${formatDate(item.startDate)} – ${formatDate(item.dueDate)}`
-                      : formatDate(item.dueDate)
-                  }
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+  return (
+    <TimelineGrid
+      days={days.map((date) => ({
+        dayNumber: date.getUTCDate(),
+        weekdayLabel: WEEKDAY_LABELS[date.getUTCDay()]!,
+        shortLabel: formatShortDate(date),
+        year: date.getUTCFullYear(),
+      }))}
+      weeks={weeks}
+      todayDayIndex={dayOffset(now, dayRange.start)}
+      groups={groups}
+      isFlatList={isFlatList}
+      assigneeOptions={assigneeOptions}
+    />
   );
 }

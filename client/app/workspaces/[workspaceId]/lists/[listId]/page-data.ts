@@ -238,6 +238,8 @@ export async function loadListPageData(
       state: item.state,
       priority: item.priority,
       hasParent: item.parentId !== null,
+      sectionId: item.sectionId,
+      assignees: item.assignees.map((assignee) => ({ userId: assignee.userId, name: assignee.user.name })),
       startDate: item.startDate,
       dueDate: item.dueDate,
     }))

@@ -329,14 +329,19 @@ async function run() {
       await prisma.listMember.create({
         data: { id: randomUUID(), listId, userId: memberId, role: "MEMBER" },
       });
+      const timelineSection = await prisma.section.create({
+        data: { id: randomUUID(), listId, name: "Development", order: 0 },
+      });
       await prisma.item.create({
         data: {
           id: randomUUID(),
           listId,
+          sectionId: timelineSection.id,
           title: "Later, With Start",
           creatorId: memberId,
           startDate: new Date("2026-10-10T00:00:00.000Z"),
           dueDate: new Date("2026-10-20T00:00:00.000Z"),
+          assignees: { create: [{ id: randomUUID(), userId: memberId }] },
         },
       });
       await prisma.item.create({
@@ -372,8 +377,11 @@ async function run() {
       );
       const withStart = data!.timelineItems.find((item) => item.title === "Later, With Start")!;
       assert.equal(withStart.startDate?.toISOString(), "2026-10-10T00:00:00.000Z");
+      assert.equal(withStart.sectionId, timelineSection.id, "sectionId carries through for grouping the Timeline view");
+      assert.deepEqual(withStart.assignees, [{ userId: memberId, name: "Test User" }]);
       const withoutStart = data!.timelineItems.find((item) => item.title === "Earlier, No Start")!;
       assert.equal(withoutStart.startDate, null);
+      assert.equal(withoutStart.sectionId, null, "an unsectioned Item carries a null sectionId");
     }
 
     // A List Viewer has read access to Timeline data too — Timeline is a
