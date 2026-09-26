@@ -528,7 +528,9 @@ async function run() {
       assert.equal(data!.dashboard.completionOverTime.length, 14);
       assert.equal(data!.dashboard.completionOverTime.at(-1)?.cumulativeCompleted, 1);
       assert.equal(data!.dashboard.progressPercent, 33);
-      assert.equal(data!.dashboard.completionHeatmap.length, 12);
+      // Jan 1, 2026 through `now` (Sep 15, 2026) inclusive = 258 days = 37
+      // 7-day columns, per the anchor-to-current-year heatmap (2812300).
+      assert.equal(data!.dashboard.completionHeatmap.length, 37);
       assert.equal(data!.dashboard.peerComparisonEnabled, false, "off by default (#58)");
       assert.equal(
         data!.dashboard.canTogglePeerComparison,
