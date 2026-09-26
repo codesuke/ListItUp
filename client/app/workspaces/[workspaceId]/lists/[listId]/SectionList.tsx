@@ -4,44 +4,29 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Check,
-  ChevronRight,
-  Link2,
-  MessageSquare,
-  Paperclip,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  Folder,
+  MoreHorizontal,
   Plus,
   Search,
 } from "lucide-react";
 
-import { ADD_BUTTON_PRIMARY, ADD_BUTTON_SECONDARY } from "@/components/workspace/add-button";
+import { ADD_BUTTON_PRIMARY } from "@/components/workspace/add-button";
 import { MemberAvatar } from "@/components/workspace/MemberAvatar";
-import { RevealAddControl } from "@/components/workspace/RevealAddControl";
-import { StatusBadge, type StatusBadgeTone } from "@/components/workspace/StatusBadge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { StatusBadge, TONE_CLASSES, type StatusBadgeTone } from "@/components/workspace/StatusBadge";
 
 import type { ItemSummary, SectionWithItems } from "./page-data";
 
-// Key used for the unsectioned Items group in the per-section "add item"
-// open/collapsed state maps below — sections are keyed by their real id, and
-// this group has none.
+// Key used for the unsectioned Items group in the "add item" open/collapsed
+// state map below — sections are keyed by their real id, and this group has
+// none.
 const UNSECTIONED_KEY = "__unsectioned__";
 
 function sectionDomId(key: string): string {
   return `list-section-${key}`;
 }
-
-const STATE_DOT_COLOR: Record<ItemSummary["state"], string> = {
-  TO_DO: "#5a5a56",
-  IN_PROGRESS: "#5b9dff",
-  BLOCKED: "#f5b642",
-  COMPLETE: "#3ecf8e",
-  ARCHIVED: "#525252",
-};
 
 const PRIORITY_LABEL: Record<ItemSummary["priority"], string> = {
   LOW: "Low",
@@ -55,8 +40,6 @@ const PRIORITY_COLOR: Record<ItemSummary["priority"], string> = {
   HIGH: "text-[#ff8a70]",
 };
 
-// Status column always shows one of these, distinct from the Due date
-// column — never merged into a single pill the way the old badge was.
 const STATUS_BADGE: Record<ItemSummary["state"], { tone: StatusBadgeTone; label: string }> = {
   TO_DO: { tone: "muted", label: "Open" },
   IN_PROGRESS: { tone: "blue", label: "In Progress" },
@@ -65,30 +48,32 @@ const STATUS_BADGE: Record<ItemSummary["state"], { tone: StatusBadgeTone; label:
   ARCHIVED: { tone: "muted", label: "Archived" },
 };
 
-// One grid template, shared by every Section's header row and every task
-// row (active and the "No Section" group), so Priority/Assignee/Due
-// date/Status land in the same physical columns everywhere — a real CSS
-// grid track's width never depends on what any row puts inside it, unlike
-// flex-basis, which is what let a heavily-labeled Item drift out of
-// alignment before.
-const ROW_GRID_COLS = "grid-cols-[minmax(0,1fr)_110px_180px_120px_110px]";
+// Example, non-functional filter affordances — the row/section restructure
+// this component ships doesn't wire real multi-facet filtering yet, but the
+// toolbar still needs the pill+chevron control to occupy its place.
+const FILTER_PILLS = ["All Workspaces", "Priority", "Due date", "Assignee"];
 
-// Both the header and every row share this exact horizontal inset so a
-// column's left edge never depends on row-specific state — subtask
-// indentation is drawn *inside* the Task cell instead (see `ItemRow`),
-// because padding on the grid container itself would shift every column
-// after it out from under the header.
-const ROW_INSET = "px-2.5";
+// One grid template, shared by every task row in every Section card, so a
+// field's horizontal position never depends on what any row puts inside it
+// — a real CSS grid track's width is fixed regardless of content, unlike
+// flex-basis.
+const ROW_GRID_COLS = "grid-cols-[minmax(0,1fr)_100px_170px_100px_120px_32px]";
 
-// Reserved width for each optional facet icon (dependency/comment/attachment
-// count) so a count appearing or disappearing on one row never shifts the
-// facet that follows it on another row in the same section.
-const FACET_SLOT_WIDTH = "w-8";
+// Shared horizontal inset for every row so a column's left edge never
+// depends on row-specific state — subtask indentation is drawn *inside* the
+// Task cell instead (see `ItemRow`).
+const ROW_INSET = "px-3";
 
-// Width of the indentation spacer drawn inside a subtask's Task cell,
-// matching the visual indent the row previously got from extra container
-// padding (52px total inset - the shared 10px ROW_INSET = 42px).
-const SUBTASK_INDENT_WIDTH = "w-[42px]";
+// Width of the indentation spacer drawn inside a subtask's Task cell.
+const SUBTASK_INDENT_WIDTH = "w-[28px]";
+
+function SectionIcon({ name }: { name: string }) {
+  const normalized = name.trim().toLowerCase();
+  const className = "h-4 w-4 flex-shrink-0 text-ink-faint";
+  if (/(done|complete|finished|shipped)/.test(normalized)) return <CheckCircle2 className={className} />;
+  if (/(progress|doing|active|review)/.test(normalized)) return <Clock className={className} />;
+  return <Folder className={className} />;
+}
 
 function CompleteToggle({
   checked,
@@ -119,78 +104,70 @@ function CompleteToggle({
   );
 }
 
-function FacetIcon({ icon: Icon, count }: { icon: React.ComponentType<{ className?: string }>; count: number }) {
-  return (
-    <span
-      className={`flex ${FACET_SLOT_WIDTH} flex-shrink-0 items-center gap-[3px] font-[family-name:var(--font-mono-label)] text-[11px] text-ink-faint`}
-    >
-      {count > 0 && (
-        <>
-          <Icon className="h-3 w-3" /> {count}
-        </>
-      )}
-    </span>
-  );
-}
+// Exactly one pill per row: an Item's category Label takes priority over its
+// Priority level so a row never shows both at once.
+function BadgeCell({ item }: { item: ItemSummary }) {
+  if (item.labels.length > 0) {
+    return (
+      <span className="inline-flex w-fit items-center whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted">
+        {item.labels[0].name}
+      </span>
+    );
+  }
 
-function PriorityCell({ priority }: { priority: ItemSummary["priority"] }) {
   return (
     <span
-      className={`text-right font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.04em] ${PRIORITY_COLOR[priority]}`}
+      className={`inline-flex w-fit items-center whitespace-nowrap rounded-full bg-surface-4 px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] font-semibold uppercase tracking-[0.04em] ${PRIORITY_COLOR[item.priority]}`}
     >
-      {PRIORITY_LABEL[priority]}
+      {PRIORITY_LABEL[item.priority]}
     </span>
   );
 }
 
 function AssigneeCell({ assignees }: { assignees: ItemSummary["assignees"] }) {
   if (assignees.length === 0) {
-    return <span className="text-left text-[13px] text-ink-faint">—</span>;
+    return <span className="text-[13px] text-ink-faint">—</span>;
   }
 
+  const [assignee] = assignees;
   return (
-    <div className="flex min-w-0 items-center gap-1.5 text-left">
-      <span className="flex flex-shrink-0 -space-x-1.5">
-        {assignees.slice(0, 3).map((assignee) => (
-          <MemberAvatar key={assignee.userId} name={assignee.name} />
-        ))}
-      </span>
-      <span className="min-w-0 truncate text-[13px] text-ink-muted">
-        {assignees[0].name}
-        {assignees.length > 1 ? ` +${assignees.length - 1}` : ""}
-      </span>
+    <div className="flex min-w-0 items-center gap-2">
+      <MemberAvatar name={assignee.name} />
+      <span className="min-w-0 truncate text-[13px] text-ink-muted">{assignee.name}</span>
     </div>
   );
 }
 
 function DueDateCell({ dueDate }: { dueDate: Date | null }) {
   return (
-    <span className="text-right font-[family-name:var(--font-mono-label)] text-[11px] text-ink-muted">
+    <span className="text-[13px] text-ink-muted">
       {dueDate ? dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
     </span>
   );
 }
 
-function StatusCell({ state }: { state: ItemSummary["state"] }) {
+function StatusPill({ state }: { state: ItemSummary["state"] }) {
   const { tone, label } = STATUS_BADGE[state];
   return (
-    <span className="flex justify-end">
-      <StatusBadge tone={tone}>{label}</StatusBadge>
+    <span
+      className={`inline-flex w-fit items-center whitespace-nowrap rounded-full px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] font-semibold tracking-[0.04em] ${TONE_CLASSES[tone]}`}
+    >
+      {label}
     </span>
   );
 }
 
-function ColumnHeaders() {
-  const headerClass =
-    "font-[family-name:var(--font-mono-label)] text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-faint";
+// Row-level actions menu — icon and position only for now; wiring the menu
+// itself (rename/duplicate/delete an Item from the row) is a follow-up.
+function ItemActionsButton({ itemTitle }: { itemTitle: string }) {
   return (
-    <div className={`grid ${ROW_GRID_COLS} items-center gap-2.5 ${ROW_INSET} pb-1 pt-0.5`}>
-      <span className={`${headerClass} text-left`}>Task</span>
-      <span className={`${headerClass} text-right`}>Priority</span>
-      <span className={`${headerClass} text-left`}>Assignee</span>
-      <span className={`${headerClass} text-right`}>Due date</span>
-      <span className={`${headerClass} text-right`}>Status</span>
-    </div>
+    <button
+      type="button"
+      aria-label={`${itemTitle} actions`}
+      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[6px] text-ink-faint transition-colors duration-150 hover:bg-surface-4 hover:text-ink"
+    >
+      <MoreHorizontal className="h-3.5 w-3.5" />
+    </button>
   );
 }
 
@@ -209,12 +186,11 @@ function ItemRow({
 }) {
   return (
     <div
-      className={`grid ${ROW_GRID_COLS} items-center gap-2.5 rounded-[8px] ${ROW_INSET} py-2 transition-colors duration-150 hover:bg-surface-3`}
+      className={`grid ${ROW_GRID_COLS} items-center gap-4 rounded-[8px] ${ROW_INSET} py-2.5 transition-colors duration-150 hover:bg-surface-3`}
     >
       <div className="flex min-w-0 items-center gap-2 overflow-hidden">
         {indented && <span className={`${SUBTASK_INDENT_WIDTH} flex-shrink-0`} aria-hidden="true" />}
         <CompleteToggle checked={item.state === "COMPLETE"} itemId={item.id} boundComplete={boundComplete} />
-        {!indented && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: STATE_DOT_COLOR[item.state] }} />}
         <Link
           href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
           className={`min-w-0 truncate text-[13.5px] transition-colors duration-150 hover:underline ${
@@ -224,54 +200,14 @@ function ItemRow({
           {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
           {item.title}
         </Link>
-        {item.labels.map((label) => (
-          <span
-            key={label.id}
-            className="flex-shrink-0 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2 py-0.5 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted"
-          >
-            {label.name}
-          </span>
-        ))}
-        <FacetIcon icon={Link2} count={item.dependencyCount} />
-        <FacetIcon icon={MessageSquare} count={item.noteCount} />
-        <FacetIcon icon={Paperclip} count={item.attachmentCount} />
       </div>
-      <PriorityCell priority={item.priority} />
+      <BadgeCell item={item} />
       <AssigneeCell assignees={item.assignees} />
       <DueDateCell dueDate={item.dueDate} />
-      <StatusCell state={item.state} />
-    </div>
-  );
-}
-
-function ArchivedItemRow({
-  item,
-  workspaceId,
-  listId,
-  boundRestore,
-}: {
-  item: ItemSummary;
-  workspaceId: string;
-  listId: string;
-  boundRestore: (formData: FormData) => Promise<void>;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-[8px] px-2.5 py-2">
-      <Link
-        href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-        className="min-w-0 flex-1 truncate text-[13.5px] text-ink-muted transition-colors duration-150 hover:text-ink hover:underline"
-      >
-        {item.title}
-      </Link>
-      <form action={boundRestore}>
-        <input type="hidden" name="itemId" value={item.id} />
-        <button
-          type="submit"
-          className="rounded-[6px] border border-line-strong px-3 py-1 text-xs text-ink-muted transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
-        >
-          Restore
-        </button>
-      </form>
+      <StatusPill state={item.state} />
+      <div className="flex justify-end">
+        <ItemActionsButton itemTitle={item.title} />
+      </div>
     </div>
   );
 }
@@ -286,7 +222,7 @@ function AddItemForm({
   autoFocus?: boolean;
 }) {
   return (
-    <form action={boundAddItem} className="flex items-center gap-2 px-2.5 py-2">
+    <form action={boundAddItem} className={`flex items-center gap-2 ${ROW_INSET} py-2`}>
       {sectionId && <input type="hidden" name="sectionId" value={sectionId} />}
       <span className="text-ink-faint">+</span>
       <input
@@ -304,138 +240,58 @@ function AddItemForm({
   );
 }
 
-function SectionAddButton({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+function FilterPillButton({ label }: { label: string }) {
   return (
-    <button type="button" onClick={onToggle} aria-expanded={open} className={ADD_BUTTON_SECONDARY}>
-      <Plus className="h-3.5 w-3.5" /> Add
+    <button
+      type="button"
+      className="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-line-strong bg-surface-2 px-3 py-1.5 text-[12.5px] font-medium text-ink-muted transition-colors duration-150 hover:text-ink"
+    >
+      {label}
+      <ChevronDown className="h-3 w-3" />
     </button>
   );
 }
 
-function callSectionAction(action: (formData: FormData) => Promise<void>, fields: Record<string, string>) {
-  const formData = new FormData();
-  for (const [name, value] of Object.entries(fields)) {
-    formData.set(name, value);
-  }
-  return action(formData);
-}
-
-// Section management (rename/duplicate/reorder/delete) lives behind the
-// Section's own name instead of a separate icon — clicking the name it's
-// already showing opens the same actions without adding a new visible
-// control to the header.
-function SectionNameMenu({
+function SectionCard({
   name,
-  sectionId,
-  onRename,
-  boundDuplicateSection,
-  boundMoveSection,
-  boundDeleteSection,
+  count,
+  children,
 }: {
   name: string;
-  sectionId: string;
-  onRename: () => void;
-  boundDuplicateSection: (formData: FormData) => Promise<void>;
-  boundMoveSection: (formData: FormData) => Promise<void>;
-  boundDeleteSection: (formData: FormData) => Promise<void>;
+  count: number;
+  children: React.ReactNode;
 }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label={`${name} Section actions`}
-        title="Section actions"
-        className="rounded-[4px] bg-transparent p-0 text-[13px] font-semibold text-ink outline-none transition-colors duration-150 hover:text-ink-muted"
-      >
-        {name}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={onRename}>Rename</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void callSectionAction(boundDuplicateSection, { sectionId })}>
-          Duplicate
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void callSectionAction(boundMoveSection, { sectionId, direction: "up" })}>
-          Move up
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void callSectionAction(boundMoveSection, { sectionId, direction: "down" })}>
-          Move down
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          variant="destructive"
-          onClick={() => void callSectionAction(boundDeleteSection, { sectionId })}
-        >
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="rounded-[14px] border border-line bg-surface-2 p-2">
+      <div className={`flex items-center gap-2 ${ROW_INSET} py-3`}>
+        <SectionIcon name={name} />
+        <span className="text-[13px] font-semibold text-ink">{name}</span>
+        <StatusBadge tone="muted">{count}</StatusBadge>
+      </div>
+      <div>{children}</div>
+    </div>
   );
 }
 
 export function SectionList({
   sections,
   unsectionedItems,
-  archivedItems,
   canManage,
-  groupBy,
   workspaceId,
   listId,
-  boundAddSection,
-  boundRenameSection,
-  boundDuplicateSection,
-  boundDeleteSection,
-  boundMoveSection,
-  boundSetGroupBy,
   boundAddItem,
-  boundRestoreItem,
   boundCompleteItem,
 }: {
   sections: SectionWithItems[];
   unsectionedItems: ItemSummary[];
-  archivedItems: ItemSummary[];
   canManage: boolean;
-  groupBy: string;
   workspaceId: string;
   listId: string;
-  boundAddSection: (formData: FormData) => Promise<void>;
-  boundRenameSection: (formData: FormData) => Promise<void>;
-  boundDuplicateSection: (formData: FormData) => Promise<void>;
-  boundDeleteSection: (formData: FormData) => Promise<void>;
-  boundMoveSection: (formData: FormData) => Promise<void>;
-  boundSetGroupBy: (formData: FormData) => Promise<void>;
   boundAddItem: (formData: FormData) => Promise<void>;
-  boundRestoreItem: (formData: FormData) => Promise<void>;
   boundCompleteItem: (formData: FormData) => Promise<void>;
 }) {
-  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
-  const [hideEmpty, setHideEmpty] = useState(false);
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
   const [search, setSearch] = useState("");
   const [addOpenIds, setAddOpenIds] = useState<Set<string>>(new Set());
-
-  function toggleCollapsed(sectionId: string) {
-    setCollapsedIds((current) => {
-      const next = new Set(current);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.add(sectionId);
-      }
-      return next;
-    });
-  }
-
-  function toggleAddOpen(key: string) {
-    setAddOpenIds((current) => {
-      const next = new Set(current);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  }
 
   const normalizedSearch = search.trim().toLowerCase();
   const matchesSearch = (item: ItemSummary) =>
@@ -447,86 +303,37 @@ export function SectionList({
   }));
   const searchedUnsectionedItems = unsectionedItems.filter(matchesSearch);
 
-  const visibleSections = hideEmpty ? searchedSections.filter((section) => section.items.length > 0) : searchedSections;
-  const showUnsectioned =
-    searchedUnsectionedItems.length > 0 || (!hideEmpty && canManage && normalizedSearch === "");
+  const showUnsectioned = searchedUnsectionedItems.length > 0 || (canManage && normalizedSearch === "");
 
   function handleNewTask() {
-    const targetKey = visibleSections[0]?.id ?? UNSECTIONED_KEY;
-    setShowArchived(false);
-    setCollapsedIds((current) => {
-      if (!current.has(targetKey)) return current;
-      const next = new Set(current);
-      next.delete(targetKey);
-      return next;
-    });
+    const targetKey = searchedSections[0]?.id ?? UNSECTIONED_KEY;
     setAddOpenIds((current) => new Set(current).add(targetKey));
     requestAnimationFrame(() => {
       document.getElementById(sectionDomId(targetKey))?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }
 
-  const chipClass = (active: boolean) =>
-    active
-      ? "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#ff6b4a] bg-[#ff6b4a24] px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] text-[#ff8a70] transition-colors duration-150"
-      : "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted transition-colors duration-150 hover:text-ink";
-
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5">
-            <Search className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search Items…"
-              className="w-48 bg-transparent text-[13px] text-ink placeholder:text-ink-faint focus:outline-none"
-            />
-          </div>
-
-          {canManage && (
-            <RevealAddControl label="Section" variant="button">
-              <form action={boundAddSection} className="flex items-center gap-2">
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Section name"
-                  required
-                  autoFocus
-                  className="rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
-                />
-                <button type="submit" className={ADD_BUTTON_PRIMARY}>
-                  Add
-                </button>
-              </form>
-            </RevealAddControl>
-          )}
-
-          {canManage && (
-            <form action={boundSetGroupBy} className="flex items-center gap-2">
-              <select
-                name="groupBy"
-                defaultValue={groupBy}
-                className="rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] text-ink"
-              >
-                <option value="SECTION">Section</option>
-              </select>
-              <button type="submit" className={chipClass(false)}>
-                Add Rule: grouped by Section
-              </button>
-            </form>
-          )}
-
-          <button type="button" onClick={() => setHideEmpty((current) => !current)} className={chipClass(hideEmpty)}>
-            Hide empty Sections
-          </button>
-
-          <button type="button" onClick={() => setShowArchived((current) => !current)} className={chipClass(showArchived)}>
-            Archived ({archivedItems.length})
-          </button>
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-shrink-0 items-center gap-2 rounded-[8px] border border-line-strong bg-surface-2 px-3 py-2">
+          <Search className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
+          <input
+            type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search Items…"
+            className="w-52 bg-transparent text-[13px] text-ink placeholder:text-ink-faint focus:outline-none"
+          />
         </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {FILTER_PILLS.map((label) => (
+            <FilterPillButton key={label} label={label} />
+          ))}
+        </div>
+
+        <div className="flex-1" />
 
         {canManage && (
           <button type="button" onClick={handleNewTask} className={ADD_BUTTON_PRIMARY}>
@@ -535,165 +342,57 @@ export function SectionList({
         )}
       </div>
 
-      {showArchived ? (
-        <div className="rounded-[12px] border border-line bg-surface-2 p-2">
-          <div className="px-2.5 py-2 text-[13px] font-semibold text-ink">Archived Items</div>
-          {archivedItems.length === 0 ? (
-            <div className="px-3 py-4 text-center text-xs text-ink-faint">No archived Items.</div>
-          ) : (
-            archivedItems.map((item) => (
-              <ArchivedItemRow
-                key={item.id}
-                item={item}
-                workspaceId={workspaceId}
-                listId={listId}
-                boundRestore={boundRestoreItem}
-              />
-            ))
-          )}
-        </div>
-      ) : visibleSections.length === 0 && !showUnsectioned ? (
-        <div className="rounded-[12px] border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
-          {normalizedSearch !== ""
-            ? "No Items match your search."
-            : sections.length === 0
-              ? "No Sections yet."
-              : "Every Section is empty — toggle “Hide empty Sections” off to see them."}
+      {searchedSections.length === 0 && !showUnsectioned ? (
+        <div className="rounded-[14px] border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
+          {normalizedSearch !== "" ? "No Items match your search." : "No Sections yet."}
         </div>
       ) : (
-        <div className="rounded-[12px] border border-line bg-surface-2 p-2">
-          {visibleSections.map((section, index) => {
-            const collapsed = collapsedIds.has(section.id);
-            const isRenaming = renamingId === section.id;
-
-            return (
-              <div
-                key={section.id}
-                id={sectionDomId(section.id)}
-                className={index > 0 ? "mt-2" : undefined}
-              >
-                <div className="flex items-center gap-2 px-2.5 py-2.5">
-                  <button
-                    type="button"
-                    onClick={() => toggleCollapsed(section.id)}
-                    aria-label={collapsed ? "Expand Section" : "Collapse Section"}
-                    className="text-ink-faint transition-colors duration-150 hover:text-ink"
-                  >
-                    <ChevronRight
-                      className={`h-3.5 w-3.5 transition-transform duration-150 ${collapsed ? "" : "rotate-90"}`}
+        <div className="flex flex-col gap-4">
+          {searchedSections.map((section) => (
+            <div key={section.id} id={sectionDomId(section.id)}>
+              <SectionCard name={section.name} count={section.items.length}>
+                {section.items.length === 0 ? (
+                  <div className="px-3 py-4 text-center text-xs text-ink-faint">No Items yet.</div>
+                ) : (
+                  section.items.map((item) => (
+                    <ItemRow
+                      key={item.id}
+                      item={item}
+                      workspaceId={workspaceId}
+                      listId={listId}
+                      indented={item.hasParent}
+                      boundComplete={boundCompleteItem}
                     />
-                  </button>
-
-                  {isRenaming ? (
-                    <form
-                      action={async (formData) => {
-                        await boundRenameSection(formData);
-                        setRenamingId(null);
-                      }}
-                      className="flex flex-1 items-center gap-2"
-                    >
-                      <input type="hidden" name="sectionId" value={section.id} />
-                      <input
-                        type="text"
-                        name="name"
-                        defaultValue={section.name}
-                        autoFocus
-                        className="flex-1 rounded-[6px] border border-line-strong bg-surface-3 px-2 py-1 text-[13px] text-ink transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
-                      />
-                      <button type="submit" className="text-xs text-[#ff8a70]">
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRenamingId(null)}
-                        className="text-xs text-ink-faint transition-colors duration-150 hover:text-ink-muted"
-                      >
-                        Cancel
-                      </button>
-                    </form>
-                  ) : canManage ? (
-                    <SectionNameMenu
-                      name={section.name}
-                      sectionId={section.id}
-                      onRename={() => setRenamingId(section.id)}
-                      boundDuplicateSection={boundDuplicateSection}
-                      boundMoveSection={boundMoveSection}
-                      boundDeleteSection={boundDeleteSection}
-                    />
-                  ) : (
-                    <span className="text-[13px] font-semibold text-ink">{section.name}</span>
-                  )}
-
-                  {!isRenaming && <StatusBadge tone="muted">{section.items.length}</StatusBadge>}
-
-                  <div className="flex-1" />
-
-                  {canManage && !isRenaming && (
-                    <SectionAddButton
-                      open={addOpenIds.has(section.id)}
-                      onToggle={() => toggleAddOpen(section.id)}
-                    />
-                  )}
-                </div>
-
-                {!collapsed && (
-                  <div>
-                    {section.items.length === 0 ? (
-                      <div className="px-3 py-4 text-center text-xs text-ink-faint">No Items yet.</div>
-                    ) : (
-                      <>
-                        <ColumnHeaders />
-                        {section.items.map((item) => (
-                          <ItemRow
-                            key={item.id}
-                            item={item}
-                            workspaceId={workspaceId}
-                            listId={listId}
-                            indented={item.hasParent}
-                            boundComplete={boundCompleteItem}
-                          />
-                        ))}
-                      </>
-                    )}
-                    {canManage && addOpenIds.has(section.id) && (
-                      <AddItemForm sectionId={section.id} boundAddItem={boundAddItem} autoFocus />
-                    )}
-                  </div>
+                  ))
                 )}
-              </div>
-            );
-          })}
+                {canManage && addOpenIds.has(section.id) && (
+                  <AddItemForm sectionId={section.id} boundAddItem={boundAddItem} autoFocus />
+                )}
+              </SectionCard>
+            </div>
+          ))}
 
           {showUnsectioned && (
-            <div
-              id={sectionDomId(UNSECTIONED_KEY)}
-              className={visibleSections.length > 0 ? "mt-2" : undefined}
-            >
-              <div className="flex items-center gap-2 px-2.5 py-2.5">
-                <span className="text-[13px] font-semibold text-ink">No Section</span>
-                <StatusBadge tone="muted">{searchedUnsectionedItems.length}</StatusBadge>
-                <div className="flex-1" />
-                {canManage && (
-                  <SectionAddButton
-                    open={addOpenIds.has(UNSECTIONED_KEY)}
-                    onToggle={() => toggleAddOpen(UNSECTIONED_KEY)}
-                  />
+            <div id={sectionDomId(UNSECTIONED_KEY)}>
+              <SectionCard name="No Section" count={searchedUnsectionedItems.length}>
+                {searchedUnsectionedItems.length === 0 ? (
+                  <div className="px-3 py-4 text-center text-xs text-ink-faint">No Items yet.</div>
+                ) : (
+                  searchedUnsectionedItems.map((item) => (
+                    <ItemRow
+                      key={item.id}
+                      item={item}
+                      workspaceId={workspaceId}
+                      listId={listId}
+                      indented={item.hasParent}
+                      boundComplete={boundCompleteItem}
+                    />
+                  ))
                 )}
-              </div>
-              {searchedUnsectionedItems.length > 0 && <ColumnHeaders />}
-              {searchedUnsectionedItems.map((item) => (
-                <ItemRow
-                  key={item.id}
-                  item={item}
-                  workspaceId={workspaceId}
-                  listId={listId}
-                  indented={item.hasParent}
-                  boundComplete={boundCompleteItem}
-                />
-              ))}
-              {canManage && addOpenIds.has(UNSECTIONED_KEY) && (
-                <AddItemForm sectionId={null} boundAddItem={boundAddItem} autoFocus />
-              )}
+                {canManage && addOpenIds.has(UNSECTIONED_KEY) && (
+                  <AddItemForm sectionId={null} boundAddItem={boundAddItem} autoFocus />
+                )}
+              </SectionCard>
             </div>
           )}
         </div>

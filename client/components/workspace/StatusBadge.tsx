@@ -1,6 +1,6 @@
 export type StatusBadgeTone = "red" | "amber" | "blue" | "green" | "muted";
 
-const TONE_CLASSES: Record<StatusBadgeTone, string> = {
+export const TONE_CLASSES: Record<StatusBadgeTone, string> = {
   red: "bg-[#f2545b24] text-[#f2545b]",
   amber: "bg-[#f5b64224] text-[#f5b642]",
   blue: "bg-[#5b9dff24] text-[#5b9dff]",

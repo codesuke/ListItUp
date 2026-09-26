@@ -62,6 +62,7 @@ export type SectionWithItems = {
 export type ListPageData = {
   listId: string;
   workspaceId: string;
+  workspaceName: string;
   name: string;
   description: string | null;
   status: ListStatus;
@@ -154,7 +155,7 @@ export async function loadListPageData(
     }),
     database.workspace.findUniqueOrThrow({
       where: { id: workspaceId },
-      select: { peerComparisonEnabled: true },
+      select: { name: true, peerComparisonEnabled: true },
     }),
     database.section.findMany({ where: { listId }, orderBy: { order: "asc" } }),
     database.item.findMany({
@@ -304,6 +305,7 @@ export async function loadListPageData(
   return {
     listId: list.id,
     workspaceId: list.workspaceId,
+    workspaceName: workspace.name,
     name: list.name,
     description: list.description,
     status: list.status,
