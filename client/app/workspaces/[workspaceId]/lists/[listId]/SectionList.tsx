@@ -12,6 +12,7 @@ import {
   Search,
 } from "lucide-react";
 
+import { ADD_BUTTON_PRIMARY, ADD_BUTTON_SECONDARY } from "@/components/workspace/add-button";
 import { MemberAvatar } from "@/components/workspace/MemberAvatar";
 import { RevealAddControl } from "@/components/workspace/RevealAddControl";
 import { StatusBadge, type StatusBadgeTone } from "@/components/workspace/StatusBadge";
@@ -72,6 +73,23 @@ const STATUS_BADGE: Record<ItemSummary["state"], { tone: StatusBadgeTone; label:
 // alignment before.
 const ROW_GRID_COLS = "grid-cols-[minmax(0,1fr)_110px_180px_120px_110px]";
 
+// Both the header and every row share this exact horizontal inset so a
+// column's left edge never depends on row-specific state — subtask
+// indentation is drawn *inside* the Task cell instead (see `ItemRow`),
+// because padding on the grid container itself would shift every column
+// after it out from under the header.
+const ROW_INSET = "px-2.5";
+
+// Reserved width for each optional facet icon (dependency/comment/attachment
+// count) so a count appearing or disappearing on one row never shifts the
+// facet that follows it on another row in the same section.
+const FACET_SLOT_WIDTH = "w-8";
+
+// Width of the indentation spacer drawn inside a subtask's Task cell,
+// matching the visual indent the row previously got from extra container
+// padding (52px total inset - the shared 10px ROW_INSET = 42px).
+const SUBTASK_INDENT_WIDTH = "w-[42px]";
+
 function CompleteToggle({
   checked,
   itemId,
@@ -102,10 +120,15 @@ function CompleteToggle({
 }
 
 function FacetIcon({ icon: Icon, count }: { icon: React.ComponentType<{ className?: string }>; count: number }) {
-  if (count === 0) return null;
   return (
-    <span className="flex flex-shrink-0 items-center gap-[3px] font-[family-name:var(--font-mono-label)] text-[11px] text-ink-faint">
-      <Icon className="h-3 w-3" /> {count}
+    <span
+      className={`flex ${FACET_SLOT_WIDTH} flex-shrink-0 items-center gap-[3px] font-[family-name:var(--font-mono-label)] text-[11px] text-ink-faint`}
+    >
+      {count > 0 && (
+        <>
+          <Icon className="h-3 w-3" /> {count}
+        </>
+      )}
     </span>
   );
 }
@@ -161,7 +184,7 @@ function ColumnHeaders() {
   const headerClass =
     "font-[family-name:var(--font-mono-label)] text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-faint";
   return (
-    <div className={`grid ${ROW_GRID_COLS} items-center gap-2.5 px-2.5 pb-1 pt-0.5`}>
+    <div className={`grid ${ROW_GRID_COLS} items-center gap-2.5 ${ROW_INSET} pb-1 pt-0.5`}>
       <span className={`${headerClass} text-left`}>Task</span>
       <span className={`${headerClass} text-right`}>Priority</span>
       <span className={`${headerClass} text-left`}>Assignee</span>
@@ -186,16 +209,15 @@ function ItemRow({
 }) {
   return (
     <div
-      className={`grid ${ROW_GRID_COLS} items-center gap-2.5 rounded-[8px] py-2 pr-2.5 transition-colors duration-150 hover:bg-surface-3 ${
-        indented ? "pl-[52px]" : "pl-2.5"
-      }`}
+      className={`grid ${ROW_GRID_COLS} items-center gap-2.5 rounded-[8px] ${ROW_INSET} py-2 transition-colors duration-150 hover:bg-surface-3`}
     >
       <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+        {indented && <span className={`${SUBTASK_INDENT_WIDTH} flex-shrink-0`} aria-hidden="true" />}
         <CompleteToggle checked={item.state === "COMPLETE"} itemId={item.id} boundComplete={boundComplete} />
         {!indented && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: STATE_DOT_COLOR[item.state] }} />}
         <Link
           href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-          className={`min-w-0 flex-1 truncate text-[13.5px] transition-colors duration-150 hover:underline ${
+          className={`min-w-0 truncate text-[13.5px] transition-colors duration-150 hover:underline ${
             item.state === "COMPLETE" ? "text-ink-faint line-through" : "text-ink"
           }`}
         >
@@ -284,12 +306,7 @@ function AddItemForm({
 
 function SectionAddButton({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={open}
-      className="flex flex-shrink-0 items-center gap-1 rounded-[6px] px-2 py-1 text-[12px] font-medium text-[#ff8a70] transition-colors duration-150 hover:bg-surface-4 hover:text-[#ff6b4a]"
-    >
+    <button type="button" onClick={onToggle} aria-expanded={open} className={ADD_BUTTON_SECONDARY}>
       <Plus className="h-3.5 w-3.5" /> Add
     </button>
   );
@@ -470,7 +487,7 @@ export function SectionList({
           </div>
 
           {canManage && (
-            <RevealAddControl label="+ Section">
+            <RevealAddControl label="Section" variant="button">
               <form action={boundAddSection} className="flex items-center gap-2">
                 <input
                   type="text"
@@ -480,10 +497,7 @@ export function SectionList({
                   autoFocus
                   className="rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
                 />
-                <button
-                  type="submit"
-                  className="flex items-center gap-1.5 rounded-[6px] bg-[#ff6b4a] px-3 py-[7px] text-[13px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
-                >
+                <button type="submit" className={ADD_BUTTON_PRIMARY}>
                   Add
                 </button>
               </form>
@@ -515,11 +529,7 @@ export function SectionList({
         </div>
 
         {canManage && (
-          <button
-            type="button"
-            onClick={handleNewTask}
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-[6px] bg-[#ff6b4a] px-3 py-[7px] text-[13px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
-          >
+          <button type="button" onClick={handleNewTask} className={ADD_BUTTON_PRIMARY}>
             <Plus className="h-3.5 w-3.5" /> New Task
           </button>
         )}
