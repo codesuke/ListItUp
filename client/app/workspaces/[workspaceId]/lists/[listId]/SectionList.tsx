@@ -6,6 +6,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   Clock,
   Folder,
   MoreHorizontal,
@@ -55,9 +56,10 @@ const FILTER_PILLS = ["All Workspaces", "Priority", "Due date", "Assignee"];
 
 // One grid template, shared by every task row in every Section card, so a
 // field's horizontal position never depends on what any row puts inside it
-// — a real CSS grid track's width is fixed regardless of content, unlike
-// flex-basis.
-const ROW_GRID_COLS = "grid-cols-[minmax(0,1fr)_100px_170px_100px_120px_32px]";
+// — every non-Task track is a hardcoded pixel width (never auto/min-content)
+// sized for each column's longest real value ("In Progress", "Normal", a
+// long Assignee name), so a wider word can never shift the columns after it.
+const ROW_GRID_COLS = "grid-cols-[minmax(0,1fr)_100px_180px_100px_130px_32px]";
 
 // Shared horizontal inset for every row so a column's left edge never
 // depends on row-specific state — subtask indentation is drawn *inside* the
@@ -105,33 +107,46 @@ function CompleteToggle({
 }
 
 // Exactly one pill per row: an Item's category Label takes priority over its
-// Priority level so a row never shows both at once.
+// Priority level so a row never shows both at once. Wrapped in a full-width,
+// right-justified flex container (rather than returned as a bare `w-fit`
+// grid item) so the pill's right edge — not its left edge — stays fixed
+// regardless of "HIGH" vs "NORMAL" width.
 function BadgeCell({ item }: { item: ItemSummary }) {
   if (item.labels.length > 0) {
     return (
-      <span className="inline-flex w-fit items-center whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted">
-        {item.labels[0].name}
-      </span>
+      <div className="flex w-full justify-end">
+        <span className="inline-flex items-center whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted">
+          {item.labels[0].name}
+        </span>
+      </div>
     );
   }
 
   return (
-    <span
-      className={`inline-flex w-fit items-center whitespace-nowrap rounded-full bg-surface-4 px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] font-semibold uppercase tracking-[0.04em] ${PRIORITY_COLOR[item.priority]}`}
-    >
-      {PRIORITY_LABEL[item.priority]}
-    </span>
+    <div className="flex w-full justify-end">
+      <span
+        className={`inline-flex items-center whitespace-nowrap rounded-full bg-surface-4 px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] font-semibold uppercase tracking-[0.04em] ${PRIORITY_COLOR[item.priority]}`}
+      >
+        {PRIORITY_LABEL[item.priority]}
+      </span>
+    </div>
   );
 }
 
+// Left-aligned: the avatar always starts at this column's fixed left edge,
+// independent of every other column's content.
 function AssigneeCell({ assignees }: { assignees: ItemSummary["assignees"] }) {
   if (assignees.length === 0) {
-    return <span className="text-[13px] text-ink-faint">—</span>;
+    return (
+      <div className="flex w-full items-center">
+        <span className="text-[13px] text-ink-faint">—</span>
+      </div>
+    );
   }
 
   const [assignee] = assignees;
   return (
-    <div className="flex min-w-0 items-center gap-2">
+    <div className="flex w-full min-w-0 items-center gap-2">
       <MemberAvatar name={assignee.name} />
       <span className="min-w-0 truncate text-[13px] text-ink-muted">{assignee.name}</span>
     </div>
@@ -140,20 +155,26 @@ function AssigneeCell({ assignees }: { assignees: ItemSummary["assignees"] }) {
 
 function DueDateCell({ dueDate }: { dueDate: Date | null }) {
   return (
-    <span className="text-[13px] text-ink-muted">
-      {dueDate ? dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
-    </span>
+    <div className="flex w-full justify-end">
+      <span className="whitespace-nowrap text-[13px] text-ink-muted">
+        {dueDate ? dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
+      </span>
+    </div>
   );
 }
 
+// Right-justified so the pill's right edge is constant regardless of
+// "Open" vs "In Progress" vs "Complete" width.
 function StatusPill({ state }: { state: ItemSummary["state"] }) {
   const { tone, label } = STATUS_BADGE[state];
   return (
-    <span
-      className={`inline-flex w-fit items-center whitespace-nowrap rounded-full px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] font-semibold tracking-[0.04em] ${TONE_CLASSES[tone]}`}
-    >
-      {label}
-    </span>
+    <div className="flex w-full justify-end">
+      <span
+        className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] font-semibold tracking-[0.04em] ${TONE_CLASSES[tone]}`}
+      >
+        {label}
+      </span>
+    </div>
   );
 }
 
@@ -255,20 +276,33 @@ function FilterPillButton({ label }: { label: string }) {
 function SectionCard({
   name,
   count,
+  collapsed,
+  onToggleCollapse,
   children,
 }: {
   name: string;
   count: number;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   children: React.ReactNode;
 }) {
   return (
     <div className="rounded-[14px] border border-line bg-surface-2 p-2">
       <div className={`flex items-center gap-2 ${ROW_INSET} py-3`}>
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? `Expand ${name}` : `Collapse ${name}`}
+          aria-expanded={!collapsed}
+          className="flex-shrink-0 text-ink-faint transition-colors duration-150 hover:text-ink"
+        >
+          <ChevronRight className={`h-3.5 w-3.5 transition-transform duration-150 ${collapsed ? "" : "rotate-90"}`} />
+        </button>
         <SectionIcon name={name} />
         <span className="text-[13px] font-semibold text-ink">{name}</span>
         <StatusBadge tone="muted">{count}</StatusBadge>
       </div>
-      <div>{children}</div>
+      {!collapsed && <div>{children}</div>}
     </div>
   );
 }
@@ -292,6 +326,19 @@ export function SectionList({
 }) {
   const [search, setSearch] = useState("");
   const [addOpenIds, setAddOpenIds] = useState<Set<string>>(new Set());
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+
+  function toggleCollapsed(key: string) {
+    setCollapsedIds((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
 
   const normalizedSearch = search.trim().toLowerCase();
   const matchesSearch = (item: ItemSummary) =>
@@ -307,6 +354,12 @@ export function SectionList({
 
   function handleNewTask() {
     const targetKey = searchedSections[0]?.id ?? UNSECTIONED_KEY;
+    setCollapsedIds((current) => {
+      if (!current.has(targetKey)) return current;
+      const next = new Set(current);
+      next.delete(targetKey);
+      return next;
+    });
     setAddOpenIds((current) => new Set(current).add(targetKey));
     requestAnimationFrame(() => {
       document.getElementById(sectionDomId(targetKey))?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -350,7 +403,12 @@ export function SectionList({
         <div className="flex flex-col gap-4">
           {searchedSections.map((section) => (
             <div key={section.id} id={sectionDomId(section.id)}>
-              <SectionCard name={section.name} count={section.items.length}>
+              <SectionCard
+                name={section.name}
+                count={section.items.length}
+                collapsed={collapsedIds.has(section.id)}
+                onToggleCollapse={() => toggleCollapsed(section.id)}
+              >
                 {section.items.length === 0 ? (
                   <div className="px-3 py-4 text-center text-xs text-ink-faint">No Items yet.</div>
                 ) : (
@@ -374,7 +432,12 @@ export function SectionList({
 
           {showUnsectioned && (
             <div id={sectionDomId(UNSECTIONED_KEY)}>
-              <SectionCard name="No Section" count={searchedUnsectionedItems.length}>
+              <SectionCard
+                name="No Section"
+                count={searchedUnsectionedItems.length}
+                collapsed={collapsedIds.has(UNSECTIONED_KEY)}
+                onToggleCollapse={() => toggleCollapsed(UNSECTIONED_KEY)}
+              >
                 {searchedUnsectionedItems.length === 0 ? (
                   <div className="px-3 py-4 text-center text-xs text-ink-faint">No Items yet.</div>
                 ) : (
