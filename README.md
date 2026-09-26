@@ -184,7 +184,7 @@ The container applies committed Prisma migrations before starting the Next.js se
 | Authentication | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `REDIS_URL`                                                                                            |
 | Email          | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM_NAME`, `MAIL_FROM_EMAIL`                                      |
 | Attachments    | `OBJECT_STORAGE_ENDPOINT`, `OBJECT_STORAGE_REGION`, `OBJECT_STORAGE_BUCKET`, `OBJECT_STORAGE_ACCESS_KEY_ID`, `OBJECT_STORAGE_SECRET_ACCESS_KEY` |
-| Operations     | `DISCORD_SECURITY_WEBHOOK_URL`, `SECURITY_CLEANUP_SCHEDULER_SECRET`                                                                             |
+| Operations     | `DISCORD_SECURITY_WEBHOOK_URL`, `SECURITY_CLEANUP_SCHEDULER_SECRET`, `DUE_DATE_REMINDER_SCHEDULER_SECRET`                                       |
 
 Use [`.env.example`](.env.example) for Compose or [`client/.env.example`](client/.env.example) for local/platform deployments. Never commit real secrets.
 
