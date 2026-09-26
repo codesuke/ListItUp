@@ -56,10 +56,14 @@ const FILTER_PILLS = ["All Workspaces", "Priority", "Due date", "Assignee"];
 
 // One grid template, shared by every task row in every Section card, so a
 // field's horizontal position never depends on what any row puts inside it
-// — every non-Task track is a hardcoded pixel width (never auto/min-content)
-// sized for each column's longest real value ("In Progress", "Normal", a
-// long Assignee name), so a wider word can never shift the columns after it.
-const ROW_GRID_COLS = "grid-cols-[minmax(0,1fr)_100px_180px_100px_130px_32px]";
+// — every non-Task track is a hardcoded pixel width (never auto/min-content),
+// so a wider word can never shift the columns after it. Each width is sized
+// tight to that column's longest realistic value ("In Progress", "Normal", a
+// long Assignee name) plus a small cushion, not a generously wide slot —
+// oversizing a column left slack that piled onto the *outside* of its
+// right/left-aligned content, making the row's gaps read as uneven even
+// though the shared `gap-4` below is the same everywhere.
+const ROW_GRID_COLS = "grid-cols-[minmax(0,1fr)_84px_112px_56px_100px_32px]";
 
 // Shared horizontal inset for every row so a column's left edge never
 // depends on row-specific state — subtask indentation is drawn *inside* the
