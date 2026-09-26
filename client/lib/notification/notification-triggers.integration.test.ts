@@ -326,17 +326,19 @@ async function run() {
         data: { id: randomUUID(), itemId: completedItemId, userId: assigneeId },
       });
 
-      await createDueDateReminders(prisma, { now, windowMs });
+      const firstRun = await createDueDateReminders(prisma, { now, windowMs });
 
       const reminders = await prisma.notification.findMany({
         where: { recipientId: assigneeId, type: "DUE_DATE_REMINDER" },
       });
       assert.equal(reminders.length, 1);
       assert.equal(reminders[0]?.itemId, approachingItemId);
+      assert.equal(firstRun.remindersCreated, 1);
 
       // Idempotent: running the schedule again for the same moment creates
-      // no duplicate reminder for the same Item/Assignee/dueDate.
-      await createDueDateReminders(prisma, { now, windowMs });
+      // no duplicate reminder for the same Item/Assignee/dueDate, and its
+      // summary count reflects that nothing new was created (#53).
+      const secondRun = await createDueDateReminders(prisma, { now, windowMs });
       const remindersAfterRerun = await prisma.notification.findMany({
         where: { recipientId: assigneeId, type: "DUE_DATE_REMINDER" },
       });
@@ -345,6 +347,7 @@ async function run() {
         1,
         "re-running the schedule must not duplicate the reminder"
       );
+      assert.equal(secondRun.remindersCreated, 0);
     }
 
     // A recipient who has muted a NotificationType's category gets no new

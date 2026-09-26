@@ -206,8 +206,7 @@ export function isDueDateApproaching(
   return msUntilDue >= 0 && msUntilDue <= windowMs;
 }
 
-// Meant to be invoked on a schedule (the scheduler itself is out of this
-// ticket's scope — see docs/Specs-Planned/home-profile-updates-and-my-tasks.md).
+// Invoked on a schedule by POST /api/internal/due-date-reminders (#53).
 // Idempotent per approaching deadline via the recipientId/itemId/type/
 // dueDateAt unique constraint on Notification: re-running this against the
 // same Item/Assignee/dueDate is a no-op, so a one-time-per-deadline
@@ -217,7 +216,7 @@ export function isDueDateApproaching(
 export async function createDueDateReminders(
   database: PrismaClient,
   input: { now: Date; windowMs?: number }
-): Promise<void> {
+): Promise<{ remindersCreated: number }> {
   const windowMs = input.windowMs ?? DUE_DATE_REMINDER_WINDOW_MS;
   const upperBound = new Date(input.now.getTime() + windowMs);
 
@@ -233,6 +232,7 @@ export async function createDueDateReminders(
     },
   });
 
+  let remindersCreated = 0;
   for (const item of items) {
     if (!item.dueDate) {
       continue;
@@ -244,24 +244,26 @@ export async function createDueDateReminders(
     });
 
     for (const recipientId of recipients) {
+      const dedupeKey = {
+        recipientId,
+        itemId: item.id,
+        type: "DUE_DATE_REMINDER" as const,
+        dueDateAt: item.dueDate,
+      };
+      const alreadyReminded = await database.notification.findUnique({
+        where: { recipientId_itemId_type_dueDateAt: dedupeKey },
+        select: { id: true },
+      });
       await database.notification.upsert({
-        where: {
-          recipientId_itemId_type_dueDateAt: {
-            recipientId,
-            itemId: item.id,
-            type: "DUE_DATE_REMINDER",
-            dueDateAt: item.dueDate,
-          },
-        },
-        create: {
-          id: randomUUID(),
-          recipientId,
-          itemId: item.id,
-          type: "DUE_DATE_REMINDER",
-          dueDateAt: item.dueDate,
-        },
+        where: { recipientId_itemId_type_dueDateAt: dedupeKey },
+        create: { id: randomUUID(), ...dedupeKey },
         update: {},
       });
+      if (!alreadyReminded) {
+        remindersCreated += 1;
+      }
     }
   }
+
+  return { remindersCreated };
 }
