@@ -2,6 +2,7 @@ import { expect, test } from "./support/fixtures";
 
 import {
   signUpAndVerify,
+  signUpFromInvitationLink,
   signInWithPassword,
   uniqueTestUser,
   WORKSPACE_HOME_URL,
@@ -34,17 +35,7 @@ test("a new User signs up from an invitation link and lands in the invited Works
       )
     ).toBeVisible();
 
-    await page.getByRole("link", { name: "Sign up to accept" }).click();
-    await expect(page).toHaveURL(/sign-up/);
-
-    const emailField = page.getByLabel("Email");
-    await expect(emailField).toHaveValue(user.email);
-    await expect(emailField).not.toBeEditable();
-
-    await page.getByLabel("Display Name").fill(user.name);
-    await page.getByRole("textbox", { name: "Password" }).fill(user.password);
-    await page.getByRole("button", { name: "Create account" }).click();
-    await expect(page).toHaveURL(/verify-email/);
+    await signUpFromInvitationLink(page, user);
 
     // Verifying an invitation-bound sign-up must return the User straight
     // to the invitation, not the default Home destination.
@@ -142,17 +133,7 @@ test("an Owner invites someone from the members form, the invitee follows the em
   await page.goto(inviteLink);
   await expect(page.getByRole("heading", { name: /^Join /u })).toBeVisible();
 
-  await page.getByRole("link", { name: "Sign up to accept" }).click();
-  await expect(page).toHaveURL(/sign-up/);
-
-  const emailField = page.getByLabel("Email");
-  await expect(emailField).toHaveValue(invitee.email);
-  await expect(emailField).not.toBeEditable();
-
-  await page.getByLabel("Display Name").fill(invitee.name);
-  await page.getByRole("textbox", { name: "Password" }).fill(invitee.password);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/verify-email/);
+  await signUpFromInvitationLink(page, invitee);
 
   await page.goto(await waitForMailpitLink(invitee.email, knownMessageIds));
   await expect(page).toHaveURL(/accept-invitation/);

@@ -51,6 +51,26 @@ export async function signUpAndVerify(
   await verifyViaMailpit(page, user.email);
 }
 
+// Assumes the page is already on an /accept-invitation screen for a
+// signed-out User with no account yet. Clicks through to sign-up with the
+// invited email locked, fills in the rest, and lands on /verify-email.
+export async function signUpFromInvitationLink(
+  page: Page,
+  user: TestUser
+): Promise<void> {
+  await page.getByRole("link", { name: "Sign up to accept" }).click();
+  await expect(page).toHaveURL(/sign-up/);
+
+  const emailField = page.getByLabel("Email");
+  await expect(emailField).toHaveValue(user.email);
+  await expect(emailField).not.toBeEditable();
+
+  await page.getByLabel("Display Name").fill(user.name);
+  await page.getByRole("textbox", { name: "Password" }).fill(user.password);
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page).toHaveURL(/verify-email/);
+}
+
 // Assumes the page is already on /sign-in (with whatever callbackURL query
 // param it needs) — this only fills and submits, so it doesn't clobber that
 // query param with a fresh, param-less navigation.
