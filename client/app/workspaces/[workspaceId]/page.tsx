@@ -43,34 +43,22 @@ export default async function WorkspacePage({
         />
       </header>
 
-      <main className="flex-1 bg-canvas px-10 pb-16 pt-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10">
-            <div className="mb-2 font-[family-name:var(--font-mono-label)] text-[11px] uppercase tracking-[0.08em] text-[#ff8a70]">
-              {dateLabel}
-            </div>
-            <h1 className="text-[32px] font-semibold tracking-tight text-ink">
+      <main className="flex-1 bg-canvas px-10 pb-16 pt-10">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-12">
+            <h1 className="text-2xl font-semibold tracking-tight text-ink">
               {greeting}, {session.user.name}
             </h1>
-            <p className="mt-1 text-[13px] text-ink-muted">
-              {timeLabel} — {data.workspaceName}
+            <p className="mt-1.5 text-sm text-ink-muted">
+              {dateLabel} · {timeLabel} · {data.workspaceName}
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-5">
-            <div className="col-span-2">
-              <MyTasksPreviewWidget
-                items={data.myTasksPreview}
-                workspaceId={workspaceId}
-                workspaceName={data.workspaceName}
-                viewerName={session.user.name}
-                now={now}
-              />
-            </div>
+          <MyTasksPreviewWidget items={data.myTasksPreview} workspaceId={workspaceId} now={now} />
+
+          <div className="mt-14 grid grid-cols-2 gap-x-12 gap-y-10 border-t border-line pt-10">
             <RecentListsWidget lists={data.recentLists} workspaceId={workspaceId} />
-            <div className="col-span-3">
-              <AssignedByMeWidget items={data.assignedByMe} workspaceId={workspaceId} now={now} />
-            </div>
+            <AssignedByMeWidget items={data.assignedByMe} workspaceId={workspaceId} now={now} />
           </div>
         </div>
       </main>

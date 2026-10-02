@@ -34,11 +34,11 @@ type WorkspaceSidebarProps = {
   canManageWorkspaceSettings: boolean;
 };
 
-// Preserves the brand-orange active treatment from DESIGN.md; the base
-// sidebar primitive's own data-active classes use the neutral --sidebar-accent
-// token, which twMerge lets us override per data-active/hover state here.
-const ACTIVE_NAV_CLASSES =
-  "data-active:bg-[#ff6b4a24] data-active:text-[#ff8a70] data-active:hover:bg-[#ff6b4a24] data-active:hover:text-[#ff8a70]";
+// A quiet left accent bar on the active item — not a tinted pill, in either
+// color: this suppresses the sidebar primitive's own neutral data-active
+// background fill and keeps only the orange inset accent plus the
+// primitive's existing font-medium weight bump.
+const ACTIVE_NAV_CLASSES = "data-active:bg-transparent data-active:shadow-[inset_2px_0_0_0_#ff6b4a]";
 
 function NavMenuItem({
   href,
@@ -67,7 +67,7 @@ function NavMenuItem({
       {badge !== undefined && badge > 0 && (
         <SidebarMenuBadge
           aria-label={`${badge} unread notifications`}
-          className="bg-[#ff6b4a] text-[#1a0800] font-[family-name:var(--font-mono-label)] text-[10px] font-bold"
+          className="bg-ink text-canvas text-[10px] font-semibold"
         >
           {badge > 99 ? "99+" : badge}
         </SidebarMenuBadge>
@@ -138,9 +138,7 @@ export function WorkspaceSidebar({
 
         {lists.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="font-[family-name:var(--font-mono-label)] uppercase tracking-[0.14em]">
-              Lists
-            </SidebarGroupLabel>
+            <SidebarGroupLabel className="uppercase tracking-wide">Lists</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {lists.map((list) => (
@@ -163,7 +161,7 @@ export function WorkspaceSidebar({
             onClick={() => setIsPersonalSpaceOpen((open) => !open)}
             aria-expanded={isPersonalSpaceOpen}
             disabled={!personalSpace}
-            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.14em] text-sidebar-foreground/70 transition-colors duration-150 hover:text-sidebar-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/70 transition-colors duration-150 hover:text-sidebar-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ChevronRight
               className={`h-3 w-3 transition-transform duration-150 ${isPersonalSpaceOpen ? "rotate-90" : ""}`}
@@ -192,18 +190,13 @@ export function WorkspaceSidebar({
             onClick={() => setIsSwitcherOpen((open) => !open)}
             aria-expanded={isSwitcherOpen}
             aria-label="Switch Workspace"
-            className="flex w-full items-center gap-2.5 rounded-[8px] border border-sidebar-border bg-surface-2 px-2.5 py-2.5 text-left transition-colors duration-150 hover:border-line-strong hover:bg-surface-3 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0"
+            className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors duration-150 hover:bg-sidebar-accent group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0"
           >
-            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-[#ff6b4a] font-[family-name:var(--font-mono-label)] text-xs font-bold text-[#1a0800]">
+            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-sidebar-accent text-xs font-semibold text-sidebar-foreground">
               {initialsFromName(currentWorkspaceName)}
             </span>
-            <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-              <span className="block truncate text-[13px] font-semibold text-sidebar-foreground">
-                {currentWorkspaceName}
-              </span>
-              <span className="block font-[family-name:var(--font-mono-label)] text-[9px] uppercase tracking-[0.08em] text-sidebar-foreground/70">
-                Workspace
-              </span>
+            <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+              {currentWorkspaceName}
             </span>
             <ChevronsUpDown
               className={`h-3.5 w-3.5 flex-shrink-0 text-sidebar-foreground/70 transition-transform duration-150 group-data-[collapsible=icon]:hidden ${isSwitcherOpen ? "rotate-180" : ""}`}
@@ -211,7 +204,7 @@ export function WorkspaceSidebar({
           </button>
 
           {isSwitcherOpen && (
-            <ul className="absolute bottom-full left-0 z-10 mb-1 w-56 origin-bottom-left rounded-md border border-sidebar-border bg-surface-2 py-1 shadow-lg animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-1 duration-150">
+            <ul className="absolute bottom-full left-0 z-10 mb-1 w-56 origin-bottom-left rounded-md border border-line bg-surface-2 py-1 shadow-md animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-1 duration-150">
               {switchableWorkspaces.length === 0 && (
                 <li className="px-3 py-2 text-xs text-sidebar-foreground/70">No other Workspaces yet.</li>
               )}
