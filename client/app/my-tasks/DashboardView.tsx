@@ -53,7 +53,7 @@ function PersonalContributionWidget({ entries }: { entries: ListContributionEntr
           ))}
         </div>
       )}
-      <div className="mt-4 text-[11px] text-ink-faint">
+      <div className="mt-4 text-[11px] text-ink-muted">
         Completion rate per List = Items completed ÷ Items assigned there. Never shown for anyone else.
       </div>
     </div>
@@ -124,7 +124,7 @@ export function DashboardView({
         />
       </div>
 
-      <p className="text-[11.5px] text-ink-faint">
+      <p className="text-[11.5px] text-ink-muted">
         A trimmed personal Dashboard — counts, breakdowns, completion trend, overall progress, your own contribution
         pace, and where your own attention is skewed, scoped to Items assigned to you across every Workspace and
         your Personal Space.

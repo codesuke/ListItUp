@@ -123,6 +123,12 @@ body {
      so this one semantic color — unlike decorative brand orange — is
      theme-aware. */
   --accent-attention: #9A3412;
+
+  /* The "blocked" status signal (My Tasks row/section text) — same
+     theme-aware rationale as --accent-attention: the legacy world's amber
+     (#f5b642) reads fine on near-black but fails body-text contrast on this
+     light canvas when used as plain text rather than a tinted pill. */
+  --accent-blocked: #8A5A00;
 }
 
 .dark {
@@ -164,6 +170,7 @@ body {
   --ink-faint: #5a5a56;
 
   --accent-attention: #ff6b4a;
+  --accent-blocked: #f5b642;
 }
 
 @layer base {
