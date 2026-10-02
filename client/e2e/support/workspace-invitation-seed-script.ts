@@ -58,6 +58,20 @@ async function cleanupInvitation(prisma: PrismaClient, payload: CleanupPayload) 
     where: { workspaceId: payload.workspaceId },
   });
   await prisma.workspace.deleteMany({ where: { id: payload.workspaceId } });
+  // Signing in also auto-provisions a Personal Space and a Demo Workspace
+  // (lib/auth/auth-core.ts's session.create hook) — delete those too so
+  // hard-deleting the invitee below doesn't hit Item's immutable
+  // creatorId foreign key.
+  await prisma.workspace.deleteMany({
+    where: {
+      members: {
+        some: {
+          user: { email: { in: payload.invitedUserEmails } },
+          role: "OWNER",
+        },
+      },
+    },
+  });
   await prisma.user.deleteMany({
     where: { email: { in: payload.invitedUserEmails } },
   });
