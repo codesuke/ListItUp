@@ -180,7 +180,14 @@ export async function provisionDemoWorkspace(
     where: { isInbox: true, workspace: { kind: "PERSONAL", members: { some: { userId } } } },
   });
 
-  await database.item.createMany({
+  // createManyAndReturn (rather than createMany + a follow-up findMany by
+  // listId) so `allItems` below is exactly the Items this call just made —
+  // scoping by listId instead would also catch any pre-existing Items left
+  // behind in a shared List (notably the Personal Space Inbox) by an
+  // earlier, unrelated provisioning attempt, and re-inserting an
+  // ItemAssignee for one of those would violate the (itemId, userId)
+  // unique constraint.
+  const mainItems = await database.item.createManyAndReturn({
     data: [
       {
         id: randomUUID(),
@@ -275,34 +282,31 @@ export async function provisionDemoWorkspace(
     ],
   });
 
-  if (personalInbox) {
-    await database.item.createMany({
-      data: [
-        {
-          id: randomUUID(),
-          listId: personalInbox.id,
-          title: "Renew passport",
-          state: "TO_DO",
-          priority: "HIGH",
-          dueDate: daysFromNow(14),
-          creatorId: userId,
-        },
-        {
-          id: randomUUID(),
-          listId: personalInbox.id,
-          title: 'Read "Deep Work"',
-          state: "TO_DO",
-          priority: "LOW",
-          creatorId: userId,
-        },
-      ],
-    });
-  }
+  const personalInboxItems = personalInbox
+    ? await database.item.createManyAndReturn({
+        data: [
+          {
+            id: randomUUID(),
+            listId: personalInbox.id,
+            title: "Renew passport",
+            state: "TO_DO",
+            priority: "HIGH",
+            dueDate: daysFromNow(14),
+            creatorId: userId,
+          },
+          {
+            id: randomUUID(),
+            listId: personalInbox.id,
+            title: 'Read "Deep Work"',
+            state: "TO_DO",
+            priority: "LOW",
+            creatorId: userId,
+          },
+        ],
+      })
+    : [];
 
-  const allItems = await database.item.findMany({
-    where: { listId: { in: [websiteRelaunch.id, marketingPlan.id, personalInbox?.id ?? ""] } },
-    select: { id: true, title: true, listId: true, creatorId: true, dueDate: true },
-  });
+  const allItems = [...mainItems, ...personalInboxItems];
   const byTitle = (title: string) => allItems.find((item) => item.title === title)!;
 
   // Everything defaults to assigned-to-owner except the two items given to

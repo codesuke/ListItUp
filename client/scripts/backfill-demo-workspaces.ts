@@ -6,7 +6,7 @@
 //
 // Usage: pnpm exec tsx scripts/backfill-demo-workspaces.ts
 
-import { provisionDemoWorkspace } from "@/lib/workspace/demo-workspace";
+import { DEMO_TEAMMATES, provisionDemoWorkspace } from "@/lib/workspace/demo-workspace";
 import { provisionPersonalWorkspace } from "@/lib/workspace/workspace-provisioning";
 
 async function main() {
@@ -19,8 +19,15 @@ async function main() {
   });
 
   try {
+    // Exclude the Demo Workspace's own fixture teammates (Maya, Owen): they
+    // come back as emailVerified: true from their upsert in
+    // provisionDemoWorkspace, but they're co-star content for OTHER Users'
+    // Demo Workspaces, not real accounts that should own one themselves.
     const users = await database.user.findMany({
-      where: { emailVerified: true },
+      where: {
+        emailVerified: true,
+        email: { notIn: DEMO_TEAMMATES.map((teammate) => teammate.email) },
+      },
       select: { id: true, email: true },
     });
 
