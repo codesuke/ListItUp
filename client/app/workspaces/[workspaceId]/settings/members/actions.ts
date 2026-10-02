@@ -6,7 +6,11 @@ import { normalizeEmail } from "@/lib/auth/normalize-email";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 import { mailer } from "@/lib/mailer/mailer";
-import { createInvitation, resendInvitation } from "@/lib/workspace/workspace-invitations";
+import {
+  createInvitation,
+  resendInvitation,
+  revokeInvitation,
+} from "@/lib/workspace/workspace-invitations";
 
 function membersPath(workspaceId: string): string {
   return `/workspaces/${workspaceId}/settings/members`;
@@ -88,4 +92,41 @@ export async function resendInvitationAction(
   revalidatePath(membersPath(workspaceId));
 
   return { status: "success" };
+}
+
+export type RevokeInvitationState =
+  | { status: "idle" }
+  | { status: "error"; message: string };
+
+const REVOKE_ERROR_MESSAGE = {
+  forbidden: "Only the Workspace Owner or an Admin can revoke invitations.",
+  "not-found": "That invitation no longer exists.",
+  "already-accepted": "That invitation has already been accepted.",
+} as const;
+
+// prevState/formData are unused: the Revoke control is a bare button with
+// no form fields, but useActionState requires this exact signature shape
+// (see resendInvitationAction above).
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export async function revokeInvitationAction(
+  workspaceId: string,
+  invitationId: string,
+  _prevState: RevokeInvitationState,
+  _formData: FormData
+): Promise<RevokeInvitationState> {
+  /* eslint-enable @typescript-eslint/no-unused-vars */
+  const session = await requireAuthenticatedSession(membersPath(workspaceId));
+
+  const result = await revokeInvitation(prisma, {
+    invitationId,
+    actingUserId: session.user.id,
+  });
+
+  if (result.status !== "revoked") {
+    return { status: "error", message: REVOKE_ERROR_MESSAGE[result.status] };
+  }
+
+  revalidatePath(membersPath(workspaceId));
+
+  return { status: "idle" };
 }

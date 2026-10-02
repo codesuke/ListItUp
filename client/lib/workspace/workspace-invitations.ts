@@ -345,3 +345,55 @@ export async function resendInvitation(
 
   return { status: "resent" };
 }
+
+export interface RevokeInvitationInput {
+  invitationId: string;
+  actingUserId: string;
+}
+
+export type RevokeInvitationResult =
+  | { status: "revoked" }
+  | { status: "forbidden" }
+  | { status: "not-found" }
+  | { status: "already-accepted" };
+
+// Hard-deletes a Pending Invitation. The old token then resolves as invalid
+// via resolveInvitation (see docs/Specs-Planned/workspace-invitations.md's
+// revoke decision). Authorization is enforced here, not just on the members
+// page — a Server Action calling this is not itself a security boundary. An
+// already-accepted invitation is never deleted: it stays as a historical
+// row, excluded from the pending list by loadWorkspaceMembersPageData.
+export async function revokeInvitation(
+  database: PrismaClient,
+  input: RevokeInvitationInput
+): Promise<RevokeInvitationResult> {
+  const invitation = await database.workspaceInvitation.findUnique({
+    where: { id: input.invitationId },
+    include: { workspace: true },
+  });
+
+  if (!invitation) {
+    return { status: "not-found" };
+  }
+
+  // Authorization is checked immediately after loading the invitation (the
+  // minimum needed to know which Workspace to check against) and before any
+  // other branching, matching resendInvitation's identical ordering above.
+  const actingMembership = await database.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: { workspaceId: invitation.workspaceId, userId: input.actingUserId },
+    },
+  });
+
+  if (!canActOnWorkspaceSettings(actingMembership, invitation.workspace.kind)) {
+    return { status: "forbidden" };
+  }
+
+  if (invitation.acceptedAt) {
+    return { status: "already-accepted" };
+  }
+
+  await database.workspaceInvitation.delete({ where: { id: input.invitationId } });
+
+  return { status: "revoked" };
+}

@@ -8,6 +8,7 @@ import {
   INVITATION_EXPIRY_DAYS,
   resendInvitation,
   resolveInvitation,
+  revokeInvitation,
 } from "./workspace-invitations";
 
 async function run() {
@@ -590,9 +591,167 @@ async function runResendInvitationTests() {
   console.log("resendInvitation integration test passed");
 }
 
+async function runRevokeInvitationTests() {
+  if (!process.env.DATABASE_URL) {
+    console.log(
+      "revokeInvitation integration test skipped: DATABASE_URL is not set"
+    );
+    return;
+  }
+
+  const [{ PrismaPg }, { PrismaClient }] = await Promise.all([
+    import("@prisma/adapter-pg"),
+    import("@/generated/prisma/client"),
+  ]);
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  });
+
+  const workspaceId = randomUUID();
+  const ownerId = randomUUID();
+  const adminId = randomUUID();
+  const memberId = randomUUID();
+  const viewerId = randomUUID();
+  const userIds = [ownerId, adminId, memberId, viewerId];
+
+  try {
+    await prisma.user.createMany({
+      data: [
+        { id: ownerId, name: "Owner", email: `owner-${randomUUID()}@example.test` },
+        { id: adminId, name: "Admin", email: `admin-${randomUUID()}@example.test` },
+        { id: memberId, name: "Member", email: `member-${randomUUID()}@example.test` },
+        { id: viewerId, name: "Viewer", email: `viewer-${randomUUID()}@example.test` },
+      ],
+    });
+    await prisma.workspace.create({ data: { id: workspaceId, name: "Launch Team", kind: "SHARED" } });
+    await prisma.workspaceMember.createMany({
+      data: [
+        { id: randomUUID(), workspaceId, userId: ownerId, role: "OWNER" },
+        { id: randomUUID(), workspaceId, userId: adminId, role: "ADMIN" },
+        { id: randomUUID(), workspaceId, userId: memberId, role: "MEMBER" },
+        { id: randomUUID(), workspaceId, userId: viewerId, role: "VIEWER" },
+      ],
+    });
+
+    // Member, Viewer and non-members may not revoke.
+    for (const [label, actingUserId] of [
+      ["Member", memberId],
+      ["Viewer", viewerId],
+      ["non-member", randomUUID()],
+    ] as const) {
+      const invitationId = randomUUID();
+      await prisma.workspaceInvitation.create({
+        data: {
+          id: invitationId,
+          workspaceId,
+          email: `rejected-${randomUUID()}@example.test`,
+          role: "MEMBER",
+          token: randomUUID(),
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      const result = await revokeInvitation(prisma, { actingUserId, invitationId });
+      assert.deepEqual(result, { status: "forbidden" }, `${label} must be forbidden from revoking`);
+      assert.ok(
+        await prisma.workspaceInvitation.findUnique({ where: { id: invitationId } }),
+        "a forbidden revoke must not delete the invitation"
+      );
+    }
+
+    // An unknown invitation id is not found.
+    const unknownResult = await revokeInvitation(prisma, {
+      actingUserId: ownerId,
+      invitationId: randomUUID(),
+    });
+    assert.deepEqual(unknownResult, { status: "not-found" });
+
+    // An already-accepted invitation is never deleted: it stays as a
+    // historical row (docs/Specs-Planned/workspace-invitations.md's revoke
+    // decision).
+    const acceptedInvitationId = randomUUID();
+    await prisma.workspaceInvitation.create({
+      data: {
+        id: acceptedInvitationId,
+        workspaceId,
+        email: `accepted-${randomUUID()}@example.test`,
+        role: "MEMBER",
+        token: randomUUID(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        acceptedAt: new Date(),
+      },
+    });
+    const acceptedResult = await revokeInvitation(prisma, {
+      actingUserId: ownerId,
+      invitationId: acceptedInvitationId,
+    });
+    assert.deepEqual(acceptedResult, { status: "already-accepted" });
+    assert.ok(
+      await prisma.workspaceInvitation.findUnique({ where: { id: acceptedInvitationId } }),
+      "an already-accepted invitation must not be deleted by revoke"
+    );
+
+    // Owner can revoke: the row is deleted and the token no longer resolves.
+    const ownerRevokedToken = randomUUID();
+    const ownerRevokedId = randomUUID();
+    await prisma.workspaceInvitation.create({
+      data: {
+        id: ownerRevokedId,
+        workspaceId,
+        email: `owner-revoked-${randomUUID()}@example.test`,
+        role: "VIEWER",
+        token: ownerRevokedToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+    const ownerResult = await revokeInvitation(prisma, {
+      actingUserId: ownerId,
+      invitationId: ownerRevokedId,
+    });
+    assert.deepEqual(ownerResult, { status: "revoked" });
+    assert.equal(
+      await prisma.workspaceInvitation.findUnique({ where: { id: ownerRevokedId } }),
+      null,
+      "revoke must hard-delete the invitation row"
+    );
+    assert.equal(
+      await resolveInvitation(prisma, ownerRevokedToken),
+      null,
+      "a revoked token must resolve as invalid"
+    );
+
+    // Admin can also revoke.
+    const adminRevokedId = randomUUID();
+    await prisma.workspaceInvitation.create({
+      data: {
+        id: adminRevokedId,
+        workspaceId,
+        email: `admin-revoked-${randomUUID()}@example.test`,
+        role: "MEMBER",
+        token: randomUUID(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+    const adminResult = await revokeInvitation(prisma, {
+      actingUserId: adminId,
+      invitationId: adminRevokedId,
+    });
+    assert.deepEqual(adminResult, { status: "revoked" });
+  } finally {
+    await prisma.workspaceMember.deleteMany({ where: { workspaceId } });
+    await prisma.workspaceInvitation.deleteMany({ where: { workspaceId } });
+    await prisma.workspace.deleteMany({ where: { id: workspaceId } });
+    await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+    await prisma.$disconnect();
+  }
+
+  console.log("revokeInvitation integration test passed");
+}
+
 void run()
   .then(runCreateInvitationTests)
   .then(runResendInvitationTests)
+  .then(runRevokeInvitationTests)
   .catch((error: unknown) => {
     console.error(error);
     process.exitCode = 1;

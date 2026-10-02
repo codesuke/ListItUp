@@ -6,6 +6,7 @@ import { requireAuthenticatedSession } from "@/lib/session/require-authenticated
 import { InviteMemberForm } from "./InviteMemberForm";
 import { loadWorkspaceMembersPageData } from "./page-data";
 import { ResendInvitationButton } from "./ResendInvitationButton";
+import { RevokeInvitationButton } from "./RevokeInvitationButton";
 
 const ROLE_LABEL = {
   OWNER: "Owner",
@@ -101,6 +102,11 @@ export default async function WorkspaceMembersPage({ params }: Props) {
                         <ResendInvitationButton
                           workspaceId={workspaceId}
                           invitationId={invitation.id}
+                        />
+                        <RevokeInvitationButton
+                          workspaceId={workspaceId}
+                          invitationId={invitation.id}
+                          email={invitation.email}
                         />
                       </div>
                     </li>
