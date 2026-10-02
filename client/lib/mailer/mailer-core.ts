@@ -11,7 +11,8 @@ export type EmailMessageType =
   | "two-factor-notice"
   | "failed-sign-in-notice"
   | "recovery-code-notice"
-  | "workspace-invitation";
+  | "workspace-invitation"
+  | "workspace-ownership-transfer";
 
 export interface TransportMessage {
   from: string;

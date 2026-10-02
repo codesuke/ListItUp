@@ -50,6 +50,7 @@ export async function AppShell({
           personalSpace={navData.personalSpace}
           unreadNotificationCount={navData.unreadNotificationCount}
           lists={navData.lists}
+          canManageWorkspaceSettings={navData.canManageWorkspaceSettings}
         />
         <div className="min-w-0 flex-1">{children}</div>
       </SidebarProvider>

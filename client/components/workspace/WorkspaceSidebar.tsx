@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronRight, ChevronsUpDown, Home, LayoutList, ListChecks } from "lucide-react";
+import { Bell, ChevronRight, ChevronsUpDown, Home, LayoutList, ListChecks, Settings } from "lucide-react";
 
 import type { WorkspaceNavEntry } from "@/app/workspaces/[workspaceId]/layout-data";
 import { Logo } from "@/components/logo";
@@ -31,6 +31,7 @@ type WorkspaceSidebarProps = {
   personalSpace: WorkspaceNavEntry | null;
   unreadNotificationCount: number;
   lists: WorkspaceNavEntry[];
+  canManageWorkspaceSettings: boolean;
 };
 
 // Preserves the brand-orange active treatment from DESIGN.md; the base
@@ -82,6 +83,7 @@ export function WorkspaceSidebar({
   personalSpace,
   unreadNotificationCount,
   lists,
+  canManageWorkspaceSettings,
 }: WorkspaceSidebarProps) {
   const pathname = usePathname();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
@@ -91,6 +93,8 @@ export function WorkspaceSidebar({
   const isHomeActive = pathname === homeHref;
   const isMyTasksActive = pathname.startsWith("/my-tasks");
   const isUpdatesActive = pathname.startsWith("/updates");
+  const settingsHref = `/workspaces/${currentWorkspaceId}/settings`;
+  const isSettingsActive = pathname.startsWith(settingsHref);
   const listHref = (listId: string) => `/workspaces/${currentWorkspaceId}/lists/${listId}`;
 
   return (
@@ -120,6 +124,14 @@ export function WorkspaceSidebar({
                 label="Updates"
                 badge={unreadNotificationCount}
               />
+              {canManageWorkspaceSettings && (
+                <NavMenuItem
+                  href={settingsHref}
+                  isActive={isSettingsActive}
+                  icon={<Settings />}
+                  label="Settings"
+                />
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

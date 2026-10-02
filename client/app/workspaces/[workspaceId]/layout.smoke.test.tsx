@@ -33,7 +33,8 @@ async function run() {
   async function createWorkspace(
     kind: "SHARED" | "PERSONAL",
     name: string,
-    memberUserId?: string
+    memberUserId?: string,
+    memberRole: "OWNER" | "ADMIN" | "MEMBER" | "VIEWER" = "MEMBER"
   ): Promise<string> {
     const workspaceId = randomUUID();
     createdWorkspaceIds.push(workspaceId);
@@ -43,7 +44,7 @@ async function run() {
         name,
         kind,
         members: memberUserId
-          ? { create: [{ id: randomUUID(), userId: memberUserId, role: "MEMBER" }] }
+          ? { create: [{ id: randomUUID(), userId: memberUserId, role: memberRole }] }
           : undefined,
       },
     });
@@ -116,6 +117,31 @@ async function run() {
       const data = await loadWorkspaceNavData(prisma, userId, workspaceId);
 
       assert.deepEqual(data.lists, [{ id: listId, name: "Platform Retrofit" }]);
+    }
+
+    // The Settings nav entry (#58) is visible to the Owner/Admin of a
+    // SHARED Workspace, never to a Member/Viewer, and never for a Personal
+    // Space even for its sole Owner.
+    {
+      const ownerId = await createUser();
+      const ownedWorkspaceId = await createWorkspace("SHARED", "Owner Co", ownerId, "OWNER");
+      const ownerData = await loadWorkspaceNavData(prisma, ownerId, ownedWorkspaceId);
+      assert.equal(ownerData.canManageWorkspaceSettings, true);
+
+      const memberId = await createUser();
+      const memberWorkspaceId = await createWorkspace("SHARED", "Member Co", memberId, "MEMBER");
+      const memberData = await loadWorkspaceNavData(prisma, memberId, memberWorkspaceId);
+      assert.equal(memberData.canManageWorkspaceSettings, false);
+
+      const personalOwnerId = await createUser();
+      const personalId = await createWorkspace(
+        "PERSONAL",
+        "Personal Space",
+        personalOwnerId,
+        "OWNER"
+      );
+      const personalData = await loadWorkspaceNavData(prisma, personalOwnerId, personalId);
+      assert.equal(personalData.canManageWorkspaceSettings, false);
     }
   } finally {
     await prisma.listMember.deleteMany({ where: { listId: { in: createdListIds } } });

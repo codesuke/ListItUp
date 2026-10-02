@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { browseLists } from "@/lib/list/list-browsing";
 import { countUnreadNotifications } from "@/lib/notification/notification-inbox";
+import { canAccessWorkspaceSettings } from "@/lib/permissions/workspace-access";
 
 export type WorkspaceNavEntry = { id: string; name: string };
 
@@ -12,6 +13,9 @@ export type WorkspaceNavData = {
   // (design-mocks/list-dashboard) — visibility-filtered the same way
   // Home's Recent Lists widget is (lib/list/list-browsing.ts).
   lists: WorkspaceNavEntry[];
+  // Whether the current User sees the Settings nav entry for the current
+  // Workspace (#58: Owner/Admin of a SHARED Workspace only).
+  canManageWorkspaceSettings: boolean;
 };
 
 // Kept separate from layout.tsx itself, and taking an injected PrismaClient
@@ -24,19 +28,24 @@ export async function loadWorkspaceNavData(
   userId: string,
   workspaceId: string
 ): Promise<WorkspaceNavData> {
-  const [switchableMemberships, personalMembership, unreadNotificationCount, lists] = await Promise.all([
-    database.workspaceMember.findMany({
-      where: { userId, workspace: { kind: "SHARED" } },
-      include: { workspace: { select: { id: true, name: true } } },
-      orderBy: { workspace: { name: "asc" } },
-    }),
-    database.workspaceMember.findFirst({
-      where: { userId, workspace: { kind: "PERSONAL" } },
-      include: { workspace: { select: { id: true, name: true } } },
-    }),
-    countUnreadNotifications(database, userId),
-    browseLists(database, { userId, workspaceId }),
-  ]);
+  const [switchableMemberships, personalMembership, unreadNotificationCount, lists, currentMembership] =
+    await Promise.all([
+      database.workspaceMember.findMany({
+        where: { userId, workspace: { kind: "SHARED" } },
+        include: { workspace: { select: { id: true, name: true } } },
+        orderBy: { workspace: { name: "asc" } },
+      }),
+      database.workspaceMember.findFirst({
+        where: { userId, workspace: { kind: "PERSONAL" } },
+        include: { workspace: { select: { id: true, name: true } } },
+      }),
+      countUnreadNotifications(database, userId),
+      browseLists(database, { userId, workspaceId }),
+      database.workspaceMember.findUnique({
+        where: { workspaceId_userId: { workspaceId, userId } },
+        include: { workspace: { select: { kind: true } } },
+      }),
+    ]);
 
   return {
     switchableWorkspaces: switchableMemberships.map((membership) => ({
@@ -48,5 +57,9 @@ export async function loadWorkspaceNavData(
       : null,
     unreadNotificationCount,
     lists: lists.map((list) => ({ id: list.id, name: list.name })),
+    canManageWorkspaceSettings: canAccessWorkspaceSettings({
+      role: currentMembership?.role,
+      workspaceKind: currentMembership?.workspace.kind ?? "SHARED",
+    }),
   };
 }

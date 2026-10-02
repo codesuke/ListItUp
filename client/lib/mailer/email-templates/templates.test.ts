@@ -10,6 +10,10 @@ import { twoFactorNoticeEmail } from "./two-factor-notice";
 import { failedSignInNoticeEmail } from "./failed-sign-in-notice";
 import { recoveryCodeNoticeEmail } from "./recovery-code-notice";
 import { workspaceInvitationEmail } from "./workspace-invitation";
+import {
+  workspaceOwnershipTransferredFromPreviousOwnerEmail,
+  workspaceOwnershipTransferredToNewOwnerEmail,
+} from "./workspace-ownership-transfer";
 import type { EmailTemplate } from "./render";
 
 function assertWellFormed(template: EmailTemplate, label: string) {
@@ -142,6 +146,32 @@ function run() {
     invitation.html.includes('href="https://listitup.test/invite?token=i1"')
   );
   assert.ok(invitation.text.includes("7 days"));
+
+  const transferToNewOwner = workspaceOwnershipTransferredToNewOwnerEmail({
+    workspaceName: "Launch Team",
+    counterpartyName: "Priya",
+  });
+  assertWellFormed(transferToNewOwner, "workspace-ownership-transfer (new owner)");
+  assert.equal(
+    transferToNewOwner.subject,
+    "You're now the Owner of Launch Team"
+  );
+  assert.ok(transferToNewOwner.html.includes("Priya"));
+
+  const transferFromPreviousOwner =
+    workspaceOwnershipTransferredFromPreviousOwnerEmail({
+      workspaceName: "Launch Team",
+      counterpartyName: "Priya",
+    });
+  assertWellFormed(
+    transferFromPreviousOwner,
+    "workspace-ownership-transfer (previous owner)"
+  );
+  assert.equal(
+    transferFromPreviousOwner.subject,
+    "You transferred ownership of Launch Team"
+  );
+  assert.ok(transferFromPreviousOwner.html.includes("Priya"));
 
   console.log("email templates test passed");
 }
