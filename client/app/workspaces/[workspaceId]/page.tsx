@@ -6,7 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 
 import { greetingForHour } from "./greeting";
-import { AssignedByMeWidget, MyTasksPreviewWidget, RecentListsWidget } from "./HomeWidgets";
+import {
+  AssignedByMeWidget,
+  MyTasksPreviewWidget,
+  RecentListsWidget,
+  WorkspaceShortcuts,
+} from "./HomeWidgets";
 import { loadHomePageData } from "./page-data";
 
 export default async function WorkspacePage({
@@ -53,6 +58,8 @@ export default async function WorkspacePage({
               {dateLabel} · {timeLabel} · {data.workspaceName}
             </p>
           </div>
+
+          <WorkspaceShortcuts workspaceId={workspaceId} />
 
           <MyTasksPreviewWidget items={data.myTasksPreview} workspaceId={workspaceId} now={now} />
 

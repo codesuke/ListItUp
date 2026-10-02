@@ -1,4 +1,4 @@
-import { ArrowRight, Check, LayoutList } from "lucide-react";
+import { ArrowRight, Check, LayoutList, Users } from "lucide-react";
 
 import { avatarColorForName, initialsFromName } from "@/lib/ui/member-display";
 import type { AssignedByMeItem } from "@/lib/item/item-assigned-by-me";
@@ -89,6 +89,32 @@ function EmptyState({ message }: { message: string }) {
   return <p className="mt-3 text-sm text-ink-muted">{message}</p>;
 }
 
+export function WorkspaceShortcuts({ workspaceId }: { workspaceId: string }) {
+  const shortcuts = [
+    { label: "Lists", description: "Browse and create Lists", href: `/workspaces/${workspaceId}/lists`, Icon: LayoutList },
+    { label: "Members", description: "See and invite people", href: `/workspaces/${workspaceId}/settings/members`, Icon: Users },
+  ];
+
+  return (
+    <nav aria-label="Workspace shortcuts" className="mb-12 grid grid-cols-2 gap-4">
+      {shortcuts.map(({ label, description, href, Icon }) => (
+        <a
+          key={href}
+          href={href}
+          className="group flex items-center gap-3 rounded-lg border border-line bg-surface-1 px-4 py-3 transition-colors duration-150 hover:border-line-strong hover:bg-surface-2"
+        >
+          <Icon className="h-5 w-5 flex-shrink-0 text-ink-muted" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium text-ink">{label}</span>
+            <span className="block text-xs text-ink-muted">{description}</span>
+          </span>
+          <ArrowRight className="h-4 w-4 flex-shrink-0 text-ink-muted transition-transform duration-150 group-hover:translate-x-0.5" />
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 export function MyTasksPreviewWidget({
   items,
   workspaceId,
@@ -154,7 +180,12 @@ export function RecentListsWidget({
       <SectionHeading>Recent Lists</SectionHeading>
 
       {lists.length === 0 ? (
-        <EmptyState message="No Lists here yet." />
+        <p className="mt-3 text-sm text-ink-muted">
+          No Lists here yet.{" "}
+          <a href={`/workspaces/${workspaceId}/lists`} className="text-ink underline">
+            Create your first List
+          </a>
+        </p>
       ) : (
         <ul className="mt-3 flex flex-col gap-3">
           {lists.map((list) => (
