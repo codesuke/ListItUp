@@ -5,6 +5,7 @@ import { buildFilesViewEntries, type FilesViewEntry } from "@/lib/list/list-file
 import { getListRoles, type ListRoles } from "@/lib/list/list-roles";
 import { buildTimelineItems, type TimelineItem } from "@/lib/list/list-timeline";
 import {
+  canExportList,
   meetsListAccessLevel,
   resolveListAccess,
   type ListAccessLevel,
@@ -72,6 +73,9 @@ export type ListPageData = {
   // setting Status (#27, #28, #59) — one flag for all three since they
   // share the same threshold.
   canEditDescription: boolean;
+  // Anyone who can read the List except a Guest — gates the Export CSV
+  // button (#72); the export route re-checks it.
+  canExport: boolean;
   roles: ListRoles;
   // Workspace Members not yet holding any List-level role — the candidate
   // pool for the Roles panel's "add Member/Viewer" control (#28). Guest
@@ -147,7 +151,7 @@ export async function loadListPageData(
     return null;
   }
 
-  const [roles, workspaceMembers, workspace, sections, allItems] = await Promise.all([
+  const [roles, workspaceMembers, workspace, sections, allItems, canExport] = await Promise.all([
     getListRoles(database, { listId }),
     database.workspaceMember.findMany({
       where: { workspaceId },
@@ -169,6 +173,7 @@ export async function loadListPageData(
       },
       orderBy: { createdAt: "asc" },
     }),
+    canExportList(database, { userId, listId }),
   ]);
 
   // Sections/Board/Timeline/Files only ever show active Items — Archived
@@ -313,6 +318,7 @@ export async function loadListPageData(
     archivedAt: list.archivedAt,
     access,
     canEditDescription: meetsListAccessLevel(access, "LEAD"),
+    canExport,
     roles,
     eligibleMembers,
     canManageSections: meetsListAccessLevel(access, "WRITE"),

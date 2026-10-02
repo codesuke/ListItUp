@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
-import { resolveListAccess } from "./list-access";
+import { canExportList, resolveListAccess } from "./list-access";
 
 async function run() {
   if (!process.env.DATABASE_URL) {
@@ -188,6 +188,44 @@ async function run() {
       const strangerId = await createUser();
 
       assert.equal(await resolveListAccess(prisma, { userId: strangerId, listId }), "NONE");
+    }
+
+    // canExportList (#72): anyone who can read the List may export it —
+    // including the Viewer roles — except a Guest, who is external and
+    // holds no Workspace or List role. Everyone else is refused.
+    {
+      const workspaceId = await createWorkspace();
+      const listId = await createListIn(workspaceId);
+
+      const owner = await createUser();
+      await addWorkspaceMember(workspaceId, owner, "OWNER");
+      const admin = await createUser();
+      await addWorkspaceMember(workspaceId, admin, "ADMIN");
+      const lead = await createUser();
+      await addWorkspaceMember(workspaceId, lead, "MEMBER");
+      await addListMember(listId, lead, "LEAD");
+      const member = await createUser();
+      await addWorkspaceMember(workspaceId, member, "MEMBER");
+      await addListMember(listId, member, "MEMBER");
+      const listViewer = await createUser();
+      await addWorkspaceMember(workspaceId, listViewer, "MEMBER");
+      await addListMember(listId, listViewer, "VIEWER");
+      const workspaceViewer = await createUser();
+      await addWorkspaceMember(workspaceId, workspaceViewer, "VIEWER");
+      await addListMember(listId, workspaceViewer, "MEMBER");
+      for (const userId of [owner, admin, lead, member, listViewer, workspaceViewer]) {
+        assert.equal(await canExportList(prisma, { userId, listId }), true, `expected ${userId} to export`);
+      }
+
+      const guest = await createUser();
+      await addGuest(listId, guest);
+      const unassignedMember = await createUser();
+      await addWorkspaceMember(workspaceId, unassignedMember, "MEMBER");
+      const stranger = await createUser();
+      for (const userId of [guest, unassignedMember, stranger]) {
+        assert.equal(await canExportList(prisma, { userId, listId }), false, `expected ${userId} to be refused`);
+      }
+      assert.equal(await canExportList(prisma, { userId: owner, listId: randomUUID() }), false);
     }
 
     // Multi-Workspace: a User who is a Member of List A's Workspace but has
