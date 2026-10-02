@@ -1,3 +1,5 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 import { myTaskItemHref } from "@/lib/item/item-my-tasks";
 import type { MyTasksCalendarCell } from "@/lib/item/item-my-tasks-calendar";
 
@@ -20,26 +22,25 @@ export function CalendarView({
       <div className="mb-4 flex items-center gap-3">
         <a
           href={prevHref}
-          className="rounded-md border border-line-strong px-2 py-1 text-xs text-ink-muted transition-colors duration-150 hover:text-ink"
+          aria-label="Previous month"
+          className="flex h-7 w-7 items-center justify-center rounded-[6px] text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
         >
-          ←
+          <ChevronLeft className="h-4 w-4" />
         </a>
         <span className="text-sm font-medium text-ink">{monthLabel}</span>
         <a
           href={nextHref}
-          className="rounded-md border border-line-strong px-2 py-1 text-xs text-ink-muted transition-colors duration-150 hover:text-ink"
+          aria-label="Next month"
+          className="flex h-7 w-7 items-center justify-center rounded-[6px] text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
         >
-          →
+          <ChevronRight className="h-4 w-4" />
         </a>
       </div>
 
       <div className="overflow-x-auto">
         <div className="grid min-w-[640px] grid-cols-7 gap-px rounded-lg border border-line bg-surface-2">
           {WEEKDAY_LABELS.map((label) => (
-            <div
-              key={label}
-              className="bg-surface-1 px-2 py-1 text-center font-mono text-[10px] uppercase tracking-wider text-ink-muted"
-            >
+            <div key={label} className="bg-surface-1 px-2 py-1 text-center text-[11px] text-ink-muted">
               {label}
             </div>
           ))}
@@ -60,7 +61,7 @@ export function CalendarView({
                   </a>
                 ))}
                 {cell.items.length > MAX_VISIBLE_ITEMS_PER_DAY && (
-                  <span className="text-[10px] text-ink-faint">
+                  <span className="text-[10px] text-ink-muted">
                     +{cell.items.length - MAX_VISIBLE_ITEMS_PER_DAY} more
                   </span>
                 )}

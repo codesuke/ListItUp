@@ -29,8 +29,8 @@ export function SearchForm({ workspace, completed, archived, sort, group, search
       <input type="hidden" name="archived" value={archived} />
       <input type="hidden" name="sort" value={sort} />
       <input type="hidden" name="group" value={group} />
-      <div className="flex h-[30px] items-center gap-1.5 rounded-[6px] border border-line-strong bg-surface-2 px-2.5">
-        <Search className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
+      <div className="flex h-[30px] items-center gap-1.5 rounded-[6px] bg-surface-3 px-2.5 transition-colors focus-within:bg-surface-2 focus-within:ring-1 focus-within:ring-line-strong">
+        <Search className="h-3.5 w-3.5 flex-shrink-0 text-ink-muted" />
         <input
           key={search}
           type="search"
@@ -38,7 +38,7 @@ export function SearchForm({ workspace, completed, archived, sort, group, search
           defaultValue={search}
           aria-label="Search your Items"
           placeholder="Search…"
-          className="w-32 bg-transparent text-[12.5px] text-ink outline-none placeholder:text-ink-faint"
+          className="w-36 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-faint"
           onChange={(event) => {
             if (event.currentTarget.value === "") {
               formRef.current?.requestSubmit();

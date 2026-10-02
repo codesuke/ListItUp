@@ -1,11 +1,11 @@
 import {
   BarChart3,
   Calendar as CalendarIcon,
+  Check,
+  ChevronDown,
   Columns3,
-  Filter,
   List as ListIcon,
   Paperclip,
-  Search,
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
@@ -14,6 +14,7 @@ import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions"
 import { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/item/item-my-tasks-calendar";
 import type { MyTasksBoardGroupBy } from "@/lib/item/item-my-tasks-board";
 import {
+  isItemOverdue,
   isValidMyTasksGroupBy,
   isValidMyTasksSortBy,
   type MyTasksGroupBy,
@@ -27,6 +28,7 @@ import { completeMyTaskItemAction, moveMyTaskItemAction, quickAddItemAction } fr
 import { BoardView } from "./BoardView";
 import { CalendarView } from "./CalendarView";
 import { DashboardView } from "./DashboardView";
+import { DismissOpenDisclosures } from "./DismissOpenDisclosures";
 import { FilesView } from "./FilesView";
 import { MyTasksList } from "./MyTasksList";
 import { loadMyTasksPageData, type MyTasksFilterWorkspace } from "./page-data";
@@ -71,7 +73,6 @@ function isTabKey(value: string): value is TabKey {
   return TAB_KEYS.includes(value);
 }
 
-// Dashboard is this spec's deliberately reserved placeholder — its content
 function myTasksHref(query: Query): string {
   const params = new URLSearchParams();
   if (query.workspace) params.set("workspace", query.workspace);
@@ -87,11 +88,6 @@ function myTasksHref(query: Query): string {
   return search ? `/my-tasks?${search}` : "/my-tasks";
 }
 
-const CHIP_BASE =
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 font-[family-name:var(--font-mono-label)] text-[10.5px] tracking-[0.04em] transition-colors duration-150";
-const CHIP_ACTIVE = `${CHIP_BASE} border-[#ff6b4a] bg-[#ff6b4a24] text-[#ff8a70]`;
-const CHIP_INACTIVE = `${CHIP_BASE} border-line-strong bg-surface-3 text-ink-muted hover:text-ink`;
-
 const SORT_OPTIONS: { value: MyTasksSortBy; label: string }[] = [
   { value: "SMART", label: "Smart" },
   { value: "DUE_DATE", label: "Due date" },
@@ -105,6 +101,73 @@ const GROUP_OPTIONS: { value: MyTasksGroupBy; label: string }[] = [
   { value: "PRIORITY", label: "Priority" },
   { value: "DUE_DATE", label: "Due date" },
 ];
+
+// One disclosure pattern for every "pick one of a few options" control on
+// this page (Workspace, Sort, Group, Board's Group by) — a native <details>
+// so each one collapses to a single compact trigger (no JS, no always-
+// visible row of pill buttons competing for attention) instead of DESIGN.md
+// Section B's chip-row pattern this page is moving away from.
+function OptionsDisclosure({
+  label,
+  currentLabel,
+  options,
+}: {
+  label: string;
+  currentLabel: string;
+  options: { key: string; label: string; href: string; active: boolean }[];
+}) {
+  return (
+    <details data-disclosure className="group relative">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[13px] transition-colors hover:bg-surface-3 [&::-webkit-details-marker]:hidden">
+        <span className="text-ink-muted">{label}</span>
+        <span className="font-medium text-ink">{currentLabel}</span>
+        <ChevronDown className="h-3 w-3 text-ink-faint transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="absolute left-0 top-full z-10 mt-1 min-w-[160px] rounded-[8px] border border-line bg-surface-2 p-1 shadow-md">
+        {options.map((option) => (
+          <a
+            key={option.key}
+            href={option.href}
+            className={
+              option.active
+                ? "block rounded-[5px] bg-surface-3 px-2.5 py-1.5 text-[13px] text-ink"
+                : "block rounded-[5px] px-2.5 py-1.5 text-[13px] text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
+            }
+          >
+            {option.label}
+          </a>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+// Completed/Archived read as binary switches, not a pick-one list, so they
+// stay a direct toggle link styled like the row checkbox they echo rather
+// than joining the disclosures above.
+function FilterToggleLink({ href, active, label }: { href: string; active: boolean; label: string }) {
+  return (
+    <a
+      href={href}
+      className="inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[13px] transition-colors hover:bg-surface-3"
+    >
+      <span
+        className={
+          active
+            ? "flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-[3px] bg-ink"
+            : "flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-[3px] border-[1.5px] border-line-strong"
+        }
+      >
+        {active && <Check className="h-2.5 w-2.5 text-surface-2" />}
+      </span>
+      <span className={active ? "text-ink" : "text-ink-muted"}>{label}</span>
+    </a>
+  );
+}
+
+function isSameCalendarDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
 
 // The Workspace the sidebar/topbar shell renders as "current": the
 // explicitly filtered one if valid, else the same oldest-SHARED-else-
@@ -178,11 +241,49 @@ export default async function MyTasksPage({ searchParams }: Props) {
   });
 
   const selectedWorkspace = data.filterWorkspaces.find((workspace) => workspace.id === data.selectedWorkspaceId);
-  const scopeBadgeLabel = selectedWorkspace
+  const workspaceScopeLabel = selectedWorkspace
     ? selectedWorkspace.isPersonal
       ? "Personal Space"
       : selectedWorkspace.name
-    : "Across all Workspaces";
+    : "All Workspaces";
+  const workspaceOptions = [
+    { key: "", label: "All Workspaces", href: myTasksHref({ ...query, workspace: undefined }), active: !data.selectedWorkspaceId },
+    ...data.filterWorkspaces.map((workspace) => ({
+      key: workspace.id,
+      label: workspace.isPersonal ? "Personal Space" : workspace.name,
+      href: myTasksHref({ ...query, workspace: workspace.id }),
+      active: data.selectedWorkspaceId === workspace.id,
+    })),
+  ];
+  const sortOptions = SORT_OPTIONS.map((option) => ({
+    key: option.value,
+    label: option.label,
+    href: myTasksHref({ ...query, sort: option.value }),
+    active: sortBy === option.value,
+  }));
+  const groupOptions = GROUP_OPTIONS.map((option) => ({
+    key: option.value,
+    label: option.label,
+    href: myTasksHref({ ...query, group: option.value }),
+    active: groupBy === option.value,
+  }));
+  const boardGroupOptions = BOARD_GROUP_BY_OPTIONS.map((option) => ({
+    key: option.key,
+    label: option.label,
+    href: myTasksHref({ ...query, tab: "board", groupBy: option.key }),
+    active: data.boardGroupBy === option.key,
+  }));
+
+  // An at-a-glance line, not a dashboard card — "how many of these need me
+  // right now" before a User reads a single row title. Derived from the
+  // already-filtered, already-grouped set (flattening never drops or
+  // duplicates an Item — see page.smoke.test.tsx) rather than from its own
+  // query, so it always matches what's actually on screen below it.
+  const flatItems = data.groups.flatMap((group) => group.items);
+  const overdueCount = flatItems.filter((item) => isItemOverdue(item, now)).length;
+  const dueTodayCount = flatItems.filter(
+    (item) => item.dueDate !== null && !isItemOverdue(item, now) && isSameCalendarDay(item.dueDate, now)
+  ).length;
 
   return (
     <AppShell
@@ -191,13 +292,9 @@ export default async function MyTasksPage({ searchParams }: Props) {
       userId={session.user.id}
     >
       <div className="flex min-h-screen flex-col animate-in fade-in duration-200">
+        <DismissOpenDisclosures />
         <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-ink">My Tasks</span>
-            <span className="whitespace-nowrap rounded-[5px] bg-surface-4 px-[7px] py-[2px] font-[family-name:var(--font-mono-label)] text-[10px] font-semibold tracking-[0.05em] text-ink-muted">
-              {scopeBadgeLabel}
-            </span>
-          </div>
+          <h1 className="text-[13px] font-semibold text-ink">My Tasks</h1>
           <GlobalHeaderActions
             currentUserName={session.user.name}
             unreadNotificationCount={unreadNotificationCount}
@@ -207,7 +304,7 @@ export default async function MyTasksPage({ searchParams }: Props) {
 
         <main className="flex-1 bg-canvas px-10 pb-16 pt-8">
           <div className="mx-auto max-w-6xl">
-            <nav className="mb-5 flex flex-wrap items-center gap-6 border-b border-line">
+            <nav className="mb-6 flex flex-wrap items-center gap-6 border-b border-line">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -216,8 +313,8 @@ export default async function MyTasksPage({ searchParams }: Props) {
                     href={myTasksHref({ ...query, tab: tab.key === "list" ? undefined : tab.key })}
                     className={
                       activeTab === tab.key
-                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-ink transition-colors duration-150"
-                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted transition-colors duration-150 hover:text-ink"
+                        ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13.5px] font-semibold text-ink"
+                        : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13.5px] font-medium text-ink-muted transition-colors hover:text-ink"
                     }
                   >
                     <Icon className="h-3.5 w-3.5" /> {tab.label}
@@ -230,102 +327,69 @@ export default async function MyTasksPage({ searchParams }: Props) {
 
             {activeTab === "list" ? (
               <>
-                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <a
+                <p className="mb-5 text-[13px] text-ink-muted">
+                  <span className="font-semibold text-ink">{flatItems.length}</span>{" "}
+                  {flatItems.length === 1 ? "task" : "tasks"} ·{" "}
+                  <span
+                    className={overdueCount > 0 ? "font-medium text-[color:var(--accent-attention)]" : undefined}
+                  >
+                    {overdueCount} overdue
+                  </span>{" "}
+                  · {dueTodayCount} due today
+                </p>
+
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <OptionsDisclosure label="Workspace" currentLabel={workspaceScopeLabel} options={workspaceOptions} />
+                    <FilterToggleLink
                       href={myTasksHref({ ...query, completed: includeCompleted ? undefined : "1" })}
-                      className={includeCompleted ? CHIP_ACTIVE : CHIP_INACTIVE}
-                    >
-                      <Filter className="h-3 w-3" /> Completed
-                    </a>
-                    <a
+                      active={includeCompleted}
+                      label="Completed"
+                    />
+                    <FilterToggleLink
                       href={myTasksHref({ ...query, archived: includeArchived ? undefined : "1" })}
-                      className={includeArchived ? CHIP_ACTIVE : CHIP_INACTIVE}
-                    >
-                      Archived
-                    </a>
-                    <a
-                      href={myTasksHref({ ...query, workspace: undefined })}
-                      className={!data.selectedWorkspaceId ? CHIP_ACTIVE : CHIP_INACTIVE}
-                    >
-                      All Workspaces
-                    </a>
-                    {data.filterWorkspaces.map((workspace) => (
-                      <a
-                        key={workspace.id}
-                        href={myTasksHref({ ...query, workspace: workspace.id })}
-                        className={data.selectedWorkspaceId === workspace.id ? CHIP_ACTIVE : CHIP_INACTIVE}
-                      >
-                        {workspace.isPersonal ? "Personal Space" : workspace.name}
-                      </a>
-                    ))}
+                      active={includeArchived}
+                      label="Archived"
+                    />
                   </div>
-                  <SearchForm
-                    workspace={query.workspace ?? ""}
-                    completed={query.completed ?? ""}
-                    archived={query.archived ?? ""}
-                    sort={sortBy}
-                    group={groupBy}
-                    search={search}
-                  />
+                  <div className="flex flex-wrap items-center gap-1">
+                    <SearchForm
+                      workspace={query.workspace ?? ""}
+                      completed={query.completed ?? ""}
+                      archived={query.archived ?? ""}
+                      sort={sortBy}
+                      group={groupBy}
+                      search={search}
+                    />
+                    <OptionsDisclosure
+                      label="Sort"
+                      currentLabel={SORT_OPTIONS.find((option) => option.value === sortBy)?.label ?? "Smart"}
+                      options={sortOptions}
+                    />
+                    <OptionsDisclosure
+                      label="Group"
+                      currentLabel={GROUP_OPTIONS.find((option) => option.value === groupBy)?.label ?? "None"}
+                      options={groupOptions}
+                    />
+                  </div>
                 </div>
 
-                <div className="mb-5 flex flex-wrap items-center gap-2">
-                  <span className="font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.08em] text-ink-faint">
-                    Sort:
-                  </span>
-                  {SORT_OPTIONS.map((option) => (
-                    <a
-                      key={option.value}
-                      href={myTasksHref({ ...query, sort: option.value })}
-                      className={sortBy === option.value ? CHIP_ACTIVE : CHIP_INACTIVE}
-                    >
-                      {option.label}
-                    </a>
-                  ))}
-                  <span className="ml-2 font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.08em] text-ink-faint">
-                    Group:
-                  </span>
-                  {GROUP_OPTIONS.map((option) => (
-                    <a
-                      key={option.value}
-                      href={myTasksHref({ ...query, group: option.value })}
-                      className={groupBy === option.value ? CHIP_ACTIVE : CHIP_INACTIVE}
-                    >
-                      {option.label}
-                    </a>
-                  ))}
-                </div>
-
-                <MyTasksList
-                  groups={data.groups}
-                  now={now}
-                  baseUrl={baseUrl}
-                  viewerName={session.user.name}
-                  boundComplete={boundComplete}
-                />
+                <MyTasksList groups={data.groups} now={now} baseUrl={baseUrl} boundComplete={boundComplete} />
 
                 {!includeCompleted && !includeArchived && (
-                  <p className="mt-3 text-[11.5px] text-ink-faint">
-                    Complete and Archived items are hidden by default — use the filter chips above to reveal them.
+                  <p className="mt-4 text-[12px] text-ink-muted">
+                    Complete and Archived tasks are hidden by default — use Completed / Archived above to show them.
                   </p>
                 )}
               </>
             ) : activeTab === "board" ? (
               <>
-                <div className="mb-5 flex flex-wrap items-center gap-2">
-                  <span className="font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.08em] text-ink-faint">
-                    Group by
-                  </span>
-                  {BOARD_GROUP_BY_OPTIONS.map((option) => (
-                    <a
-                      key={option.key}
-                      href={myTasksHref({ ...query, tab: "board", groupBy: option.key })}
-                      className={data.boardGroupBy === option.key ? CHIP_ACTIVE : CHIP_INACTIVE}
-                    >
-                      {option.label}
-                    </a>
-                  ))}
+                <div className="mb-5 flex items-center gap-1 border-b border-line pb-3">
+                  <OptionsDisclosure
+                    label="Group by"
+                    currentLabel={BOARD_GROUP_BY_OPTIONS.find((option) => option.key === data.boardGroupBy)?.label ?? "State"}
+                    options={boardGroupOptions}
+                  />
                 </div>
                 <BoardView columns={data.boardColumns} groupBy={data.boardGroupBy} boundMoveItem={boundMoveItem} />
               </>

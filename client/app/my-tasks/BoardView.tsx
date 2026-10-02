@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { CornerDownRight } from "lucide-react";
 
 import { BlockerReasonDialog } from "@/components/board/BlockerReasonDialog";
 import { DraggableCard } from "@/components/board/DraggableCard";
@@ -127,9 +128,7 @@ export function BoardView({
   return (
     <div className="mt-4">
       {columns.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
-          No Items here — you&apos;re all caught up.
-        </div>
+        <div className="px-4 py-16 text-center text-sm text-ink-muted">No Items here — you&apos;re all caught up.</div>
       ) : (
         <DndContext
           sensors={sensors}
@@ -139,28 +138,26 @@ export function BoardView({
         >
           <div className="flex gap-4 overflow-x-auto pb-4">
             {columns.map((column) => (
-              <div key={column.key} className="w-64 flex-shrink-0 rounded-lg border border-line bg-surface-1">
+              <div key={column.key} className="w-64 flex-shrink-0 rounded-[8px] border border-line bg-surface-1">
                 <div className="flex items-center justify-between border-b border-line px-3 py-2">
                   <span className="text-sm font-semibold text-ink">{column.label}</span>
-                  <span className="font-mono text-xs text-ink-faint">{column.items.length}</span>
+                  <span className="text-xs text-ink-muted">{column.items.length}</span>
                 </div>
                 <DroppableColumn id={column.key} className="flex min-h-16 flex-col gap-2 p-2">
                   {column.items.map((item) => (
                     <DraggableCard key={item.id} id={item.id} disabled={!canMove}>
                       <a
                         href={myTaskItemHref(item, item.id)}
-                        className="block text-sm text-ink hover:text-ink hover:underline"
+                        className="flex items-start text-sm text-ink hover:text-ink hover:underline"
                       >
-                        {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
+                        {item.hasParent && <CornerDownRight className="mr-1 mt-0.5 h-3 w-3 flex-shrink-0 text-ink-faint" />}
                         {item.title}
                       </a>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-ink-muted">
-                        <span className="font-mono uppercase tracking-wider">{myTaskWorkspaceLabel(item)}</span>
-                        {item.priority !== "NORMAL" && (
-                          <span className="font-mono uppercase">{PRIORITY_LABEL[item.priority]}</span>
-                        )}
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-muted">
+                        <span>{myTaskWorkspaceLabel(item)}</span>
+                        {item.priority !== "NORMAL" && <span>{PRIORITY_LABEL[item.priority]}</span>}
                         {item.dueDate && (
-                          <span className="font-mono">
+                          <span>
                             {new Date(item.dueDate).toLocaleDateString(undefined, {
                               month: "short",
                               day: "numeric",
@@ -180,7 +177,7 @@ export function BoardView({
                     </DraggableCard>
                   ))}
                   {column.items.length === 0 && (
-                    <div className="px-2 py-4 text-center text-xs text-ink-faint">Empty</div>
+                    <div className="px-2 py-4 text-center text-xs text-ink-muted">Empty</div>
                   )}
                 </DroppableColumn>
               </div>
