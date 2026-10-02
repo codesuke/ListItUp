@@ -25,9 +25,9 @@ const ROLE_DISPLAY_ORDER: Record<WorkspaceRole, number> = {
   VIEWER: 3,
 };
 
-function byRoleThenName(
-  a: WorkspaceSettingsMember,
-  b: WorkspaceSettingsMember
+export function byRoleThenName(
+  a: { role: WorkspaceRole; name: string },
+  b: { role: WorkspaceRole; name: string }
 ): number {
   return (
     ROLE_DISPLAY_ORDER[a.role] - ROLE_DISPLAY_ORDER[b.role] ||

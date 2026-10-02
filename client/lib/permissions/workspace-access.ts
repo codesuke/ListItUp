@@ -17,3 +17,13 @@ export function canAccessWorkspaceSettings(input: {
 }): boolean {
   return input.workspaceKind === "SHARED" && canManageWorkspace(input.role);
 }
+
+// The members list is read-only context for everyone in a SHARED Workspace
+// (Viewers included); a Personal Space has no members page, and
+// non-members get nothing.
+export function canViewWorkspaceMembers(input: {
+  role: WorkspaceRole | null | undefined;
+  workspaceKind: WorkspaceKind;
+}): boolean {
+  return input.role != null && input.workspaceKind === "SHARED";
+}

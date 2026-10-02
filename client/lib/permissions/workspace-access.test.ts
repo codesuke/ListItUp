@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 
-import { canAccessWorkspaceSettings, canManageWorkspace } from "./workspace-access";
+import {
+  canAccessWorkspaceSettings,
+  canManageWorkspace,
+  canViewWorkspaceMembers,
+} from "./workspace-access";
 
 function run() {
   // Owner and Admin can manage a Workspace; Member, Viewer, and no
@@ -31,6 +35,14 @@ function run() {
     false,
     "a Personal Space's Owner has no Workspace Settings page to manage"
   );
+
+  // Every role can see the members list of a SHARED Workspace, but a
+  // Personal Space has no members page and non-members get nothing.
+  for (const role of ["OWNER", "ADMIN", "MEMBER", "VIEWER"] as const) {
+    assert.equal(canViewWorkspaceMembers({ role, workspaceKind: "SHARED" }), true);
+    assert.equal(canViewWorkspaceMembers({ role, workspaceKind: "PERSONAL" }), false);
+  }
+  assert.equal(canViewWorkspaceMembers({ role: null, workspaceKind: "SHARED" }), false);
 
   console.log("workspace access permissions test passed");
 }
