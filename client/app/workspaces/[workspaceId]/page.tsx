@@ -9,6 +9,7 @@ import { greetingForHour } from "./greeting";
 import {
   AssignedByMeWidget,
   MyTasksPreviewWidget,
+  RecentActivityWidget,
   RecentListsWidget,
   WorkspaceShortcuts,
 } from "./HomeWidgets";
@@ -48,9 +49,9 @@ export default async function WorkspacePage({
         />
       </header>
 
-      <main className="flex-1 bg-canvas px-10 pb-16 pt-10">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-12">
+      <main className="flex-1 bg-canvas px-5 pb-16 pt-10 sm:px-10">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10">
             <h1 className="text-2xl font-semibold tracking-tight text-ink">
               {greeting}, {session.user.name}
             </h1>
@@ -61,9 +62,20 @@ export default async function WorkspacePage({
 
           <WorkspaceShortcuts workspaceId={workspaceId} />
 
-          <MyTasksPreviewWidget items={data.myTasksPreview} workspaceId={workspaceId} now={now} />
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
+            <div className="md:col-span-2">
+              <MyTasksPreviewWidget
+                sections={data.myTasksSections}
+                totalCount={data.myTasksTotalCount}
+                attentionCounts={data.myTasksAttentionCounts}
+                workspaceId={workspaceId}
+                now={now}
+              />
+            </div>
+            <RecentActivityWidget activity={data.recentActivity} now={now} />
+          </div>
 
-          <div className="mt-14 grid grid-cols-2 gap-x-12 gap-y-10 border-t border-line pt-10">
+          <div className="mt-14 grid grid-cols-1 gap-x-12 gap-y-10 border-t border-line pt-10 sm:grid-cols-2">
             <RecentListsWidget lists={data.recentLists} workspaceId={workspaceId} />
             <AssignedByMeWidget items={data.assignedByMe} workspaceId={workspaceId} now={now} />
           </div>
