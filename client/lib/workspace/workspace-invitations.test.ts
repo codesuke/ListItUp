@@ -6,6 +6,7 @@ import {
   acceptInvitation,
   createInvitation,
   INVITATION_EXPIRY_DAYS,
+  resendInvitation,
   resolveInvitation,
 } from "./workspace-invitations";
 
@@ -355,6 +356,54 @@ async function runCreateInvitationTests() {
       0,
       "a failed send must leave no Pending Invitation row"
     );
+
+    // Inviting an email that already has an unaccepted invitation resends
+    // it instead of creating a second row, and the new role/inviter apply.
+    const dedupEmail = `dedup-${randomUUID()}@example.test`;
+    const firstInvite = await createInvitation(prisma, mailer, {
+      workspaceId,
+      actingUserId: adminId,
+      email: dedupEmail,
+      role: "VIEWER",
+    });
+    assert.deepEqual(firstInvite, {
+      status: "created",
+      invitationId: (firstInvite as { invitationId: string }).invitationId,
+      resent: false,
+    });
+    const firstToken = (
+      await prisma.workspaceInvitation.findUniqueOrThrow({
+        where: { id: (firstInvite as { invitationId: string }).invitationId },
+      })
+    ).token;
+
+    const secondInvite = await createInvitation(prisma, mailer, {
+      workspaceId,
+      actingUserId: ownerId,
+      email: dedupEmail,
+      role: "MEMBER",
+    });
+    assert.deepEqual(secondInvite, {
+      status: "created",
+      invitationId: (firstInvite as { invitationId: string }).invitationId,
+      resent: true,
+    });
+    assert.equal(
+      await prisma.workspaceInvitation.count({ where: { workspaceId, email: dedupEmail } }),
+      1,
+      "re-inviting a Pending email must not create a duplicate row"
+    );
+    const dedupRow = await prisma.workspaceInvitation.findUniqueOrThrow({
+      where: { id: (firstInvite as { invitationId: string }).invitationId },
+    });
+    assert.equal(dedupRow.role, "MEMBER", "the resent invitation must take the new role");
+    assert.equal(dedupRow.invitedById, ownerId, "the resent invitation must take the new inviter");
+    assert.notEqual(dedupRow.token, firstToken, "resending must issue a new token");
+    assert.equal(
+      await resolveInvitation(prisma, firstToken),
+      null,
+      "the old token must resolve as invalid after a dedup resend"
+    );
   } finally {
     await prisma.workspaceMember.deleteMany({
       where: { workspaceId: { in: [workspaceId, personalSpaceId] } },
@@ -368,8 +417,182 @@ async function runCreateInvitationTests() {
   console.log("createInvitation integration test passed");
 }
 
+async function runResendInvitationTests() {
+  if (!process.env.DATABASE_URL) {
+    console.log(
+      "resendInvitation integration test skipped: DATABASE_URL is not set"
+    );
+    return;
+  }
+
+  const [{ PrismaPg }, { PrismaClient }] = await Promise.all([
+    import("@prisma/adapter-pg"),
+    import("@/generated/prisma/client"),
+  ]);
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  });
+
+  const sentEmails: SendEmailInput[] = [];
+  let nextSendShouldFail = false;
+  const mailer: Mailer = {
+    async send(input: SendEmailInput): Promise<SendEmailResult> {
+      if (nextSendShouldFail) {
+        nextSendShouldFail = false;
+        return { ok: false, reason: "send-failed" };
+      }
+      sentEmails.push(input);
+      return { ok: true };
+    },
+  };
+
+  const workspaceId = randomUUID();
+  const ownerId = randomUUID();
+  const adminId = randomUUID();
+  const memberId = randomUUID();
+  const userIds = [ownerId, adminId, memberId];
+
+  async function seedInvitation(options: {
+    expired?: boolean;
+    accepted?: boolean;
+  } = {}): Promise<string> {
+    const invitationId = randomUUID();
+    await prisma.workspaceInvitation.create({
+      data: {
+        id: invitationId,
+        workspaceId,
+        email: `invitee-${randomUUID()}@example.test`,
+        role: "VIEWER",
+        token: randomUUID(),
+        expiresAt: options.expired
+          ? new Date(Date.now() - 1000)
+          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        acceptedAt: options.accepted ? new Date() : null,
+        invitedById: adminId,
+      },
+    });
+    return invitationId;
+  }
+
+  try {
+    await prisma.user.createMany({
+      data: [
+        { id: ownerId, name: "Owner", email: `owner-${randomUUID()}@example.test` },
+        { id: adminId, name: "Admin", email: `admin-${randomUUID()}@example.test` },
+        { id: memberId, name: "Member", email: `member-${randomUUID()}@example.test` },
+      ],
+    });
+    await prisma.workspace.create({ data: { id: workspaceId, name: "Launch Team", kind: "SHARED" } });
+    await prisma.workspaceMember.createMany({
+      data: [
+        { id: randomUUID(), workspaceId, userId: ownerId, role: "OWNER" },
+        { id: randomUUID(), workspaceId, userId: adminId, role: "ADMIN" },
+        { id: randomUUID(), workspaceId, userId: memberId, role: "MEMBER" },
+      ],
+    });
+
+    // Only Owner and Admin can resend.
+    const forbiddenInvitationId = await seedInvitation();
+    const memberResult = await resendInvitation(prisma, mailer, {
+      invitationId: forbiddenInvitationId,
+      actingUserId: memberId,
+    });
+    assert.deepEqual(memberResult, { status: "forbidden" });
+    assert.equal(sentEmails.length, 0);
+
+    // A non-existent invitation resolves as not-found.
+    assert.deepEqual(
+      await resendInvitation(prisma, mailer, { invitationId: randomUUID(), actingUserId: ownerId }),
+      { status: "not-found" }
+    );
+
+    // An already-accepted invitation cannot be resent.
+    const acceptedInvitationId = await seedInvitation({ accepted: true });
+    assert.deepEqual(
+      await resendInvitation(prisma, mailer, {
+        invitationId: acceptedInvitationId,
+        actingUserId: ownerId,
+      }),
+      { status: "already-accepted" }
+    );
+
+    // Resend issues a new token and resets expiry; the old token invalidates.
+    const pendingInvitationId = await seedInvitation();
+    const pendingBefore = await prisma.workspaceInvitation.findUniqueOrThrow({
+      where: { id: pendingInvitationId },
+    });
+    const resentResult = await resendInvitation(prisma, mailer, {
+      invitationId: pendingInvitationId,
+      actingUserId: adminId,
+    });
+    assert.deepEqual(resentResult, { status: "resent" });
+
+    const pendingAfter = await prisma.workspaceInvitation.findUniqueOrThrow({
+      where: { id: pendingInvitationId },
+    });
+    assert.notEqual(pendingAfter.token, pendingBefore.token);
+    assert.ok(pendingAfter.expiresAt.getTime() > pendingBefore.expiresAt.getTime());
+    assert.equal(
+      await resolveInvitation(prisma, pendingBefore.token),
+      null,
+      "the old token must resolve as invalid after a resend"
+    );
+    const sentToPending = sentEmails.find((send) => send.to === pendingAfter.email);
+    assert.ok(sentToPending, "resending must email the invitee again");
+
+    // An expired invitation can be resent, and then accepted.
+    const expiredInvitationId = await seedInvitation({ expired: true });
+    assert.deepEqual(
+      await resendInvitation(prisma, mailer, {
+        invitationId: expiredInvitationId,
+        actingUserId: ownerId,
+      }),
+      { status: "resent" }
+    );
+    const expiredAfter = await prisma.workspaceInvitation.findUniqueOrThrow({
+      where: { id: expiredInvitationId },
+    });
+    const inviteeId = randomUUID();
+    userIds.push(inviteeId);
+    await prisma.user.create({
+      data: { id: inviteeId, name: "Invitee", email: expiredAfter.email, emailVerified: true },
+    });
+    assert.deepEqual(
+      await acceptInvitation(prisma, expiredAfter.token, inviteeId, expiredAfter.email),
+      { status: "accepted", workspaceId }
+    );
+
+    // A failed send leaves the previous invitation state unchanged.
+    const failingInvitationId = await seedInvitation();
+    const failingBefore = await prisma.workspaceInvitation.findUniqueOrThrow({
+      where: { id: failingInvitationId },
+    });
+    nextSendShouldFail = true;
+    assert.deepEqual(
+      await resendInvitation(prisma, mailer, {
+        invitationId: failingInvitationId,
+        actingUserId: ownerId,
+      }),
+      { status: "send-failed" }
+    );
+    const failingAfter = await prisma.workspaceInvitation.findUniqueOrThrow({
+      where: { id: failingInvitationId },
+    });
+    assert.deepEqual(failingAfter, failingBefore);
+  } finally {
+    await prisma.workspaceMember.deleteMany({ where: { workspaceId } });
+    await prisma.workspaceInvitation.deleteMany({ where: { workspaceId } });
+    await prisma.workspace.deleteMany({ where: { id: workspaceId } });
+    await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+    await prisma.$disconnect();
+  }
+
+  console.log("resendInvitation integration test passed");
+}
+
 void run()
   .then(runCreateInvitationTests)
+  .then(runResendInvitationTests)
   .catch((error: unknown) => {
     console.error(error);
     process.exitCode = 1;

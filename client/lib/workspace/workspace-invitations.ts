@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 
-import type { PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
+import type { PrismaClient, WorkspaceKind, WorkspaceRole } from "@/generated/prisma/client";
 import { normalizeEmail } from "@/lib/auth/normalize-email";
 import { canAccessWorkspaceSettings } from "@/lib/permissions/workspace-access";
-import type { Mailer } from "@/lib/mailer/mailer-core";
+import type { Mailer, SendEmailResult } from "@/lib/mailer/mailer-core";
 import { workspaceInvitationEmail } from "@/lib/mailer/email-templates/workspace-invitation";
 
 // Invitations may only ever grant these two Workspace-level roles — ADMIN
@@ -42,6 +42,52 @@ function requireInvitableRole(role: WorkspaceRole): InvitableWorkspaceRole {
   }
 
   return role;
+}
+
+function buildInviteUrl(token: string): string {
+  const baseUrl = process.env.BETTER_AUTH_URL;
+  if (!baseUrl) throw new Error("BETTER_AUTH_URL must be set.");
+
+  return `${baseUrl}/accept-invitation?token=${encodeURIComponent(token)}`;
+}
+
+// Shared by createInvitation (new or resend-on-duplicate) and
+// resendInvitation (explicit Resend control): a fresh token is generated and
+// emailed, and only persisted once the send succeeds — a failed send must
+// leave whatever Pending Invitation state already existed untouched (see
+// docs/Specs-Planned/workspace-invitations.md).
+async function sendInvitationEmail(
+  mailer: Mailer,
+  params: { to: string; inviterName: string; workspaceName: string; token: string }
+): Promise<SendEmailResult> {
+  return mailer.send({
+    to: params.to,
+    type: "workspace-invitation",
+    template: workspaceInvitationEmail({
+      inviterName: params.inviterName,
+      workspaceName: params.workspaceName,
+      inviteUrl: buildInviteUrl(params.token),
+      expiresInDays: INVITATION_EXPIRY_DAYS,
+    }),
+  });
+}
+
+function newExpiry(): Date {
+  return new Date(Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+}
+
+// Shared by createInvitation and resendInvitation: only the Workspace Owner
+// and Admins may create, resend or revoke invitations, and only for a
+// SHARED Workspace (docs/Specs-Planned/workspace-invitations.md).
+function canActOnWorkspaceSettings<Membership extends { role: WorkspaceRole }>(
+  membership: Membership | null | undefined,
+  workspaceKind: WorkspaceKind | null | undefined
+): membership is Membership {
+  return (
+    membership != null &&
+    workspaceKind != null &&
+    canAccessWorkspaceSettings({ role: membership.role, workspaceKind })
+  );
 }
 
 export async function resolveInvitation(
@@ -141,7 +187,7 @@ export interface CreateInvitationInput {
 }
 
 export type CreateInvitationResult =
-  | { status: "created"; invitationId: string }
+  | { status: "created"; invitationId: string; resent: boolean }
   | { status: "forbidden" }
   | { status: "invalid-role" }
   | { status: "invalid-email" }
@@ -164,13 +210,7 @@ export async function createInvitation(
     include: { user: true, workspace: true },
   });
 
-  if (
-    !actingMembership ||
-    !canAccessWorkspaceSettings({
-      role: actingMembership.role,
-      workspaceKind: actingMembership.workspace.kind,
-    })
-  ) {
+  if (!canActOnWorkspaceSettings(actingMembership, actingMembership?.workspace.kind)) {
     return { status: "forbidden" };
   }
 
@@ -196,13 +236,36 @@ export async function createInvitation(
     }
   }
 
-  const baseUrl = process.env.BETTER_AUTH_URL;
-  if (!baseUrl) throw new Error("BETTER_AUTH_URL must be set.");
+  // Inviting an email that already has an unaccepted invitation resends
+  // that invitation instead of creating a second row (docs/Specs-Planned/
+  // workspace-invitations.md's duplicate-handling decision).
+  const existingInvitation = await database.workspaceInvitation.findFirst({
+    where: { workspaceId: input.workspaceId, email, acceptedAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const token = randomUUID();
+  const sendResult = await sendInvitationEmail(mailer, {
+    to: email,
+    inviterName: actingMembership.user.name,
+    workspaceName: actingMembership.workspace.name,
+    token,
+  });
+
+  if (!sendResult.ok) {
+    return { status: "send-failed" };
+  }
+
+  if (existingInvitation) {
+    await database.workspaceInvitation.update({
+      where: { id: existingInvitation.id },
+      data: { token, expiresAt: newExpiry(), role: input.role, invitedById: input.actingUserId },
+    });
+
+    return { status: "created", invitationId: existingInvitation.id, resent: true };
+  }
 
   const invitationId = randomUUID();
-  const token = randomUUID();
-  const expiresAt = new Date(Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
-
   await database.workspaceInvitation.create({
     data: {
       id: invitationId,
@@ -210,27 +273,75 @@ export async function createInvitation(
       email,
       role: input.role,
       token,
-      expiresAt,
+      expiresAt: newExpiry(),
       invitedById: input.actingUserId,
     },
   });
 
-  const inviteUrl = `${baseUrl}/accept-invitation?token=${encodeURIComponent(token)}`;
-  const result = await mailer.send({
-    to: email,
-    type: "workspace-invitation",
-    template: workspaceInvitationEmail({
-      inviterName: actingMembership.user.name,
-      workspaceName: actingMembership.workspace.name,
-      inviteUrl,
-      expiresInDays: INVITATION_EXPIRY_DAYS,
-    }),
+  return { status: "created", invitationId, resent: false };
+}
+
+export type ResendInvitationResult =
+  | { status: "resent" }
+  | { status: "forbidden" }
+  | { status: "not-found" }
+  | { status: "already-accepted" }
+  | { status: "send-failed" };
+
+// Explicit Resend control on a Pending Invitation row (pending or expired):
+// issues a fresh token and resets the 7-day expiry, invalidating the old
+// link. Only persisted once the email send succeeds, so a failed send
+// leaves the previous invitation exactly as it was.
+export async function resendInvitation(
+  database: PrismaClient,
+  mailer: Mailer,
+  input: { invitationId: string; actingUserId: string }
+): Promise<ResendInvitationResult> {
+  const invitation = await database.workspaceInvitation.findUnique({
+    where: { id: input.invitationId },
+    include: { workspace: true },
   });
 
-  if (!result.ok) {
-    await database.workspaceInvitation.delete({ where: { id: invitationId } });
+  if (!invitation) {
+    return { status: "not-found" };
+  }
+
+  // Authorization is checked immediately after loading the invitation (the
+  // minimum needed to know which Workspace to check against) and before any
+  // other branching, so an unauthorized caller learns nothing about this
+  // invitation's accepted state (see docs/agents/nextjs-conventions.md and
+  // createInvitation's identical ordering above).
+  const actingMembership = await database.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: { workspaceId: invitation.workspaceId, userId: input.actingUserId },
+    },
+    include: { user: true },
+  });
+
+  if (!canActOnWorkspaceSettings(actingMembership, invitation.workspace.kind)) {
+    return { status: "forbidden" };
+  }
+
+  if (invitation.acceptedAt) {
+    return { status: "already-accepted" };
+  }
+
+  const token = randomUUID();
+  const sendResult = await sendInvitationEmail(mailer, {
+    to: invitation.email,
+    inviterName: actingMembership.user.name,
+    workspaceName: invitation.workspace.name,
+    token,
+  });
+
+  if (!sendResult.ok) {
     return { status: "send-failed" };
   }
 
-  return { status: "created", invitationId };
+  await database.workspaceInvitation.update({
+    where: { id: invitation.id },
+    data: { token, expiresAt: newExpiry() },
+  });
+
+  return { status: "resent" };
 }

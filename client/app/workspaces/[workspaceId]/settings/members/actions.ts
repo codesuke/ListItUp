@@ -6,23 +6,25 @@ import { normalizeEmail } from "@/lib/auth/normalize-email";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 import { mailer } from "@/lib/mailer/mailer";
-import { createInvitation } from "@/lib/workspace/workspace-invitations";
+import { createInvitation, resendInvitation } from "@/lib/workspace/workspace-invitations";
 
 function membersPath(workspaceId: string): string {
   return `/workspaces/${workspaceId}/settings/members`;
 }
 
+const SEND_FAILED_MESSAGE = "Couldn't send the invitation email. Try again.";
+
 export type CreateInvitationState =
   | { status: "idle" }
   | { status: "error"; message: string }
-  | { status: "success"; email: string };
+  | { status: "success"; email: string; resent: boolean };
 
 const ERROR_MESSAGE = {
   forbidden: "Only the Workspace Owner or an Admin can invite people.",
   "invalid-role": "Choose Member or Viewer.",
   "invalid-email": "Enter an email address.",
   "already-member": "That person is already a member of this Workspace.",
-  "send-failed": "Couldn't send the invitation email. Try again.",
+  "send-failed": SEND_FAILED_MESSAGE,
 } as const;
 
 export async function createInvitationAction(
@@ -47,5 +49,43 @@ export async function createInvitationAction(
 
   revalidatePath(membersPath(workspaceId));
 
-  return { status: "success", email };
+  return { status: "success", email, resent: result.resent };
+}
+
+export type ResendInvitationState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "success" };
+
+const RESEND_ERROR_MESSAGE = {
+  forbidden: "Only the Workspace Owner or an Admin can resend invitations.",
+  "not-found": "That invitation no longer exists.",
+  "already-accepted": "That invitation has already been accepted.",
+  "send-failed": SEND_FAILED_MESSAGE,
+} as const;
+
+// prevState/formData are unused: the Resend control is a bare button with
+// no form fields, but useActionState requires this exact signature shape.
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export async function resendInvitationAction(
+  workspaceId: string,
+  invitationId: string,
+  _prevState: ResendInvitationState,
+  _formData: FormData
+): Promise<ResendInvitationState> {
+  /* eslint-enable @typescript-eslint/no-unused-vars */
+  const session = await requireAuthenticatedSession(membersPath(workspaceId));
+
+  const result = await resendInvitation(prisma, mailer, {
+    invitationId,
+    actingUserId: session.user.id,
+  });
+
+  if (result.status !== "resent") {
+    return { status: "error", message: RESEND_ERROR_MESSAGE[result.status] };
+  }
+
+  revalidatePath(membersPath(workspaceId));
+
+  return { status: "success" };
 }

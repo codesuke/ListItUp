@@ -5,6 +5,7 @@ import { requireAuthenticatedSession } from "@/lib/session/require-authenticated
 
 import { InviteMemberForm } from "./InviteMemberForm";
 import { loadWorkspaceMembersPageData } from "./page-data";
+import { ResendInvitationButton } from "./ResendInvitationButton";
 
 const ROLE_LABEL = {
   OWNER: "Owner",
@@ -93,9 +94,15 @@ export default async function WorkspaceMembersPage({ params }: Props) {
                             : `Expires ${formatExpiry(invitation.expiresAt)}`}
                         </div>
                       </div>
-                      <span className="shrink-0 border border-line-strong px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-muted">
-                        {ROLE_LABEL[invitation.role]}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="border border-line-strong px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                          {ROLE_LABEL[invitation.role]}
+                        </span>
+                        <ResendInvitationButton
+                          workspaceId={workspaceId}
+                          invitationId={invitation.id}
+                        />
+                      </div>
                     </li>
                   ))}
                 </ul>

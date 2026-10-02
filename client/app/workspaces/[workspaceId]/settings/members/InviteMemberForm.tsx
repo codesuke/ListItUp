@@ -67,7 +67,9 @@ export function InviteMemberForm({ workspaceId }: { workspaceId: string }) {
       ) : null}
       {state.status === "success" ? (
         <p role="status" className="text-sm text-ink animate-in fade-in-0 slide-in-from-top-1 duration-200">
-          Invitation sent to {state.email}.
+          {state.resent
+            ? `${state.email} already had a Pending Invitation — resent with a fresh link.`
+            : `Invitation sent to ${state.email}.`}
         </p>
       ) : null}
 
