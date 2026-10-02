@@ -201,6 +201,7 @@ export default async function MyTasksPage({ searchParams }: Props) {
           <GlobalHeaderActions
             currentUserName={session.user.name}
             unreadNotificationCount={unreadNotificationCount}
+            workspaceId={shellWorkspace.id}
           />
         </header>
 

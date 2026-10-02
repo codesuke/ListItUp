@@ -39,6 +39,7 @@ export default async function WorkspacePage({
         <GlobalHeaderActions
           currentUserName={session.user.name}
           unreadNotificationCount={data.unreadNotificationCount}
+          workspaceId={workspaceId}
         />
       </header>
 

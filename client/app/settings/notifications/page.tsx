@@ -51,6 +51,7 @@ export default async function NotificationsSettingsPage() {
           <GlobalHeaderActions
             currentUserName={session.user.name}
             unreadNotificationCount={unreadNotificationCount}
+            workspaceId={workspaceId}
           />
         </header>
 

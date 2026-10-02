@@ -110,6 +110,7 @@ export default async function UpdatesPage({ searchParams }: Props) {
             <GlobalHeaderActions
               currentUserName={session.user.name}
               unreadNotificationCount={data.unreadCount}
+              workspaceId={defaultWorkspaceId}
             />
           </div>
         </header>

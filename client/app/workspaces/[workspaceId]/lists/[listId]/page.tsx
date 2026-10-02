@@ -365,6 +365,7 @@ export default async function ListPage({ params, searchParams }: Props) {
           <GlobalHeaderActions
             currentUserName={session.user.name}
             unreadNotificationCount={unreadNotificationCount}
+            workspaceId={workspaceId}
           />
         </div>
       </header>

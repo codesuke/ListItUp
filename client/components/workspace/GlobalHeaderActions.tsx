@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Search } from "lucide-react";
+import { Bell } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SearchPalette } from "@/components/workspace/SearchPalette";
 import { initialsFromName } from "@/lib/utils";
 
 // Shared visual + interaction treatment for the square icon buttons in this
@@ -15,20 +16,15 @@ const ICON_BUTTON_CLASSES =
 export function GlobalHeaderActions({
   currentUserName,
   unreadNotificationCount,
+  workspaceId,
 }: {
   currentUserName: string;
   unreadNotificationCount: number;
+  workspaceId: string;
 }) {
   return (
     <div className="flex flex-shrink-0 items-center gap-2">
-      <button
-        type="button"
-        aria-label="Search"
-        title="Search — coming soon"
-        className={ICON_BUTTON_CLASSES}
-      >
-        <Search className="h-[15px] w-[15px]" />
-      </button>
+      <SearchPalette workspaceId={workspaceId} triggerClassName={ICON_BUTTON_CLASSES} />
 
       <ThemeToggle />
 
