@@ -7,7 +7,7 @@ import { createItem } from "@/lib/item/item-creation";
 import { restoreItem, transitionItemState } from "@/lib/item/item-lifecycle";
 import { isValidBoardGroupBy, moveItemToColumn, setBoardGroupBy, type BoardGroupBy } from "@/lib/list/list-board";
 import { grantGuestAccess, revokeGuestAccess } from "@/lib/list/list-guests";
-import { updateListDescription } from "@/lib/list/list-lifecycle";
+import { setListStatus, updateListDescription } from "@/lib/list/list-lifecycle";
 import { addListMember, removeListMember } from "@/lib/list/list-membership";
 import {
   createSection,
@@ -38,6 +38,18 @@ export async function updateListDescriptionAction(
   const description = String(formData.get("description") ?? "");
 
   await updateListDescription(prisma, { userId: session.user.id, listId, description });
+  revalidatePath(listPath(workspaceId, listId));
+}
+
+export async function setListStatusAction(
+  workspaceId: string,
+  listId: string,
+  formData: FormData
+): Promise<void> {
+  const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
+  const status = String(formData.get("status") ?? "");
+
+  await setListStatus(prisma, { userId: session.user.id, listId, status });
   revalidatePath(listPath(workspaceId, listId));
 }
 

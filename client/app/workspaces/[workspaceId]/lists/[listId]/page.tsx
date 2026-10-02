@@ -31,6 +31,7 @@ import {
   restoreItemAction,
   revokeGuestAccessAction,
   setBoardGroupByAction,
+  setListStatusAction,
   togglePeerComparisonAction,
   updateListDescriptionAction,
 } from "./actions";
@@ -38,6 +39,7 @@ import { BoardView } from "./BoardView";
 import { CalendarView } from "./CalendarView";
 import { DashboardTab } from "./DashboardTab";
 import { FilesView } from "./FilesView";
+import { ListStatusPill } from "./ListStatusPill";
 import { loadListPageData, type ListPageData } from "./page-data";
 import { SectionList } from "./SectionList";
 import { TimelineView } from "./TimelineView";
@@ -316,6 +318,7 @@ export default async function ListPage({ params, searchParams }: Props) {
     formatCalendarMonthParam(addCalendarMonths(calendarMonthStart, 1))
   );
   const boundUpdateDescription = updateListDescriptionAction.bind(null, workspaceId, listId);
+  const boundSetStatus = setListStatusAction.bind(null, workspaceId, listId);
   const boundAddMember = addListMemberAction.bind(null, workspaceId, listId);
   const boundRemoveMember = (userId: string) => removeListMemberAction.bind(null, workspaceId, listId, userId);
   const boundGrantGuest = grantGuestAccessAction.bind(null, workspaceId, listId);
@@ -374,6 +377,7 @@ export default async function ListPage({ params, searchParams }: Props) {
               <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#ff6b4a]" />
               {data.workspaceName}
             </span>
+            <ListStatusPill status={data.status} canEdit={data.canEditDescription} boundSetStatus={boundSetStatus} />
           </div>
 
           <nav className="mb-6 flex flex-wrap items-center gap-6 border-b border-line">

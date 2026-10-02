@@ -68,8 +68,9 @@ export type ListPageData = {
   status: ListStatus;
   archivedAt: Date | null;
   access: ListAccessLevel;
-  // >=LEAD governs both editing Description and managing the Roles panel
-  // (#27, #28) — one flag for both since they share the same threshold.
+  // >=LEAD governs editing Description, managing the Roles panel, and
+  // setting Status (#27, #28, #59) — one flag for all three since they
+  // share the same threshold.
   canEditDescription: boolean;
   roles: ListRoles;
   // Workspace Members not yet holding any List-level role — the candidate
