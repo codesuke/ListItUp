@@ -105,7 +105,9 @@ async function run() {
       assert.ok(data);
       assert.equal(data!.workspaceName, "Marketing");
 
-      assert.deepEqual(data!.myTasksPreview.map((item) => item.title), ["Assigned to me"]);
+      const myTasksTitles = data!.myTasksSections.flatMap((section) => section.items.map((item) => item.title));
+      assert.deepEqual(myTasksTitles, ["Assigned to me"]);
+      assert.equal(data!.myTasksTotalCount, 1);
 
       const listNames = data!.recentLists.map((list) => list.name).sort();
       assert.deepEqual(listNames, ["Campaigns"]);
