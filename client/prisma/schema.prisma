@@ -8,36 +8,36 @@ datasource db {
 }
 
 model User {
-  id               String            @id
-  name             String
-  email            String            @unique
-  emailVerified    Boolean           @default(false)
-  image            String?
-  aboutMe          String?
-  twoFactorEnabled Boolean           @default(false)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  sessions         Session[]
-  accounts         Account[]
-  twoFactor        TwoFactor[]
-  workspaceMembers WorkspaceMember[]
-  listMembers      ListMember[]
-  guestAccess      Guest[]
-  starredLists     Starred[]
-  createdItems     Item[]           @relation("ItemCreator")
-  itemAssignments  ItemAssignee[]
-  uploadedAttachments Attachment[]
-  authoredNotes    Note[]         @relation("NoteAuthor")
-  mentions         Mention[]      @relation("MentionedUser")
-  personalNotes    PersonalNote[] @relation("PersonalNoteOwner")
-  notifications    Notification[] @relation("NotificationRecipient")
-  triggeredNotifications Notification[] @relation("NotificationActor")
-  mutedNotificationTypes MutedNotificationType[]
-  platformRoleAssignments PlatformRoleAssignment[] @relation("PlatformRoleAssignmentUser")
+  id                             String                   @id
+  name                           String
+  email                          String                   @unique
+  emailVerified                  Boolean                  @default(false)
+  image                          String?
+  aboutMe                        String?
+  twoFactorEnabled               Boolean                  @default(false)
+  createdAt                      DateTime                 @default(now())
+  updatedAt                      DateTime                 @updatedAt
+  sessions                       Session[]
+  accounts                       Account[]
+  twoFactor                      TwoFactor[]
+  workspaceMembers               WorkspaceMember[]
+  listMembers                    ListMember[]
+  guestAccess                    Guest[]
+  starredLists                   Starred[]
+  createdItems                   Item[]                   @relation("ItemCreator")
+  itemAssignments                ItemAssignee[]
+  uploadedAttachments            Attachment[]
+  authoredNotes                  Note[]                   @relation("NoteAuthor")
+  mentions                       Mention[]                @relation("MentionedUser")
+  personalNotes                  PersonalNote[]           @relation("PersonalNoteOwner")
+  notifications                  Notification[]           @relation("NotificationRecipient")
+  triggeredNotifications         Notification[]           @relation("NotificationActor")
+  mutedNotificationTypes         MutedNotificationType[]
+  platformRoleAssignments        PlatformRoleAssignment[] @relation("PlatformRoleAssignmentUser")
   grantedPlatformRoleAssignments PlatformRoleAssignment[] @relation("PlatformRoleAssignmentGranter")
   revokedPlatformRoleAssignments PlatformRoleAssignment[] @relation("PlatformRoleAssignmentRevoker")
-  securityEvents SecurityEvent[]
-  sentWorkspaceInvitations WorkspaceInvitation[] @relation("WorkspaceInvitationInviter")
+  securityEvents                 SecurityEvent[]
+  sentWorkspaceInvitations       WorkspaceInvitation[]    @relation("WorkspaceInvitationInviter")
 
   @@map("user")
 }
@@ -107,24 +107,24 @@ enum WorkspaceRole {
 }
 
 model Workspace {
-  id                     String                @id
-  name                   String
-  kind                   WorkspaceKind         @default(SHARED)
+  id                    String                @id
+  name                  String
+  kind                  WorkspaceKind         @default(SHARED)
   // List Dashboard's Peer Comparison setting (#58) — off by default,
   // workspace-level, changeable only by a Workspace Owner or Admin
   // (lib/workspace/workspace-peer-comparison.ts).
-  peerComparisonEnabled  Boolean               @default(false)
+  peerComparisonEnabled Boolean               @default(false)
   // A pre-filled Workspace every User is provisioned alongside their
   // Personal Space so they have real-looking content to explore before
   // creating anything of their own (lib/workspace/demo-workspace.ts).
   // Always kind: SHARED — a Demo Workspace is a normal shared Workspace.
-  isDemo                 Boolean               @default(false)
-  createdAt              DateTime              @default(now())
-  updatedAt              DateTime              @updatedAt
-  lists                  List[]
-  members                WorkspaceMember[]
-  invitations            WorkspaceInvitation[]
-  labels                 Label[]
+  isDemo                Boolean               @default(false)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  lists                 List[]
+  members               WorkspaceMember[]
+  invitations           WorkspaceInvitation[]
+  labels                Label[]
 
   @@map("workspace")
 }
@@ -181,32 +181,32 @@ enum ListStatus {
 }
 
 model List {
-  id          String       @id
-  workspaceId String
-  name        String
-  description String?
-  status      ListStatus   @default(ON_TRACK)
-  isInbox     Boolean      @default(false)
+  id                     String                  @id
+  workspaceId            String
+  name                   String
+  description            String?
+  status                 ListStatus              @default(ON_TRACK)
+  isInbox                Boolean                 @default(false)
   // Soft-delete: archiving never removes data, so restore is always safe
   // (#26). Null means active.
-  archivedAt  DateTime?
+  archivedAt             DateTime?
   // The List view's "Add Rule" grouping-config control (#29) — a validated
   // string (see lib/list/list-sections.ts's isValidGroupBy) rather than a
   // native enum, since the full set of groupable fields depends on Item's
   // not-yet-built schema (#30); only "SECTION" is legal today.
-  groupBy     String       @default("SECTION")
+  groupBy                String                  @default("SECTION")
   // Board view's own "Group by" (#31) — independent of the List view's
   // groupBy above, since a User may want the two views arranged
   // differently at once. See lib/list/list-board.ts's isValidBoardGroupBy.
-  boardGroupBy String      @default("STATE")
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  members     ListMember[]
-  guests      Guest[]
-  starredBy   Starred[]
-  sections    Section[]
-  items       Item[]
+  boardGroupBy           String                  @default("STATE")
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  workspace              Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members                ListMember[]
+  guests                 Guest[]
+  starredBy              Starred[]
+  sections               Section[]
+  items                  Item[]
   customFieldDefinitions CustomFieldDefinition[]
 
   @@index([workspaceId])
@@ -287,50 +287,50 @@ enum ItemPriority {
 }
 
 model Item {
-  id        String       @id
-  listId    String
+  id                 String       @id
+  listId             String
   // Self-referencing parent supports arbitrary-depth nesting through one
   // mechanism — no separate Subtask concept (#23, #30).
-  parentId  String?
-  sectionId String?
-  title     String
+  parentId           String?
+  sectionId          String?
+  title              String
   // Timeline view's date-bar start (#33) — optional and independent of
   // dueDate, which remains the only date required to appear on Timeline.
-  startDate DateTime?
-  dueDate   DateTime?
-  state     ItemState    @default(TO_DO)
+  startDate          DateTime?
+  dueDate            DateTime?
+  state              ItemState    @default(TO_DO)
   // The state to return to on restore, set by archiveItem() and cleared by
   // restoreItem() (#38) — Item has no separate archivedAt timestamp like
   // List, so "archived" is state === ARCHIVED and this is the only place
   // the prior state survives the overwrite.
   stateBeforeArchive ItemState?
-  priority  ItemPriority @default(NORMAL)
+  priority           ItemPriority @default(NORMAL)
   // Required when state is BLOCKED (enforced at the application layer in
   // lib/item/, not at the schema level).
-  blockerReason String?
+  blockerReason      String?
   // Set once at creation; never reassigned as Assignees change — enforced
   // at the application layer in lib/item/, matching Section/List's
   // established convention for this kind of invariant.
-  creatorId String
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  creatorId          String
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
-  list      List           @relation(fields: [listId], references: [id], onDelete: Cascade)
-  section   Section?       @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  parent    Item?          @relation("ItemHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  children  Item[]         @relation("ItemHierarchy")
-  creator   User           @relation("ItemCreator", fields: [creatorId], references: [id])
-  assignees ItemAssignee[]
-  labels    ItemLabel[]
+  list              List               @relation(fields: [listId], references: [id], onDelete: Cascade)
+  section           Section?           @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  parent            Item?              @relation("ItemHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children          Item[]             @relation("ItemHierarchy")
+  creator           User               @relation("ItemCreator", fields: [creatorId], references: [id])
+  assignees         ItemAssignee[]
+  labels            ItemLabel[]
   customFieldValues CustomFieldValue[]
   // Dependencies where this Item is the blocker/blocked side, respectively
   // (#35).
-  blocking  ItemDependency[] @relation("DependencyBlocker")
-  blockedBy ItemDependency[] @relation("DependencyBlocked")
-  attachments Attachment[]
-  notes         Note[]
-  personalNotes PersonalNote[]
-  notifications Notification[]
+  blocking          ItemDependency[]   @relation("DependencyBlocker")
+  blockedBy         ItemDependency[]   @relation("DependencyBlocked")
+  attachments       Attachment[]
+  notes             Note[]
+  personalNotes     PersonalNote[]
+  notifications     Notification[]
 
   @@index([listId])
   @@index([sectionId])
@@ -391,15 +391,15 @@ enum CustomFieldType {
 // Defined per List by a List Lead or Workspace Admin; any List Member can
 // set a value on an Item (#34).
 model CustomFieldDefinition {
-  id        String            @id
+  id        String             @id
   listId    String
   name      String
   type      CustomFieldType
   // DROPDOWN's allowed option strings; unused (empty) for other types.
-  options   String[]          @default([])
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  list      List              @relation(fields: [listId], references: [id], onDelete: Cascade)
+  options   String[]           @default([])
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  list      List               @relation(fields: [listId], references: [id], onDelete: Cascade)
   values    CustomFieldValue[]
 
   @@unique([listId, name])
@@ -408,17 +408,17 @@ model CustomFieldDefinition {
 }
 
 model CustomFieldValue {
-  id           String                 @id
+  id           String                @id
   itemId       String
   definitionId String
   // Stored as text regardless of the definition's type and
   // parsed/validated against it at the application layer (lib/item/) —
   // avoids a sparse multi-column value table for 4 possible types.
   value        String
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
-  item         Item                   @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  definition   CustomFieldDefinition  @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  item         Item                  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  definition   CustomFieldDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
 
   @@unique([itemId, definitionId])
   @@index([definitionId])
@@ -466,14 +466,14 @@ model Attachment {
 // deliberately avoided terms per CONTEXT.md's Note entry: no nested replies
 // in v1.
 model Note {
-  id        String    @id
-  itemId    String
-  authorId  String
-  body      String
-  createdAt DateTime  @default(now())
-  item      Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  author    User      @relation("NoteAuthor", fields: [authorId], references: [id])
-  mentions  Mention[]
+  id            String         @id
+  itemId        String
+  authorId      String
+  body          String
+  createdAt     DateTime       @default(now())
+  item          Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  author        User           @relation("NoteAuthor", fields: [authorId], references: [id])
+  mentions      Mention[]
   notifications Notification[]
 
   @@index([itemId])
@@ -530,24 +530,24 @@ enum NotificationType {
 // state change, and a due-date-approaching schedule; never edited by any
 // other lib/ module.
 model Notification {
-  id          String            @id
-  recipientId String
-  type        NotificationType
-  itemId      String
+  id           String           @id
+  recipientId  String
+  type         NotificationType
+  itemId       String
   // The User whose action produced this notification; null for the
   // system-triggered DUE_DATE_REMINDER type, which has no actor.
-  actorId     String?
+  actorId      String?
   // Set only for NOTE_ADDED/MENTIONED, linking back to the triggering Note.
-  noteId      String?
+  noteId       String?
   // Snapshot of the Item's dueDate at DUE_DATE_REMINDER creation time, used
   // by the dedup constraint below so a reminder fires once per approaching
   // deadline rather than once per scheduler run (#41) — null for every
   // other type.
-  dueDateAt   DateTime?
+  dueDateAt    DateTime?
   readAt       DateTime?
   bookmarkedAt DateTime?
   archivedAt   DateTime?
-  createdAt   DateTime          @default(now())
+  createdAt    DateTime         @default(now())
 
   recipient User  @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   actor     User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
@@ -632,19 +632,19 @@ model SecurityEvent {
 }
 
 model SecurityNoticeOutbox {
-  id             String   @id
+  id             String    @id
   recipient      String
   type           String
   action         String?
   newEmail       String?
-  status         String   @default("pending")
-  attemptCount   Int      @default(0)
-  nextAttemptAt  DateTime @default(now())
+  status         String    @default("pending")
+  attemptCount   Int       @default(0)
+  nextAttemptAt  DateTime  @default(now())
   lastAttemptAt  DateTime?
   deliveredAt    DateTime?
   finalFailureAt DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([status, nextAttemptAt])
   @@index([status, finalFailureAt])
