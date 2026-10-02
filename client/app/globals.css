@@ -102,20 +102,27 @@ body {
   --sidebar-border: var(--line);
   --sidebar-ring: var(--ring);
 
-  /* ListItUp operational theme — structural tokens (ADR 0014). Light values
-     are a first pass mirroring the dark theme's elevation ramp; brand and
-     status colors are intentionally NOT tokenized here since they stay
-     constant across themes. */
-  --canvas: #ECEAE4;
-  --surface-1: #F5F4F0;
+  /* ListItUp operational theme — structural tokens (ADR 0014). True neutral
+     gray (R=G=B) rather than the warm cream/taupe cast an earlier pass had,
+     so the calm/neutral system holds in light mode too; brand and status
+     colors are intentionally NOT tokenized here since they stay constant
+     across themes. */
+  --canvas: #ECECEC;
+  --surface-1: #F5F5F5;
   --surface-2: #FFFFFF;
-  --surface-3: #E4E1D9;
-  --surface-4: #DEDACF;
-  --line: #DAD6CB;
-  --line-strong: #C7C2B4;
+  --surface-3: #E4E4E4;
+  --surface-4: #DEDEDE;
+  --line: #DADADA;
+  --line-strong: #C7C7C7;
   --ink: #16130F;
   --ink-muted: #55524A;
   --ink-faint: #8B8778;
+
+  /* The "needs attention" signal (overdue status text): brand orange reads
+     fine on near-black but fails body-text contrast on this light canvas,
+     so this one semantic color — unlike decorative brand orange — is
+     theme-aware. */
+  --accent-attention: #9A3412;
 }
 
 .dark {
@@ -155,6 +162,8 @@ body {
   --ink: #e5e5e0;
   --ink-muted: #8f8f8a;
   --ink-faint: #5a5a56;
+
+  --accent-attention: #ff6b4a;
 }
 
 @layer base {
