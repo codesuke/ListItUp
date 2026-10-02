@@ -65,3 +65,33 @@ export async function resolveListAccess(
 
   return level;
 }
+
+// Export is a read, so the Viewer ceiling does not block it; a Guest is
+// refused because the data would leave the system for someone with no
+// Workspace identity (#72). resolveListAccess() reports READ for both a
+// List Viewer and a Guest, so the two are told apart here by whether the
+// User holds any Workspace or List role.
+export async function canExportList(
+  database: PrismaClient,
+  input: { userId: string; listId: string }
+): Promise<boolean> {
+  const { userId, listId } = input;
+
+  const access = await resolveListAccess(database, input);
+  if (!meetsListAccessLevel(access, "READ")) {
+    return false;
+  }
+
+  const list = await database.list.findUniqueOrThrow({
+    where: { id: listId },
+    select: { workspaceId: true },
+  });
+  const [workspaceMembership, listMembership] = await Promise.all([
+    database.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: list.workspaceId, userId } },
+    }),
+    database.listMember.findUnique({ where: { listId_userId: { listId, userId } } }),
+  ]);
+
+  return workspaceMembership !== null || listMembership !== null;
+}

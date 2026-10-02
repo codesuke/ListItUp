@@ -347,14 +347,15 @@ export default async function ListPage({ params, searchParams }: Props) {
           <span className="truncate text-[13px] font-semibold text-ink">{data.name}</span>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            disabled
-            title="Export CSV ships with the Reports & Analytics spec (ADR 0012)."
-            className="flex items-center gap-1.5 rounded-[6px] border border-line-strong px-3 py-[7px] text-[13px] font-semibold text-ink-muted opacity-60 transition-colors duration-150"
-          >
-            <Download className="h-3.5 w-3.5" /> Export CSV
-          </button>
+          {data.canExport ? (
+            <a
+              href={`/api/workspaces/${workspaceId}/lists/${listId}/export`}
+              download
+              className="flex items-center gap-1.5 rounded-[6px] border border-line-strong px-3 py-[7px] text-[13px] font-semibold text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
+            >
+              <Download className="h-3.5 w-3.5" /> Export CSV
+            </a>
+          ) : null}
           <button
             type="button"
             aria-label="List settings"
