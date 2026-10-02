@@ -1,4 +1,4 @@
-import type { ItemPriority, ItemState, PrismaClient } from "@/generated/prisma/client";
+import type { CustomFieldType, ItemPriority, ItemState, PrismaClient } from "@/generated/prisma/client";
 import { canExportList } from "@/lib/permissions/list-access";
 
 export type ListExportRow = {
@@ -21,11 +21,10 @@ export type ListExportRow = {
 };
 
 export type ListExport = {
-  customFields: { id: string; name: string; type: "TEXT" | "NUMBER" | "DROPDOWN" | "DATE" }[];
+  customFields: { id: string; name: string; type: CustomFieldType }[];
   rows: ListExportRow[];
 };
 
-const DATE_STAMP_LENGTH = "YYYY-MM-DD".length;
 const BOM = "﻿";
 const LINE_BREAK = "\r\n";
 const MULTI_VALUE_SEPARATOR = "; ";
@@ -90,11 +89,17 @@ function renderCell(cell: Cell): string {
   return quoteIfNeeded(cell.kind === "text" ? neutralizeFormula(cell.value) : cell.value);
 }
 
+const DATE_STAMP_LENGTH = "YYYY-MM-DD".length;
+
+function formatDateStamp(date: Date): string {
+  return date.toISOString().slice(0, DATE_STAMP_LENGTH);
+}
+
 function formatTimestamp(value: Date | null): string {
   return value ? value.toISOString() : "";
 }
 
-const CUSTOM_HEADER_SUFFIX = "(custom)";
+const CUSTOM_HEADER_SUFFIX = "custom";
 
 // Custom Field names are unique per List but can still equal a fixed column
 // name; suffix instead of merging or dropping a column.
@@ -103,9 +108,9 @@ function buildCustomFieldHeaders(customFields: ListExport["customFields"]): stri
   return customFields.map(({ name }) => {
     let header = name;
     if (usedHeaders.has(header)) {
-      header = `${name} ${CUSTOM_HEADER_SUFFIX}`;
+      header = `${name} (${CUSTOM_HEADER_SUFFIX})`;
       for (let attempt = 2; usedHeaders.has(header); attempt += 1) {
-        header = `${name} (custom ${attempt})`;
+        header = `${name} (${CUSTOM_HEADER_SUFFIX} ${attempt})`;
       }
     }
     usedHeaders.add(header);
@@ -113,8 +118,7 @@ function buildCustomFieldHeaders(customFields: ListExport["customFields"]): stri
   });
 }
 
-
-function formatCustomFieldCell(type: ListExport["customFields"][number]["type"], value: string | undefined): Cell {
+function formatCustomFieldCell(type: CustomFieldType, value: string | undefined): Cell {
   if (value === undefined) return generated("");
   switch (type) {
     case "TEXT":
@@ -124,7 +128,9 @@ function formatCustomFieldCell(type: ListExport["customFields"][number]["type"],
       return generated(value);
     case "DATE": {
       const parsed = new Date(value);
-      return generated(Number.isNaN(parsed.getTime()) ? value : parsed.toISOString().slice(0, DATE_STAMP_LENGTH));
+      // An unparseable stored value is still user-typed text, so it keeps
+      // the formula guard instead of being treated as a generated date.
+      return Number.isNaN(parsed.getTime()) ? text(value) : generated(formatDateStamp(parsed));
     }
   }
 }
@@ -150,9 +156,13 @@ function serializeRow(row: ListExportRow, customFields: ListExport["customFields
 }
 
 export function serializeListCsv(listExport: ListExport): string {
-  const headers = [...FIXED_HEADERS, ...buildCustomFieldHeaders(listExport.customFields)];
+  // A Custom Field name is typed by a User, unlike the fixed headers.
+  const headers = [
+    ...FIXED_HEADERS.map(generated),
+    ...buildCustomFieldHeaders(listExport.customFields).map(text),
+  ];
   const lines = [
-    headers.map(generated),
+    headers,
     ...listExport.rows.map((row) => serializeRow(row, listExport.customFields)),
   ];
   return BOM + lines.map((cells) => cells.map(renderCell).join(",") + LINE_BREAK).join("");
@@ -260,7 +270,7 @@ function slugifyListName(listName: string): string {
 
 export function buildExportFilename(listName: string, now: Date): string {
   const slug = slugifyListName(listName) || FALLBACK_FILENAME_SLUG;
-  return `${slug}-${now.toISOString().slice(0, DATE_STAMP_LENGTH)}.csv`;
+  return `${slug}-${formatDateStamp(now)}.csv`;
 }
 
 export type ListCsvExportResult =
@@ -333,4 +343,22 @@ export async function exportListCsv(
 
   const listExport = buildListExport(await loadRawExportSource(database, listId));
   return { status: "ok", filename: buildExportFilename(list.name, now), body: serializeListCsv(listExport) };
+}
+
+const CSV_CONTENT_TYPE = "text/csv; charset=utf-8";
+
+// Kept out of the Route Handler (which can only export handlers) so the
+// status and header mapping is testable without a Next.js request scope.
+export function toCsvDownloadResponse(result: ListCsvExportResult): Response {
+  if (result.status !== "ok") {
+    return new Response(null, { status: 404 });
+  }
+
+  return new Response(result.body, {
+    headers: {
+      "Content-Type": CSV_CONTENT_TYPE,
+      "Content-Disposition": `attachment; filename="${result.filename}"`,
+      "Cache-Control": "no-store",
+    },
+  });
 }

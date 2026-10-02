@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
-import { exportListCsv } from "@/lib/report/list-csv-export";
+import { exportListCsv, toCsvDownloadResponse } from "@/lib/report/list-csv-export";
 
 type RouteParams = { workspaceId: string; listId: string };
 
@@ -17,16 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<Route
     return new NextResponse(null, { status: 401 });
   }
 
-  const result = await exportListCsv(prisma, { userId: session.user.id, workspaceId, listId });
-  if (result.status !== "ok") {
-    return new NextResponse(null, { status: 404 });
-  }
-
-  return new NextResponse(result.body, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${result.filename}"`,
-      "Cache-Control": "no-store",
-    },
-  });
+  return toCsvDownloadResponse(
+    await exportListCsv(prisma, { userId: session.user.id, workspaceId, listId })
+  );
 }

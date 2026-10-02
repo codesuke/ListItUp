@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { buildExportFilename, buildListExport, serializeListCsv, type ListExport, type ListExportRow, type RawExportItem } from "./list-csv-export";
+import { buildExportFilename, buildListExport, serializeListCsv, toCsvDownloadResponse, type ListExport, type ListExportRow, type RawExportItem } from "./list-csv-export";
 
 const BOM = "﻿";
 
@@ -238,4 +238,40 @@ const day = (n: number) => new Date(`2026-09-${String(n).padStart(2, "0")}T00:00
   assert.ok(buildExportFilename("a".repeat(500), now).length < 100);
 }
 
-console.log("list csv export serializer tests passed");
+// A Custom Field header is user-typed text, so it is formula-neutralized
+// too; so is a stored Date value that does not parse as a date.
+{
+  const listExport: ListExport = {
+    customFields: [
+      { id: "h", name: "=cmd", type: "TEXT" },
+      { id: "d", name: "When", type: "DATE" },
+    ],
+    rows: [row({ customFieldValues: { d: "=HYPERLINK(1)" } })],
+  };
+  assert.equal(headerOf(listExport), `${FIXED_HEADER},'=cmd,When`);
+  assert.ok(bodyOf(listExport).endsWith(",'=HYPERLINK(1)\r\n"), bodyOf(listExport));
+}
+
+async function run() {
+  // The download response carries the CSV with attachment and no-store
+  // headers; a refused export is a bare 404.
+  {
+    const ok = toCsvDownloadResponse({ status: "ok", filename: "plan-2026-10-02.csv", body: "a,b\r\n" });
+    assert.equal(ok.status, 200);
+    assert.equal(ok.headers.get("Content-Type"), "text/csv; charset=utf-8");
+    assert.equal(ok.headers.get("Content-Disposition"), 'attachment; filename="plan-2026-10-02.csv"');
+    assert.equal(ok.headers.get("Cache-Control"), "no-store");
+    assert.equal(await ok.text(), "a,b\r\n");
+
+    const refused = toCsvDownloadResponse({ status: "not-found" });
+    assert.equal(refused.status, 404);
+    assert.equal(await refused.text(), "");
+  }
+
+  console.log("list csv export serializer tests passed");
+}
+
+void run().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});
