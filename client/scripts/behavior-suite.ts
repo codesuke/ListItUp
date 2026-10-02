@@ -90,6 +90,7 @@ const TEST_FILES = [
   "lib/two-factor/two-factor-management.integration.test.ts",
   "lib/workspace/workspace-invitations.test.ts",
   "lib/workspace/workspace-invitation-flow.integration.test.ts",
+  "lib/workspace/workspace-invitation-rate-limit.integration.test.ts",
   "lib/mailer/email-templates/render.test.ts",
   "lib/mailer/email-templates/templates.test.ts",
   "lib/mailer/mailer-core.test.ts",

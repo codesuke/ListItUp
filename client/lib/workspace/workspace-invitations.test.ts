@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
 import type { Mailer, SendEmailInput, SendEmailResult } from "@/lib/mailer/mailer-core";
+import type { WorkspaceInvitationRateLimiter } from "./workspace-invitation-rate-limit";
 import {
   acceptInvitation,
   createInvitation,
@@ -10,6 +11,30 @@ import {
   resolveInvitation,
   revokeInvitation,
 } from "./workspace-invitations";
+
+interface FakeRateLimiter {
+  rateLimiter: WorkspaceInvitationRateLimiter;
+  calls: Array<{ inviterId: string; workspaceId: string }>;
+  setAllows(allows: boolean): void;
+}
+
+function createFakeRateLimiter(): FakeRateLimiter {
+  let allows = true;
+  const calls: Array<{ inviterId: string; workspaceId: string }> = [];
+
+  return {
+    calls,
+    setAllows(value: boolean) {
+      allows = value;
+    },
+    rateLimiter: {
+      async consume(inviterId, workspaceId) {
+        calls.push({ inviterId, workspaceId });
+        return allows;
+      },
+    },
+  };
+}
 
 async function run() {
   if (!process.env.DATABASE_URL) {
@@ -237,6 +262,8 @@ async function runCreateInvitationTests() {
       return { ok: true };
     },
   };
+  const fakeRateLimiter = createFakeRateLimiter();
+  const dependencies = { mailer, rateLimiter: fakeRateLimiter.rateLimiter };
 
   const workspaceId = randomUUID();
   const personalSpaceId = randomUUID();
@@ -282,7 +309,7 @@ async function runCreateInvitationTests() {
       ["non-member", randomUUID(), workspaceId],
       ["Owner of a Personal Space", ownerId, personalSpaceId],
     ] as const) {
-      const result = await createInvitation(prisma, mailer, {
+      const result = await createInvitation(prisma, dependencies, {
         workspaceId: targetWorkspaceId,
         actingUserId,
         email: `rejected-${randomUUID()}@example.test`,
@@ -291,10 +318,15 @@ async function runCreateInvitationTests() {
       assert.deepEqual(result, { status: "forbidden" }, `${label} must be forbidden from inviting`);
     }
     assert.equal(sentEmails.length, 0, "no email should have been sent for a forbidden invite");
+    assert.equal(
+      fakeRateLimiter.calls.length,
+      0,
+      "a forbidden attempt must not be counted against the rate limit"
+    );
 
     // Only MEMBER or VIEWER are accepted invite-time roles.
     for (const role of ["ADMIN", "OWNER", "not-a-role"]) {
-      const result = await createInvitation(prisma, mailer, {
+      const result = await createInvitation(prisma, dependencies, {
         workspaceId,
         actingUserId: ownerId,
         email: `bad-role-${randomUUID()}@example.test`,
@@ -304,18 +336,23 @@ async function runCreateInvitationTests() {
     }
 
     // Inviting an existing Workspace member is rejected.
-    const alreadyMemberResult = await createInvitation(prisma, mailer, {
+    const alreadyMemberResult = await createInvitation(prisma, dependencies, {
       workspaceId,
       actingUserId: adminId,
       email: existingMemberEmail.toUpperCase(),
       role: "MEMBER",
     });
     assert.deepEqual(alreadyMemberResult, { status: "already-member" });
+    assert.equal(
+      fakeRateLimiter.calls.length,
+      0,
+      "an already-member attempt must not be counted against the rate limit"
+    );
 
     // A successful invite (Admin inviting), with casing normalized, emails
     // the invitee and names the inviter, Workspace and expiry.
     const inviteeEmail = `Invitee-${randomUUID()}@Example.test`;
-    const createResult = await createInvitation(prisma, mailer, {
+    const createResult = await createInvitation(prisma, dependencies, {
       workspaceId,
       actingUserId: adminId,
       email: inviteeEmail,
@@ -341,11 +378,16 @@ async function runCreateInvitationTests() {
     assert.match(sent!.template.text, /Admin/);
     assert.match(sent!.template.text, /Launch Team/);
     assert.match(sent!.template.text, new RegExp(`${INVITATION_EXPIRY_DAYS} days`));
+    assert.deepEqual(
+      fakeRateLimiter.calls.at(-1),
+      { inviterId: adminId, workspaceId },
+      "the rate limiter must be consulted with the inviter and the Workspace"
+    );
 
     // A failed send leaves no Pending Invitation behind.
     nextSendShouldFail = true;
     const failedEmail = `send-fails-${randomUUID()}@example.test`;
-    const failedResult = await createInvitation(prisma, mailer, {
+    const failedResult = await createInvitation(prisma, dependencies, {
       workspaceId,
       actingUserId: ownerId,
       email: failedEmail,
@@ -361,7 +403,7 @@ async function runCreateInvitationTests() {
     // Inviting an email that already has an unaccepted invitation resends
     // it instead of creating a second row, and the new role/inviter apply.
     const dedupEmail = `dedup-${randomUUID()}@example.test`;
-    const firstInvite = await createInvitation(prisma, mailer, {
+    const firstInvite = await createInvitation(prisma, dependencies, {
       workspaceId,
       actingUserId: adminId,
       email: dedupEmail,
@@ -378,7 +420,7 @@ async function runCreateInvitationTests() {
       })
     ).token;
 
-    const secondInvite = await createInvitation(prisma, mailer, {
+    const secondInvite = await createInvitation(prisma, dependencies, {
       workspaceId,
       actingUserId: ownerId,
       email: dedupEmail,
@@ -405,6 +447,29 @@ async function runCreateInvitationTests() {
       null,
       "the old token must resolve as invalid after a dedup resend"
     );
+
+    // Exceeding the rate limit blocks sending, with no Pending Invitation
+    // row created and no email sent.
+    fakeRateLimiter.setAllows(false);
+    const rateLimitedEmail = `rate-limited-${randomUUID()}@example.test`;
+    const rateLimitedResult = await createInvitation(prisma, dependencies, {
+      workspaceId,
+      actingUserId: ownerId,
+      email: rateLimitedEmail,
+      role: "MEMBER",
+    });
+    assert.deepEqual(rateLimitedResult, { status: "rate-limited" });
+    assert.equal(
+      await prisma.workspaceInvitation.count({ where: { email: rateLimitedEmail } }),
+      0,
+      "a rate-limited attempt must leave no Pending Invitation row"
+    );
+    assert.equal(
+      sentEmails.some((send) => send.to === rateLimitedEmail),
+      false,
+      "a rate-limited attempt must not send an email"
+    );
+    fakeRateLimiter.setAllows(true);
   } finally {
     await prisma.workspaceMember.deleteMany({
       where: { workspaceId: { in: [workspaceId, personalSpaceId] } },
@@ -446,6 +511,8 @@ async function runResendInvitationTests() {
       return { ok: true };
     },
   };
+  const fakeRateLimiter = createFakeRateLimiter();
+  const dependencies = { mailer, rateLimiter: fakeRateLimiter.rateLimiter };
 
   const workspaceId = randomUUID();
   const ownerId = randomUUID();
@@ -494,7 +561,7 @@ async function runResendInvitationTests() {
 
     // Only Owner and Admin can resend.
     const forbiddenInvitationId = await seedInvitation();
-    const memberResult = await resendInvitation(prisma, mailer, {
+    const memberResult = await resendInvitation(prisma, dependencies, {
       invitationId: forbiddenInvitationId,
       actingUserId: memberId,
     });
@@ -503,18 +570,23 @@ async function runResendInvitationTests() {
 
     // A non-existent invitation resolves as not-found.
     assert.deepEqual(
-      await resendInvitation(prisma, mailer, { invitationId: randomUUID(), actingUserId: ownerId }),
+      await resendInvitation(prisma, dependencies, { invitationId: randomUUID(), actingUserId: ownerId }),
       { status: "not-found" }
     );
 
     // An already-accepted invitation cannot be resent.
     const acceptedInvitationId = await seedInvitation({ accepted: true });
     assert.deepEqual(
-      await resendInvitation(prisma, mailer, {
+      await resendInvitation(prisma, dependencies, {
         invitationId: acceptedInvitationId,
         actingUserId: ownerId,
       }),
       { status: "already-accepted" }
+    );
+    assert.equal(
+      fakeRateLimiter.calls.length,
+      0,
+      "forbidden, not-found and already-accepted attempts must not count against the rate limit"
     );
 
     // Resend issues a new token and resets expiry; the old token invalidates.
@@ -522,7 +594,7 @@ async function runResendInvitationTests() {
     const pendingBefore = await prisma.workspaceInvitation.findUniqueOrThrow({
       where: { id: pendingInvitationId },
     });
-    const resentResult = await resendInvitation(prisma, mailer, {
+    const resentResult = await resendInvitation(prisma, dependencies, {
       invitationId: pendingInvitationId,
       actingUserId: adminId,
     });
@@ -540,11 +612,16 @@ async function runResendInvitationTests() {
     );
     const sentToPending = sentEmails.find((send) => send.to === pendingAfter.email);
     assert.ok(sentToPending, "resending must email the invitee again");
+    assert.deepEqual(
+      fakeRateLimiter.calls.at(-1),
+      { inviterId: adminId, workspaceId },
+      "resend must consult the rate limiter with the inviter and the Workspace"
+    );
 
     // An expired invitation can be resent, and then accepted.
     const expiredInvitationId = await seedInvitation({ expired: true });
     assert.deepEqual(
-      await resendInvitation(prisma, mailer, {
+      await resendInvitation(prisma, dependencies, {
         invitationId: expiredInvitationId,
         actingUserId: ownerId,
       }),
@@ -570,7 +647,7 @@ async function runResendInvitationTests() {
     });
     nextSendShouldFail = true;
     assert.deepEqual(
-      await resendInvitation(prisma, mailer, {
+      await resendInvitation(prisma, dependencies, {
         invitationId: failingInvitationId,
         actingUserId: ownerId,
       }),
@@ -580,6 +657,26 @@ async function runResendInvitationTests() {
       where: { id: failingInvitationId },
     });
     assert.deepEqual(failingAfter, failingBefore);
+
+    // Exceeding the rate limit blocks the resend, leaving the invitation's
+    // token and expiry untouched and sending no email.
+    const rateLimitedInvitationId = await seedInvitation();
+    const rateLimitedBefore = await prisma.workspaceInvitation.findUniqueOrThrow({
+      where: { id: rateLimitedInvitationId },
+    });
+    fakeRateLimiter.setAllows(false);
+    assert.deepEqual(
+      await resendInvitation(prisma, dependencies, {
+        invitationId: rateLimitedInvitationId,
+        actingUserId: ownerId,
+      }),
+      { status: "rate-limited" }
+    );
+    const rateLimitedAfter = await prisma.workspaceInvitation.findUniqueOrThrow({
+      where: { id: rateLimitedInvitationId },
+    });
+    assert.deepEqual(rateLimitedAfter, rateLimitedBefore);
+    fakeRateLimiter.setAllows(true);
   } finally {
     await prisma.workspaceMember.deleteMany({ where: { workspaceId } });
     await prisma.workspaceInvitation.deleteMany({ where: { workspaceId } });

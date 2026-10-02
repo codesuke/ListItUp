@@ -11,6 +11,19 @@ import {
   resendInvitation,
   revokeInvitation,
 } from "@/lib/workspace/workspace-invitations";
+import {
+  createRedisWorkspaceInvitationRateLimiter,
+  GENERIC_INVITATION_RATE_LIMIT_MESSAGE,
+} from "@/lib/workspace/workspace-invitation-rate-limit";
+
+const redisUrl = process.env.REDIS_URL;
+
+if (!redisUrl) {
+  throw new Error("REDIS_URL must be set for Workspace invitation rate limits.");
+}
+
+const invitationRateLimiter = createRedisWorkspaceInvitationRateLimiter(redisUrl);
+const invitationSendDependencies = { mailer, rateLimiter: invitationRateLimiter };
 
 function membersPath(workspaceId: string): string {
   return `/workspaces/${workspaceId}/settings/members`;
@@ -28,6 +41,7 @@ const ERROR_MESSAGE = {
   "invalid-role": "Choose Member or Viewer.",
   "invalid-email": "Enter an email address.",
   "already-member": "That person is already a member of this Workspace.",
+  "rate-limited": GENERIC_INVITATION_RATE_LIMIT_MESSAGE,
   "send-failed": SEND_FAILED_MESSAGE,
 } as const;
 
@@ -40,7 +54,7 @@ export async function createInvitationAction(
   const email = normalizeEmail(formData.get("email"));
   const role = String(formData.get("role") ?? "");
 
-  const result = await createInvitation(prisma, mailer, {
+  const result = await createInvitation(prisma, invitationSendDependencies, {
     workspaceId,
     actingUserId: session.user.id,
     email,
@@ -65,6 +79,7 @@ const RESEND_ERROR_MESSAGE = {
   forbidden: "Only the Workspace Owner or an Admin can resend invitations.",
   "not-found": "That invitation no longer exists.",
   "already-accepted": "That invitation has already been accepted.",
+  "rate-limited": GENERIC_INVITATION_RATE_LIMIT_MESSAGE,
   "send-failed": SEND_FAILED_MESSAGE,
 } as const;
 
@@ -80,7 +95,7 @@ export async function resendInvitationAction(
   /* eslint-enable @typescript-eslint/no-unused-vars */
   const session = await requireAuthenticatedSession(membersPath(workspaceId));
 
-  const result = await resendInvitation(prisma, mailer, {
+  const result = await resendInvitation(prisma, invitationSendDependencies, {
     invitationId,
     actingUserId: session.user.id,
   });

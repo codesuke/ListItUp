@@ -5,6 +5,7 @@ import { normalizeEmail } from "@/lib/auth/normalize-email";
 import { canAccessWorkspaceSettings } from "@/lib/permissions/workspace-access";
 import type { Mailer, SendEmailResult } from "@/lib/mailer/mailer-core";
 import { workspaceInvitationEmail } from "@/lib/mailer/email-templates/workspace-invitation";
+import type { WorkspaceInvitationRateLimiter } from "@/lib/workspace/workspace-invitation-rate-limit";
 
 // Invitations may only ever grant these two Workspace-level roles — ADMIN
 // and OWNER are never invite-time grants (see domain model spec).
@@ -179,6 +180,14 @@ export async function acceptInvitation(
   return { status: "accepted", workspaceId: invitation.workspaceId };
 }
 
+// Shared by createInvitation and resendInvitation: both send an invitation
+// email and must consult the same per-inviter/per-Workspace send limit (see
+// docs/agents/issue-tracker.md issue #68's rate-limiting decision).
+export interface InvitationSendDependencies {
+  mailer: Mailer;
+  rateLimiter: WorkspaceInvitationRateLimiter;
+}
+
 export interface CreateInvitationInput {
   workspaceId: string;
   actingUserId: string;
@@ -192,6 +201,7 @@ export type CreateInvitationResult =
   | { status: "invalid-role" }
   | { status: "invalid-email" }
   | { status: "already-member" }
+  | { status: "rate-limited" }
   | { status: "send-failed" };
 
 // Creates a Pending Invitation and emails it. Authorization and role
@@ -200,7 +210,7 @@ export type CreateInvitationResult =
 // docs/agents/nextjs-conventions.md).
 export async function createInvitation(
   database: PrismaClient,
-  mailer: Mailer,
+  dependencies: InvitationSendDependencies,
   input: CreateInvitationInput
 ): Promise<CreateInvitationResult> {
   const actingMembership = await database.workspaceMember.findUnique({
@@ -244,8 +254,16 @@ export async function createInvitation(
     orderBy: { createdAt: "desc" },
   });
 
+  const allowed = await dependencies.rateLimiter.consume(
+    input.actingUserId,
+    input.workspaceId
+  );
+  if (!allowed) {
+    return { status: "rate-limited" };
+  }
+
   const token = randomUUID();
-  const sendResult = await sendInvitationEmail(mailer, {
+  const sendResult = await sendInvitationEmail(dependencies.mailer, {
     to: email,
     inviterName: actingMembership.user.name,
     workspaceName: actingMembership.workspace.name,
@@ -286,6 +304,7 @@ export type ResendInvitationResult =
   | { status: "forbidden" }
   | { status: "not-found" }
   | { status: "already-accepted" }
+  | { status: "rate-limited" }
   | { status: "send-failed" };
 
 // Explicit Resend control on a Pending Invitation row (pending or expired):
@@ -294,7 +313,7 @@ export type ResendInvitationResult =
 // leaves the previous invitation exactly as it was.
 export async function resendInvitation(
   database: PrismaClient,
-  mailer: Mailer,
+  dependencies: InvitationSendDependencies,
   input: { invitationId: string; actingUserId: string }
 ): Promise<ResendInvitationResult> {
   const invitation = await database.workspaceInvitation.findUnique({
@@ -326,8 +345,16 @@ export async function resendInvitation(
     return { status: "already-accepted" };
   }
 
+  const allowed = await dependencies.rateLimiter.consume(
+    input.actingUserId,
+    invitation.workspaceId
+  );
+  if (!allowed) {
+    return { status: "rate-limited" };
+  }
+
   const token = randomUUID();
-  const sendResult = await sendInvitationEmail(mailer, {
+  const sendResult = await sendInvitationEmail(dependencies.mailer, {
     to: invitation.email,
     inviterName: actingMembership.user.name,
     workspaceName: invitation.workspace.name,
