@@ -10,13 +10,23 @@ import { createDependency, removeDependency } from "@/lib/item/item-dependencies
 import { archiveItem, isValidItemState, restoreItem, transitionItemState, updateItem } from "@/lib/item/item-lifecycle";
 import { applyLabel, removeLabel } from "@/lib/item/item-labels";
 import { createNote, upsertPersonalNote } from "@/lib/item/item-notes";
-import { createCustomFieldDefinition } from "@/lib/list/list-custom-fields";
+import { createCustomFieldDefinition, updateCustomFieldDefinition } from "@/lib/list/list-custom-fields";
 import { createLabel } from "@/lib/list/list-labels";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 
 function itemPath(workspaceId: string, listId: string, itemId: string): string {
   return `/workspaces/${workspaceId}/lists/${listId}/items/${itemId}`;
+}
+
+// Shared by defineCustomFieldAction and editCustomFieldDefinitionAction —
+// both read a DROPDOWN definition's options from the same comma-separated
+// form field.
+function parseCommaSeparatedOptions(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((option) => option.trim())
+    .filter(Boolean);
 }
 
 const VALID_PRIORITIES: readonly ItemPriority[] = ["LOW", "NORMAL", "HIGH"];
@@ -212,17 +222,40 @@ export async function defineCustomFieldAction(
   const session = await requireAuthenticatedSession(itemPath(workspaceId, listId, itemId));
   const name = String(formData.get("name") ?? "").trim();
   const type = String(formData.get("type") ?? "");
-  const optionsRaw = String(formData.get("options") ?? "");
-  const options = optionsRaw
-    .split(",")
-    .map((option) => option.trim())
-    .filter(Boolean);
+  const options = parseCommaSeparatedOptions(String(formData.get("options") ?? ""));
 
   if (!name || !type) {
     return;
   }
 
   await createCustomFieldDefinition(prisma, { actorUserId: session.user.id, listId, name, type, options });
+  revalidatePath(itemPath(workspaceId, listId, itemId));
+}
+
+// Renames a Custom Field definition and/or replaces its DROPDOWN options,
+// inline beside the value control — same Lead/Admin threshold as
+// defineCustomFieldAction above (#34, #60). Type isn't editable here; see
+// updateCustomFieldDefinition's own comment for why.
+export async function editCustomFieldDefinitionAction(
+  workspaceId: string,
+  listId: string,
+  itemId: string,
+  definitionId: string,
+  formData: FormData
+): Promise<void> {
+  const session = await requireAuthenticatedSession(itemPath(workspaceId, listId, itemId));
+  const name = String(formData.get("name") ?? "").trim();
+  // Passed through as-is, including empty — a Lead clearing a DROPDOWN's
+  // options to nothing must hit updateCustomFieldDefinition's own
+  // dropdown-requires-options rejection, not have the clear silently
+  // treated as "leave options unchanged".
+  const options = parseCommaSeparatedOptions(String(formData.get("options") ?? ""));
+
+  if (!name) {
+    return;
+  }
+
+  await updateCustomFieldDefinition(prisma, { actorUserId: session.user.id, definitionId, name, options });
   revalidatePath(itemPath(workspaceId, listId, itemId));
 }
 

@@ -39,9 +39,9 @@ export const CUSTOM_FIELD_CONTROL_CLASS = `${INPUT_CLASS} h-9 box-border`;
 export const GHOST_BUTTON_CLASS =
   "rounded-[6px] border border-line-strong bg-surface-2 px-3 py-1.5 text-[12.5px] font-medium text-ink-muted transition-colors duration-150 hover:border-[#ff6b4a] hover:bg-surface-4 hover:text-ink";
 // The one loud, orange, data-committing action color on this panel — used
-// by the two inline row-level Save buttons (Personal note, Blocker reason)
-// that need an explicit submit rather than the auto-submit-on-change/blur
-// pattern the rest of the panel's fields use.
+// by the inline row-level Save buttons (Personal note, Blocker reason,
+// Custom Field definition rename) that need an explicit submit rather than
+// the auto-submit-on-change/blur pattern the rest of the panel's fields use.
 export const COMPACT_PRIMARY_BUTTON_CLASS =
   "rounded-[6px] bg-[#ff6b4a] px-2.5 py-1 text-[11.5px] font-semibold text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]";
 // Every section below the Properties strip shares this wrapper so spacing

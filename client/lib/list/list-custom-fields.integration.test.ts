@@ -169,6 +169,36 @@ async function run() {
       });
       assert.deepEqual(forbidden, { status: "forbidden" });
     }
+
+    // Clearing a DROPDOWN definition's options down to none is rejected on
+    // update the same way it is on create — the inline edit UI (#60) relies
+    // on this to catch an accidental clear-all rather than silently
+    // leaving the definition unchanged.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createUser();
+      await addWorkspaceMember(workspaceId, leadId, "MEMBER");
+      await addListMember(listId, leadId, "LEAD");
+      const created = await createCustomFieldDefinition(prisma, {
+        actorUserId: leadId,
+        listId,
+        name: "Severity",
+        type: "DROPDOWN",
+        options: ["Low", "High"],
+      });
+      assert.ok(created.status === "created");
+      const definitionId = created.status === "created" ? created.definitionId : "";
+
+      const rejected = await updateCustomFieldDefinition(prisma, {
+        actorUserId: leadId,
+        definitionId,
+        name: "Severity",
+        options: [],
+      });
+      assert.deepEqual(rejected, { status: "dropdown-requires-options" });
+      const definition = await prisma.customFieldDefinition.findUniqueOrThrow({ where: { id: definitionId } });
+      assert.deepEqual(definition.options, ["Low", "High"], "the rejected update leaves existing options untouched");
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

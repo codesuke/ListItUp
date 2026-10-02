@@ -10,6 +10,7 @@ import {
   addNoteAction,
   applyExistingLabelAction,
   defineCustomFieldAction,
+  editCustomFieldDefinitionAction,
   removeItemAssigneeAction,
   removeItemDependencyAction,
   removeItemLabelAction,
@@ -68,6 +69,9 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
             setItemCustomFieldValueAction.bind(null, workspaceId, listId, itemId, definitionId)
           }
           boundDefineCustomField={defineCustomFieldAction.bind(null, workspaceId, listId, itemId)}
+          boundEditCustomFieldDefinition={(definitionId) =>
+            editCustomFieldDefinitionAction.bind(null, workspaceId, listId, itemId, definitionId)
+          }
           boundAddDependency={addItemDependencyAction.bind(null, workspaceId, listId, itemId)}
           boundRemoveDependency={(blockerId, blockedId) =>
             removeItemDependencyAction.bind(null, workspaceId, listId, itemId, blockerId, blockedId)

@@ -25,6 +25,7 @@ const TEST_FILES = [
   "lib/list/list-board.integration.test.ts",
   "lib/list/list-files.test.ts",
   "lib/list/list-custom-fields.integration.test.ts",
+  "app/workspaces/[workspaceId]/lists/[listId]/items/[itemId]/AutoSaveCustomField.test.tsx",
   "lib/list/list-labels.integration.test.ts",
   "lib/item/item-creation.integration.test.ts",
   "lib/item/item-lifecycle.test.ts",

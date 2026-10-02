@@ -73,6 +73,7 @@ export function ItemDetailPanel({
   boundRemoveLabel,
   boundSetCustomFieldValue,
   boundDefineCustomField,
+  boundEditCustomFieldDefinition,
   boundAddDependency,
   boundRemoveDependency,
   boundAddNote,
@@ -90,6 +91,7 @@ export function ItemDetailPanel({
   boundRemoveLabel: (labelId: string) => () => Promise<void>;
   boundSetCustomFieldValue: (definitionId: string) => (formData: FormData) => Promise<void>;
   boundDefineCustomField: (formData: FormData) => Promise<void>;
+  boundEditCustomFieldDefinition: (definitionId: string) => (formData: FormData) => Promise<void>;
   boundAddDependency: (formData: FormData) => Promise<void>;
   boundRemoveDependency: (blockerId: string, blockedId: string) => () => Promise<void>;
   boundAddNote: (formData: FormData) => Promise<void>;
@@ -469,6 +471,8 @@ export function ItemDetailPanel({
                       definition={definition}
                       defaultValue={data.customFieldValues[definition.id] ?? ""}
                       action={boundSetCustomFieldValue(definition.id)}
+                      canDefineCustomFields={data.canDefineCustomFields}
+                      editAction={boundEditCustomFieldDefinition(definition.id)}
                     />
                   ) : (
                     <div key={definition.id} className="flex w-full flex-col gap-1.5">
