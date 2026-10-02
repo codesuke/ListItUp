@@ -73,6 +73,73 @@ async function run() {
           ]
         );
       }
+
+      // Only Owner and Admin see the invite form and Pending Invitations.
+      for (const manager of [ownerId, adminId]) {
+        const data = await loadWorkspaceMembersPageData(prisma, manager, workspaceId);
+        assert.equal(data!.canManageInvitations, true);
+      }
+      for (const nonManager of [memberId, viewerId]) {
+        const data = await loadWorkspaceMembersPageData(prisma, nonManager, workspaceId);
+        assert.equal(data!.canManageInvitations, false);
+        assert.deepEqual(
+          data!.pendingInvitations,
+          [],
+          "Member and Viewer must never receive Pending Invitation data"
+        );
+      }
+
+      // A Pending Invitation is visible to Owner/Admin with its inviter and
+      // expiry, and an expired one is labeled accordingly; an accepted
+      // invitation is excluded.
+      const pendingToken = randomUUID();
+      const expiredToken = randomUUID();
+      const acceptedToken = randomUUID();
+      const pendingInvitationId = randomUUID();
+      await prisma.workspaceInvitation.createMany({
+        data: [
+          {
+            id: pendingInvitationId,
+            workspaceId,
+            email: "pending@example.test",
+            role: "VIEWER",
+            token: pendingToken,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            invitedById: adminId,
+          },
+          {
+            id: randomUUID(),
+            workspaceId,
+            email: "expired@example.test",
+            role: "MEMBER",
+            token: expiredToken,
+            expiresAt: new Date(Date.now() - 1000),
+            invitedById: adminId,
+          },
+          {
+            id: randomUUID(),
+            workspaceId,
+            email: "accepted@example.test",
+            role: "MEMBER",
+            token: acceptedToken,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            acceptedAt: new Date(),
+            invitedById: adminId,
+          },
+        ],
+      });
+
+      const ownerData = await loadWorkspaceMembersPageData(prisma, ownerId, workspaceId);
+      assert.deepEqual(
+        ownerData!.pendingInvitations
+          .map(({ email, invitedByName, isExpired }) => ({ email, invitedByName, isExpired }))
+          .sort((a, b) => a.email.localeCompare(b.email)),
+        [
+          { email: "expired@example.test", invitedByName: "Amir Admin", isExpired: true },
+          { email: "pending@example.test", invitedByName: "Amir Admin", isExpired: false },
+        ],
+        "accepted invitations must be excluded; expired ones must stay listed as Expired"
+      );
     }
 
     // A Personal Space has no members page.
@@ -92,6 +159,9 @@ async function run() {
       assert.equal(await loadWorkspaceMembersPageData(prisma, strangerId, workspaceId), null);
     }
   } finally {
+    await prisma.workspaceInvitation.deleteMany({
+      where: { workspaceId: { in: createdWorkspaceIds } },
+    });
     await prisma.workspaceMember.deleteMany({
       where: { workspaceId: { in: createdWorkspaceIds } },
     });

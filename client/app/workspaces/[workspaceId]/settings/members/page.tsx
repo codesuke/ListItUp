@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 
+import { InviteMemberForm } from "./InviteMemberForm";
 import { loadWorkspaceMembersPageData } from "./page-data";
 
 const ROLE_LABEL = {
@@ -11,6 +12,10 @@ const ROLE_LABEL = {
   MEMBER: "Member",
   VIEWER: "Viewer",
 } as const;
+
+function formatExpiry(expiresAt: Date): string {
+  return expiresAt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 type Props = {
   params: Promise<{ workspaceId: string }>;
@@ -28,7 +33,7 @@ export default async function WorkspaceMembersPage({ params }: Props) {
     notFound();
   }
 
-  const { workspaceName, members } = data;
+  const { workspaceName, members, canManageInvitations, pendingInvitations } = data;
 
   return (
     <main className="min-h-screen bg-canvas px-6 py-12 text-ink animate-in fade-in duration-200">
@@ -60,6 +65,44 @@ export default async function WorkspaceMembersPage({ params }: Props) {
             </li>
           ))}
         </ul>
+
+        {canManageInvitations ? (
+          <>
+            <section className="mt-10 border-t border-surface-3 pt-10">
+              <h2 className="mb-4 text-lg font-light text-ink">Invite someone</h2>
+              <InviteMemberForm workspaceId={workspaceId} />
+            </section>
+
+            <section className="mt-10 border-t border-surface-3 pt-10">
+              <h2 className="mb-4 text-lg font-light text-ink">Pending Invitations</h2>
+              {pendingInvitations.length === 0 ? (
+                <p className="text-sm text-ink-muted">No Pending Invitations.</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {pendingInvitations.map((invitation) => (
+                    <li
+                      key={invitation.id}
+                      className="flex items-center justify-between gap-4 border border-surface-3 bg-surface-1/95 px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate text-sm text-ink">{invitation.email}</div>
+                        <div className="truncate text-xs text-ink-faint">
+                          Invited by {invitation.invitedByName ?? "a former member"} &middot;{" "}
+                          {invitation.isExpired
+                            ? "Expired"
+                            : `Expires ${formatExpiry(invitation.expiresAt)}`}
+                        </div>
+                      </div>
+                      <span className="shrink-0 border border-line-strong px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                        {ROLE_LABEL[invitation.role]}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
+        ) : null}
       </div>
     </main>
   );

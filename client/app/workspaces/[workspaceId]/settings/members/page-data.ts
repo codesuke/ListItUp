@@ -1,5 +1,5 @@
 import type { PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
-import { canViewWorkspaceMembers } from "@/lib/permissions/workspace-access";
+import { canManageWorkspace, canViewWorkspaceMembers } from "@/lib/permissions/workspace-access";
 
 import { byRoleThenName } from "../page-data";
 
@@ -9,9 +9,20 @@ export type WorkspaceMembersPageMember = {
   role: WorkspaceRole;
 };
 
+export type PendingWorkspaceInvitation = {
+  id: string;
+  email: string;
+  role: WorkspaceRole;
+  invitedByName: string | null;
+  expiresAt: Date;
+  isExpired: boolean;
+};
+
 export type WorkspaceMembersPageData = {
   workspaceName: string;
   members: WorkspaceMembersPageMember[];
+  canManageInvitations: boolean;
+  pendingInvitations: PendingWorkspaceInvitation[];
 };
 
 // Takes an injected PrismaClient for the same reason as the settings page's
@@ -49,5 +60,31 @@ export async function loadWorkspaceMembersPageData(
     }))
     .sort(byRoleThenName);
 
-  return { workspaceName: membership.workspace.name, members };
+  // Only Owner and Admin see Pending Invitations (docs/Specs-Planned/
+  // workspace-invitations.md) — Member and Viewer get the member list only.
+  const canManageInvitations = canManageWorkspace(membership.role);
+  const now = new Date();
+  const pendingInvitations = canManageInvitations
+    ? (
+        await database.workspaceInvitation.findMany({
+          where: { workspaceId, acceptedAt: null },
+          include: { invitedBy: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+        })
+      ).map((invitation) => ({
+        id: invitation.id,
+        email: invitation.email,
+        role: invitation.role,
+        invitedByName: invitation.invitedBy?.name ?? null,
+        expiresAt: invitation.expiresAt,
+        isExpired: invitation.expiresAt <= now,
+      }))
+    : [];
+
+  return {
+    workspaceName: membership.workspace.name,
+    members,
+    canManageInvitations,
+    pendingInvitations,
+  };
 }

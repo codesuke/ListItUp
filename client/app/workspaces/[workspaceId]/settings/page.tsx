@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
@@ -83,7 +84,16 @@ export default async function WorkspaceSettingsPage({ params }: Props) {
 
         <section className="mt-10 border-t border-surface-3 pt-10">
           <h2 className="mb-4 text-lg font-light text-ink">Invite members</h2>
-          <p className="text-sm text-ink-muted">Inviting new members is coming soon.</p>
+          <p className="text-sm text-ink-muted">
+            Invite people and manage Pending Invitations from the{" "}
+            <Link
+              href={`/workspaces/${workspaceId}/settings/members`}
+              className="text-[#ff8a70] transition-colors duration-150 hover:text-[#ff6b4a]"
+            >
+              Members
+            </Link>{" "}
+            page.
+          </p>
         </section>
 
         <section className="mt-10 border-t border-surface-3 pt-10">

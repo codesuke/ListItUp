@@ -37,6 +37,7 @@ model User {
   grantedPlatformRoleAssignments PlatformRoleAssignment[] @relation("PlatformRoleAssignmentGranter")
   revokedPlatformRoleAssignments PlatformRoleAssignment[] @relation("PlatformRoleAssignmentRevoker")
   securityEvents SecurityEvent[]
+  sentWorkspaceInvitations WorkspaceInvitation[] @relation("WorkspaceInvitationInviter")
 
   @@map("user")
 }
@@ -153,7 +154,9 @@ model WorkspaceInvitation {
   expiresAt   DateTime
   acceptedAt  DateTime?
   createdAt   DateTime      @default(now())
+  invitedById String?
   workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy   User?         @relation("WorkspaceInvitationInviter", fields: [invitedById], references: [id], onDelete: SetNull)
 
   @@index([email])
   @@map("workspace_invitation")
