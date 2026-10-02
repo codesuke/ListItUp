@@ -144,6 +144,10 @@ _Avoid_: Guest, observer
 An external person granted read-only access to one specific List, without joining the Workspace. A Guest has no Workspace-level identity and no visibility into anything outside the List(s) they were explicitly granted access to. The same person may hold independent Guest access to multiple Lists. A Guest can nonetheless read, post, and attach files in that List's Channels — the read-only grant covers Items, not Channels (see Channel, ADR 0013).
 _Avoid_: External collaborator, client, viewer
 
+**Pending Invitation**:
+An invitation for a person to join a Workspace as a Member or Viewer that has been sent but not yet accepted. It expires after 7 days; an Owner or Admin can resend or revoke it. Distinct from Guest access, which is granted per List.
+_Avoid_: Invite link, request
+
 **Capture**:
 The act of quickly adding an Item before fully organizing it.
 _Avoid_: Dump, jot, submit
