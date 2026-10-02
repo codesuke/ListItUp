@@ -189,7 +189,7 @@ The act of returning an Archived List or Item to active use.
 _Avoid_: Unarchive, recover
 
 **Report**:
-A live summary view of a single List's Items, filtered by Assignee, state, or date. Any Member can name and save a Report's filter setup for reuse (private to them by default; re-opening it always re-runs against current data, never a frozen copy) and export its current results as a CSV file.
+A live summary view of a single List's Items, filtered by Assignee, state, or date. Any Member can name and save a Report's filter setup for reuse (private to them by default; re-opening it always re-runs against current data, never a frozen copy) and export its current results as a CSV file. A List can also be exported whole as a CSV file (every Item, including Archived ones), by any User with Workspace or List access except a Guest.
 _Avoid_: Snapshot, document (a saved Report re-runs live; it does not freeze data)
 
 **Analytics**:

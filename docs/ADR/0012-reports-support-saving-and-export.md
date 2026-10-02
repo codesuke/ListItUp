@@ -19,3 +19,7 @@ accepted
 - No new storage model is needed for a frozen point-in-time record — a Saved Report is just a persisted filter definition, not a copy of the underlying Items.
 - My Tasks does not get this surface in v1 — only a List's Dashboard does (`docs/QnA/reports-analytics-scope.md` Q16). My Tasks keeps its fixed Dashboard widgets only.
 - If real demand emerges for cross-List or Workspace-wide reporting, or for frozen historical snapshots, that needs a fresh decision — this ADR only covers List-scoped, live-reissuing Saved Reports and CSV export.
+
+## Addendum: whole-List export ships first
+
+Until Saved Reports and Report filters exist, the List page's Export CSV button exports the whole List (all Items, Archived included) rather than a Report's results. Once Reports ship, export becomes filter-aware by passing a filtered Item set to the same serializer. Guests cannot export. See `docs/QnA/list-csv-export.md`.
