@@ -12,6 +12,7 @@ import {
   Settings,
   type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
@@ -387,7 +388,7 @@ export default async function ListPage({ params, searchParams }: Props) {
               const Icon = TAB_ICON[tab.key];
               const isDisabledTab = tab.key === "messages";
               return (
-                <a
+                <Link
                   key={tab.key}
                   href={tabHref(workspaceId, listId, tab.key)}
                   className={
@@ -404,7 +405,7 @@ export default async function ListPage({ params, searchParams }: Props) {
                       v2
                     </span>
                   )}
-                </a>
+                </Link>
               );
             })}
           </nav>
