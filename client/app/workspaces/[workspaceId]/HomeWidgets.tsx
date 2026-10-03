@@ -139,19 +139,33 @@ function AttentionGlance({ counts }: { counts: MyTasksAttentionCount[] }) {
   );
 }
 
-function TaskRow({ item, now }: { item: MyTaskItem; now: Date }) {
+function TaskCompleteToggle({ item, boundComplete }: { item: MyTaskItem; boundComplete: () => Promise<void> }) {
+  const canComplete = item.state !== "COMPLETE" && item.state !== "ARCHIVED";
+
+  if (!canComplete) {
+    return (
+      <span className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-[#ff6b4a]">
+        <Check className="h-3 w-3 text-[#1a0800]" />
+      </span>
+    );
+  }
+
+  return (
+    <form action={boundComplete}>
+      <button
+        type="submit"
+        aria-label="Mark complete"
+        className="h-[18px] w-[18px] flex-shrink-0 rounded-full border-[1.5px] border-line-strong transition-colors hover:border-[#ff6b4a]"
+      />
+    </form>
+  );
+}
+
+function TaskRow({ item, now, boundComplete }: { item: MyTaskItem; now: Date; boundComplete: () => Promise<void> }) {
   const status = dueDateStatus(item, now);
   return (
     <li className="flex items-center gap-3 rounded-md px-2 py-2.5 transition-colors duration-150 hover:bg-surface-3">
-      <span
-        className={
-          item.state === "COMPLETE"
-            ? "flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-[#ff6b4a]"
-            : "h-[18px] w-[18px] flex-shrink-0 rounded-full border-[1.5px] border-line-strong"
-        }
-      >
-        {item.state === "COMPLETE" && <Check className="h-3 w-3 text-[#1a0800]" />}
-      </span>
+      <TaskCompleteToggle item={item} boundComplete={boundComplete} />
       <a
         href={`/workspaces/${item.sourceWorkspaceId}/lists/${item.listId}/items/${item.id}`}
         className={`min-w-0 flex-1 truncate text-[14px] transition-colors duration-150 hover:underline ${
@@ -171,12 +185,14 @@ export function MyTasksPreviewWidget({
   attentionCounts,
   workspaceId,
   now,
+  boundComplete,
 }: {
   sections: MyTasksGroup<MyTaskItem>[];
   totalCount: number;
   attentionCounts: MyTasksAttentionCount[];
   workspaceId: string;
   now: Date;
+  boundComplete: (itemId: string) => () => Promise<void>;
 }) {
   return (
     <section className="rounded-2xl bg-surface-2 p-4 shadow-sm sm:p-6 md:p-7">
@@ -199,7 +215,7 @@ export function MyTasksPreviewWidget({
               </h3>
               <ul className="flex flex-col">
                 {section.items.map((item) => (
-                  <TaskRow key={item.id} item={item} now={now} />
+                  <TaskRow key={item.id} item={item} now={now} boundComplete={boundComplete(item.id)} />
                 ))}
               </ul>
             </div>
