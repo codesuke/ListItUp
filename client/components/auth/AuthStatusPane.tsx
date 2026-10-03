@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import * as THREE from "three";
 
@@ -452,12 +451,6 @@ export function AuthStatusPane() {
         aria-hidden="true"
       />
       <div className="relative z-30 h-full">
-        <Link
-          href="/privacy"
-          className="absolute bottom-6 right-6 font-mono text-xs uppercase tracking-[.14em] text-[#a5aaaf]/70 transition-colors hover:text-[#e6e6e6]"
-        >
-          Privacy
-        </Link>
         <div className="absolute bottom-24 left-6">
           <motion.p
             className="text-9xl font-extralight tracking-[-.04em] text-[#e6e6e6]"
