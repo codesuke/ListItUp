@@ -5,18 +5,17 @@ import {
   Download,
   GanttChart,
   LayoutDashboard,
-  LayoutList,
   List,
   MessageSquare,
   Paperclip,
-  Settings,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ADD_BUTTON_PRIMARY, ADD_BUTTON_SECONDARY } from "@/components/workspace/add-button";
+import { AssigneeAvatar } from "@/components/workspace/AssigneeAvatar";
 import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
-import { MemberAvatar } from "@/components/workspace/MemberAvatar";
 import { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/calendar/month-grid";
 import { countUnreadNotifications } from "@/lib/notification/notification-inbox";
 import { prisma } from "@/lib/prisma";
@@ -40,7 +39,7 @@ import { BoardView } from "./BoardView";
 import { CalendarView } from "./CalendarView";
 import { DashboardTab } from "./DashboardTab";
 import { FilesView } from "./FilesView";
-import { ListStatusPill } from "./ListStatusPill";
+import { ListStatusControl } from "./ListStatusControl";
 import { loadListPageData, type ListPageData } from "./page-data";
 import { SectionList } from "./SectionList";
 import { TimelineView } from "./TimelineView";
@@ -122,26 +121,26 @@ function RolesColumn({
   return (
     <div className="flex min-w-0 flex-col">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">{title}</span>
-        <span className="font-mono text-[11px] text-ink-faint">{entries.length}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">{title}</span>
+        <span className="text-[11px] text-ink-muted">{entries.length}</span>
       </div>
       <div className="mt-2 border-t border-line" />
       {entries.length === 0 ? (
-        <div className="mt-2 text-sm text-ink-faint">No members</div>
+        <div className="mt-2 text-sm text-ink-muted">No members</div>
       ) : (
         <ul className="mt-1 flex max-h-64 flex-col gap-0.5 overflow-y-auto">
           {entries.map((entry) => (
             <li
               key={entry.userId}
-              className="group flex items-center gap-2 rounded-md px-1 py-1.5 transition-colors duration-150 hover:bg-surface-2"
+              className="group flex items-center gap-2 rounded-[6px] px-1 py-1.5 transition-colors duration-150 hover:bg-surface-3"
             >
-              <MemberAvatar name={entry.name} />
+              <AssigneeAvatar name={entry.name} />
               <span className="min-w-0 flex-1 truncate text-sm text-ink">{entry.name}</span>
               {bindRemove && (
                 <form action={bindRemove(entry.userId)} className="shrink-0">
                   <button
                     type="submit"
-                    className="text-xs text-ink-faint opacity-0 transition-opacity duration-150 hover:text-[#ff8a70] focus-visible:opacity-100 group-hover:opacity-100"
+                    className="text-xs text-ink-muted opacity-0 transition-opacity duration-150 hover:text-[#ff8a70] focus-visible:opacity-100 group-hover:opacity-100"
                   >
                     {removeLabel ?? "Remove"}
                   </button>
@@ -173,11 +172,9 @@ function OverviewTab({
   const canManage = data.canEditDescription;
 
   return (
-    <div className="mt-6 flex flex-col gap-8">
+    <div className="mt-6 flex flex-col gap-10">
       <div>
-        <div className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
-          Description
-        </div>
+        <div className="text-[12px] font-medium uppercase tracking-wide text-ink-muted">Description</div>
         {canManage ? (
           <form action={boundUpdateDescription} className="mt-2 flex flex-col gap-2">
             <textarea
@@ -185,27 +182,20 @@ function OverviewTab({
               defaultValue={data.description ?? ""}
               placeholder="What is this List for?"
               rows={3}
-              className="w-full rounded-md border border-line-strong bg-surface-2 px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
+              className="w-full rounded-[8px] border border-line-strong bg-surface-2 px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]"
             />
-            <button
-              type="submit"
-              className="self-start rounded-md bg-[#ff6b4a] px-4 py-1.5 text-sm font-medium text-[#1a0800] transition-colors duration-150 hover:bg-[#ff8a70]"
-            >
+            <button type="submit" className={`self-start ${ADD_BUTTON_PRIMARY}`}>
               Save
             </button>
           </form>
         ) : (
-          <p className="mt-2 text-sm text-ink-muted">
-            {data.description || "No description yet."}
-          </p>
+          <p className="mt-2 text-sm text-ink-muted">{data.description || "No description yet."}</p>
         )}
       </div>
 
       <div>
-        <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-muted">
-          Roles
-        </div>
-        <div className="grid grid-cols-4 gap-6 rounded-lg border border-line bg-surface-1 p-4">
+        <div className="mb-3 text-[12px] font-medium uppercase tracking-wide text-ink-muted">Roles</div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
           <RolesColumn title="Lead" entries={data.roles.leads} bindRemove={canManage ? boundRemoveMember : undefined} />
           <RolesColumn title="Member" entries={data.roles.members} bindRemove={canManage ? boundRemoveMember : undefined} />
           <RolesColumn title="Viewer" entries={data.roles.viewers} bindRemove={canManage ? boundRemoveMember : undefined} />
@@ -220,9 +210,7 @@ function OverviewTab({
 
       {canManage && (
         <div>
-          <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-muted">
-            Manage Access
-          </div>
+          <div className="mb-3 text-[12px] font-medium uppercase tracking-wide text-ink-muted">Manage Access</div>
           <div className="flex flex-wrap items-center gap-6">
             {data.eligibleMembers.length > 0 && (
               <form action={boundAddMember} className="flex items-center gap-2">
@@ -230,7 +218,7 @@ function OverviewTab({
                   name="userId"
                   required
                   defaultValue=""
-                  className="h-9 w-44 truncate rounded-md border border-line-strong bg-surface-2 px-3 text-sm text-ink"
+                  className="h-9 w-44 truncate rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink"
                 >
                   <option value="" disabled>
                     Add member
@@ -244,15 +232,12 @@ function OverviewTab({
                 <select
                   name="role"
                   defaultValue="MEMBER"
-                  className="h-9 w-28 rounded-md border border-line-strong bg-surface-2 px-3 text-sm text-ink"
+                  className="h-9 w-28 rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink"
                 >
                   <option value="MEMBER">Member</option>
                   <option value="VIEWER">Viewer</option>
                 </select>
-                <button
-                  type="submit"
-                  className="h-9 shrink-0 rounded-md border border-line-strong px-3 text-sm text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
-                >
+                <button type="submit" className={`h-9 shrink-0 ${ADD_BUTTON_SECONDARY}`}>
                   Add
                 </button>
               </form>
@@ -264,12 +249,9 @@ function OverviewTab({
                 name="email"
                 required
                 placeholder="Grant Guest access by email"
-                className="h-9 w-72 rounded-md border border-line-strong bg-surface-2 px-3 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-[#ff6b4a] focus:outline-none"
+                className="h-9 w-72 rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]"
               />
-              <button
-                type="submit"
-                className="h-9 shrink-0 rounded-md border border-line-strong px-3 text-sm text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
-              >
+              <button type="submit" className={`h-9 shrink-0 ${ADD_BUTTON_SECONDARY}`}>
                 Grant
               </button>
             </form>
@@ -343,27 +325,17 @@ export default async function ListPage({ params, searchParams }: Props) {
   return (
     <div className="flex min-h-screen flex-col animate-in fade-in duration-200">
       <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
-        <div className="flex min-w-0 items-center gap-2">
-          <LayoutList className="h-4 w-4 flex-shrink-0 text-[#ff8a70]" />
-          <span className="truncate text-[13px] font-semibold text-ink">{data.name}</span>
-        </div>
+        <span className="truncate text-[13px] font-semibold text-ink">{data.name}</span>
         <div className="flex items-center gap-3">
           {data.canExport ? (
             <a
               href={`/api/workspaces/${workspaceId}/lists/${listId}/export`}
               download
-              className="flex items-center gap-1.5 rounded-[6px] border border-line-strong px-3 py-[7px] text-[13px] font-semibold text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
+              className={ADD_BUTTON_SECONDARY}
             >
               <Download className="h-3.5 w-3.5" /> Export CSV
             </a>
           ) : null}
-          <button
-            type="button"
-            aria-label="List settings"
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
-          >
-            <Settings className="h-[15px] w-[15px]" />
-          </button>
           <GlobalHeaderActions
             currentUserName={session.user.name}
             unreadNotificationCount={unreadNotificationCount}
@@ -374,13 +346,13 @@ export default async function ListPage({ params, searchParams }: Props) {
 
       <main className="flex-1 bg-canvas px-10 pb-16 pt-8 text-ink">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-5 flex items-center gap-2.5">
+          <div className="mb-5 flex items-center gap-3">
             <h1 className="text-[17px] font-semibold text-ink">{data.name}</h1>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-ink-muted">
-              <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#ff6b4a]" />
-              {data.workspaceName}
+            <span className="text-[12.5px] text-ink-muted">{data.workspaceName}</span>
+            <span className="text-ink-faint" aria-hidden>
+              ·
             </span>
-            <ListStatusPill status={data.status} canEdit={data.canEditDescription} boundSetStatus={boundSetStatus} />
+            <ListStatusControl status={data.status} canEdit={data.canEditDescription} boundSetStatus={boundSetStatus} />
           </div>
 
           <nav className="mb-6 flex flex-wrap items-center gap-6 border-b border-line">
@@ -393,7 +365,7 @@ export default async function ListPage({ params, searchParams }: Props) {
                   href={tabHref(workspaceId, listId, tab.key)}
                   className={
                     isDisabledTab
-                      ? "flex cursor-default items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-faint"
+                      ? "flex cursor-default items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted opacity-50"
                       : activeTab === tab.key
                         ? "flex items-center gap-1.5 border-b-2 border-[#ff6b4a] py-3 text-[13px] font-semibold text-ink transition-colors duration-150"
                         : "flex items-center gap-1.5 border-b-2 border-transparent py-3 text-[13px] font-semibold text-ink-muted transition-colors duration-150 hover:text-ink"
@@ -401,7 +373,7 @@ export default async function ListPage({ params, searchParams }: Props) {
                 >
                   <Icon className="h-3.5 w-3.5" /> {tab.label}
                   {isDisabledTab && (
-                    <span className="ml-1 rounded-[5px] bg-surface-4 px-[7px] py-[2px] font-[family-name:var(--font-mono-label)] text-[10px] font-semibold tracking-[0.05em] text-ink-muted">
+                    <span className="ml-1 rounded-[5px] bg-surface-4 px-[7px] py-[2px] text-[10px] font-semibold tracking-[0.05em] text-ink-muted">
                       v2
                     </span>
                   )}
@@ -476,9 +448,7 @@ export default async function ListPage({ params, searchParams }: Props) {
             boundTogglePeerComparison={boundTogglePeerComparison}
           />
         ) : (
-          <div className="mt-10 rounded-lg border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
-            {TAB_NOTES[activeTab]}
-          </div>
+          <div className="mt-10 px-4 py-16 text-center text-sm text-ink-muted">{TAB_NOTES[activeTab]}</div>
         )}
         </div>
       </main>

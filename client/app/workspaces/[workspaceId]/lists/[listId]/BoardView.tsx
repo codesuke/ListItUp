@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 
 import { BlockerReasonDialog } from "@/components/board/BlockerReasonDialog";
@@ -100,6 +100,7 @@ export function BoardView({
   const [activeItem, setActiveItem] = useState<BoardItem | null>(null);
   const [pendingBlockerDrop, setPendingBlockerDrop] = useState<{ itemId: string; columnKey: string } | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const groupByFormRef = useRef<HTMLFormElement>(null);
 
   function findItem(itemId: string): { item: BoardItem; columnKey: string } | null {
     for (const column of columns) {
@@ -134,28 +135,24 @@ export function BoardView({
   }
 
   return (
-    <div className="mt-6">
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+    <div className="mt-4">
+      <div className="mb-4 flex flex-wrap items-center gap-1 border-b border-line pb-3">
         {canManage && (
-          <form action={boundSetGroupBy} className="flex items-center gap-2">
-            <label className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
+          <form ref={groupByFormRef} action={boundSetGroupBy} className="flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[13px]">
+            <label className="text-ink-muted" htmlFor="board-group-by">
               Group by
             </label>
             <select
+              id="board-group-by"
               name="groupBy"
               defaultValue={groupBy}
-              className="rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-sm text-ink"
+              onChange={() => groupByFormRef.current?.requestSubmit()}
+              className="cursor-pointer rounded-[5px] border-0 bg-transparent py-0 pl-1 pr-5 font-medium text-ink focus:outline-none"
             >
               <option value="STATE">State</option>
               <option value="SECTION">Section</option>
               <option value="ASSIGNEE">Assignee</option>
             </select>
-            <button
-              type="submit"
-              className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
-            >
-              Apply
-            </button>
           </form>
         )}
 
@@ -164,8 +161,8 @@ export function BoardView({
           onClick={() => setShowArchived((current) => !current)}
           className={
             showArchived
-              ? "rounded-full border border-[#ff6b4a] px-3 py-1 text-xs text-[#ff8a70] transition-colors duration-150"
-              : "rounded-full border border-line-strong px-3 py-1 text-xs text-ink-muted transition-colors duration-150 hover:text-ink"
+              ? "rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium text-ink transition-colors duration-150 hover:bg-surface-3"
+              : "rounded-[6px] px-2.5 py-1.5 text-[13px] text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
           }
         >
           Archived ({archivedItems.length})
@@ -173,36 +170,30 @@ export function BoardView({
       </div>
 
       {showArchived ? (
-        <div className="rounded-lg border border-line bg-surface-1">
-          <div className="flex items-center justify-between border-b border-line px-3 py-2">
-            <span className="text-sm font-semibold text-ink">Archived</span>
-            <span className="font-mono text-xs text-ink-faint">{archivedItems.length}</span>
-          </div>
-          <div className="flex flex-col gap-2 p-2">
-            {archivedItems.length === 0 ? (
-              <div className="px-2 py-4 text-center text-xs text-ink-faint">No archived Items.</div>
-            ) : (
-              archivedItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-2 rounded-md border border-line bg-surface-2 p-2">
-                  <a
-                    href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
-                    className="flex-1 truncate text-sm text-ink transition-colors duration-150 hover:text-ink hover:underline"
-                  >
-                    {item.title}
-                  </a>
-                  <form action={boundRestoreItem}>
-                    <input type="hidden" name="itemId" value={item.id} />
-                    <button
-                      type="submit"
-                      className="rounded-md border border-line-strong px-3 py-1 text-xs text-ink transition-colors duration-150 hover:border-[#ff6b4a] hover:text-ink"
-                    >
-                      Restore
-                    </button>
-                  </form>
-                </div>
-              ))
-            )}
-          </div>
+        <div className="flex flex-col">
+          {archivedItems.length === 0 ? (
+            <div className="px-4 py-16 text-center text-sm text-ink-muted">No archived Items.</div>
+          ) : (
+            archivedItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-2 rounded-[6px] px-2.5 py-2.5 transition-colors duration-150 hover:bg-surface-3"
+              >
+                <a
+                  href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
+                  className="flex-1 truncate text-sm text-ink transition-colors duration-150 hover:text-ink hover:underline"
+                >
+                  {item.title}
+                </a>
+                <form action={boundRestoreItem}>
+                  <input type="hidden" name="itemId" value={item.id} />
+                  <button type="submit" className="text-[12.5px] text-ink-muted transition-colors duration-150 hover:text-ink">
+                    Restore
+                  </button>
+                </form>
+              </div>
+            ))
+          )}
         </div>
       ) : (
         <DndContext
@@ -213,10 +204,10 @@ export function BoardView({
         >
           <div className="flex gap-4 overflow-x-auto pb-4">
             {columns.map((column) => (
-              <div key={column.key} className="w-64 flex-shrink-0 rounded-lg border border-line bg-surface-1">
+              <div key={column.key} className="w-64 flex-shrink-0 rounded-[8px] border border-line bg-surface-1">
                 <div className="flex items-center justify-between border-b border-line px-3 py-2">
                   <span className="text-sm font-semibold text-ink">{column.label}</span>
-                  <span className="font-mono text-xs text-ink-faint">{column.items.length}</span>
+                  <span className="text-xs text-ink-muted">{column.items.length}</span>
                 </div>
                 <DroppableColumn id={column.key} className="flex min-h-16 flex-col gap-2 p-2">
                   {column.items.map((item) => (
@@ -228,21 +219,17 @@ export function BoardView({
                         {item.hasParent && <span className="mr-1 text-ink-faint">↳</span>}
                         {item.title}
                       </a>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-ink-muted">
-                        {item.priority !== "NORMAL" && (
-                          <span className="font-mono uppercase">{PRIORITY_LABEL[item.priority]}</span>
-                        )}
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-muted">
+                        {item.priority !== "NORMAL" && <span>{PRIORITY_LABEL[item.priority]}</span>}
                         {item.dueDate && (
-                          <span className="font-mono">
+                          <span>
                             {new Date(item.dueDate).toLocaleDateString(undefined, {
                               month: "short",
                               day: "numeric",
                             })}
                           </span>
                         )}
-                        {item.assignees.length > 0 && (
-                          <span className="font-mono">{item.assignees.map((a) => a.name).join(", ")}</span>
-                        )}
+                        {item.assignees.length > 0 && <span>{item.assignees.map((a) => a.name).join(", ")}</span>}
                       </div>
                       {canManage && (
                         <MoveControl
@@ -256,7 +243,7 @@ export function BoardView({
                     </DraggableCard>
                   ))}
                   {column.items.length === 0 && (
-                    <div className="px-2 py-4 text-center text-xs text-ink-faint">Empty</div>
+                    <div className="px-2 py-4 text-center text-xs text-ink-muted">Empty</div>
                   )}
                 </DroppableColumn>
               </div>

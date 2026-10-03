@@ -2,13 +2,12 @@
 
 import { useEffect } from "react";
 
-// Native <details> has no light-dismiss: once a Workspace/Sort/Group menu
-// (OptionsDisclosure in page.tsx) is opened it stays open until its own
-// <summary> is clicked again, even after a click elsewhere on the page that
-// isn't itself a navigation. This closes any open `data-disclosure`
-// <details> on an outside click or Escape, as the one small client island
-// this page needs rather than turning every disclosure into a Client
-// Component.
+// Native <details> has no light-dismiss: once an OptionsDisclosure menu is
+// opened it stays open until its own <summary> is clicked again, even after
+// a click elsewhere on the page that isn't itself a navigation. This closes
+// any open `data-disclosure` <details> on an outside click or Escape, as the
+// one small client island a calm-world toolbar page needs rather than
+// turning every disclosure into a Client Component.
 export function DismissOpenDisclosures() {
   useEffect(() => {
     function closeOpenExcept(target: Node | null) {

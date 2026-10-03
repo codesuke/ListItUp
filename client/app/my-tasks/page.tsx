@@ -1,8 +1,6 @@
 import {
   BarChart3,
   Calendar as CalendarIcon,
-  Check,
-  ChevronDown,
   Columns3,
   List as ListIcon,
   Paperclip,
@@ -10,7 +8,9 @@ import {
 import { notFound } from "next/navigation";
 
 import { AppShell } from "@/components/workspace/AppShell";
+import { DismissOpenDisclosures } from "@/components/workspace/DismissOpenDisclosures";
 import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
+import { FilterToggleLink, OptionsDisclosure } from "@/components/workspace/OptionsDisclosure";
 import { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/item/item-my-tasks-calendar";
 import type { MyTasksBoardGroupBy } from "@/lib/item/item-my-tasks-board";
 import {
@@ -28,7 +28,6 @@ import { completeMyTaskItemAction, moveMyTaskItemAction, quickAddItemAction } fr
 import { BoardView } from "./BoardView";
 import { CalendarView } from "./CalendarView";
 import { DashboardView } from "./DashboardView";
-import { DismissOpenDisclosures } from "./DismissOpenDisclosures";
 import { FilesView } from "./FilesView";
 import { MyTasksList } from "./MyTasksList";
 import { loadMyTasksPageData, type MyTasksFilterWorkspace } from "./page-data";
@@ -101,69 +100,6 @@ const GROUP_OPTIONS: { value: MyTasksGroupBy; label: string }[] = [
   { value: "PRIORITY", label: "Priority" },
   { value: "DUE_DATE", label: "Due date" },
 ];
-
-// One disclosure pattern for every "pick one of a few options" control on
-// this page (Workspace, Sort, Group, Board's Group by) — a native <details>
-// so each one collapses to a single compact trigger (no JS, no always-
-// visible row of pill buttons competing for attention) instead of DESIGN.md
-// Section B's chip-row pattern this page is moving away from.
-function OptionsDisclosure({
-  label,
-  currentLabel,
-  options,
-}: {
-  label: string;
-  currentLabel: string;
-  options: { key: string; label: string; href: string; active: boolean }[];
-}) {
-  return (
-    <details data-disclosure className="group relative">
-      <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[13px] transition-colors hover:bg-surface-3 [&::-webkit-details-marker]:hidden">
-        <span className="text-ink-muted">{label}</span>
-        <span className="font-medium text-ink">{currentLabel}</span>
-        <ChevronDown className="h-3 w-3 text-ink-faint transition-transform group-open:rotate-180" />
-      </summary>
-      <div className="absolute left-0 top-full z-10 mt-1 min-w-[160px] rounded-[8px] border border-line bg-surface-2 p-1 shadow-md">
-        {options.map((option) => (
-          <a
-            key={option.key}
-            href={option.href}
-            className={
-              option.active
-                ? "block rounded-[5px] bg-surface-3 px-2.5 py-1.5 text-[13px] text-ink"
-                : "block rounded-[5px] px-2.5 py-1.5 text-[13px] text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
-            }
-          >
-            {option.label}
-          </a>
-        ))}
-      </div>
-    </details>
-  );
-}
-
-// Completed/Archived read as binary switches, not a pick-one list, so they
-// stay a direct toggle link styled like the row checkbox they echo rather
-// than joining the disclosures above.
-function FilterToggleLink({ href, active, label }: { href: string; active: boolean; label: string }) {
-  return (
-    <a
-      href={href}
-      className="inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[13px] transition-colors hover:bg-surface-3"
-    >
-      <span
-        className={
-          active
-            ? "flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-[3px] bg-ink"
-            : "flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-[3px] border-[1.5px] border-line-strong"
-        }
-      >
-        {active && <Check className="h-2.5 w-2.5 text-surface-2" />}
-      </span>
-      <span className={active ? "text-ink" : "text-ink-muted"}>{label}</span>
-    </a>
-  );
-}
 
 function isSameCalendarDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();

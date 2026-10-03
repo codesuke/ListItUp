@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
-import { MemberAvatar } from "@/components/workspace/MemberAvatar";
+import { AssigneeAvatar } from "@/components/workspace/AssigneeAvatar";
 import type { ItemState } from "@/generated/prisma/client";
 import { STATE_BAR_TEXT, STATE_LABEL, statusColor, STATUS_ORDER } from "@/lib/list/list-timeline";
 
@@ -196,7 +196,7 @@ export function TimelineGrid({
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-9 rounded-md border border-line-strong bg-surface-2 px-3 text-sm text-ink"
+            className="h-9 rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink"
           >
             <option value="all">All statuses</option>
             {STATUS_ORDER.map((state) => (
@@ -209,7 +209,7 @@ export function TimelineGrid({
             <select
               value={assigneeFilter}
               onChange={(event) => setAssigneeFilter(event.target.value)}
-              className="h-9 rounded-md border border-line-strong bg-surface-2 px-3 text-sm text-ink"
+              className="h-9 rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink"
             >
               <option value="all">All assignees</option>
               {assigneeOptions.map((assignee) => (
@@ -231,7 +231,7 @@ export function TimelineGrid({
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
+        <div className="px-4 py-16 text-center text-sm text-ink-muted">
           No Items match the current filters.
         </div>
       ) : (
@@ -359,7 +359,7 @@ export function TimelineGrid({
                     </span>
                     {item.assignees[0] && (
                       <span className="flex-shrink-0" title={item.assignees.map((a) => a.name).join(", ")}>
-                        <MemberAvatar name={item.assignees[0].name} />
+                        <AssigneeAvatar name={item.assignees[0].name} />
                       </span>
                     )}
                   </a>
