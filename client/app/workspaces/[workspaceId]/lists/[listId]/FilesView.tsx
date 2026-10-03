@@ -15,11 +15,7 @@ export function FilesView({
   listId: string;
 }) {
   if (entries.length === 0) {
-    return (
-      <div className="mt-10 rounded-lg border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
-        No Attachments yet.
-      </div>
-    );
+    return <div className="mt-10 px-4 py-16 text-center text-sm text-ink-muted">No Attachments yet.</div>;
   }
 
   return (
@@ -43,7 +39,7 @@ export function FilesView({
               {entry.itemTitle}
             </a>
           </div>
-          <div className="flex-shrink-0 text-right text-xs text-ink-faint">
+          <div className="flex-shrink-0 text-right text-xs text-ink-muted">
             <div>{formatAttachmentSize(entry.sizeBytes)}</div>
             <div>
               {entry.uploaderName} · {formatDate(entry.createdAt)}

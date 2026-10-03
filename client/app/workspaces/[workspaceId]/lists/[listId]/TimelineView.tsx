@@ -67,11 +67,7 @@ export function TimelineView({
   const itemRange = getTimelineDateRange(items);
 
   if (!itemRange) {
-    return (
-      <div className="mt-10 rounded-lg border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
-        No Items with a due date yet.
-      </div>
-    );
+    return <div className="mt-10 px-4 py-16 text-center text-sm text-ink-muted">No Items with a due date yet.</div>;
   }
 
   const dayRange = buildTimelineDayRange(itemRange, now);

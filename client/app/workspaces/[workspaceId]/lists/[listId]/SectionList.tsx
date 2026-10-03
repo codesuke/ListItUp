@@ -2,21 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  Folder,
-  MoreHorizontal,
-  Plus,
-  Search,
-} from "lucide-react";
+import { Check, CheckCircle2, ChevronRight, Clock, Folder, MoreHorizontal, Plus, Search } from "lucide-react";
 
 import { ADD_BUTTON_PRIMARY } from "@/components/workspace/add-button";
-import { MemberAvatar } from "@/components/workspace/MemberAvatar";
-import { StatusBadge, TONE_CLASSES, type StatusBadgeTone } from "@/components/workspace/StatusBadge";
+import { AssigneeAvatar } from "@/components/workspace/AssigneeAvatar";
 
 import type { ItemSummary, SectionWithItems } from "./page-data";
 
@@ -29,46 +18,20 @@ function sectionDomId(key: string): string {
   return `list-section-${key}`;
 }
 
-const PRIORITY_LABEL: Record<ItemSummary["priority"], string> = {
-  LOW: "Low",
-  NORMAL: "Normal",
-  HIGH: "High",
-};
-
-const PRIORITY_COLOR: Record<ItemSummary["priority"], string> = {
-  LOW: "text-ink-faint",
-  NORMAL: "text-ink-muted",
-  HIGH: "text-[#ff8a70]",
-};
-
-const STATUS_BADGE: Record<ItemSummary["state"], { tone: StatusBadgeTone; label: string }> = {
-  TO_DO: { tone: "muted", label: "Open" },
-  IN_PROGRESS: { tone: "blue", label: "In Progress" },
-  BLOCKED: { tone: "amber", label: "Blocked" },
-  COMPLETE: { tone: "green", label: "Complete" },
-  ARCHIVED: { tone: "muted", label: "Archived" },
-};
-
-// Example, non-functional filter affordances — the row/section restructure
-// this component ships doesn't wire real multi-facet filtering yet, but the
-// toolbar still needs the pill+chevron control to occupy its place.
-const FILTER_PILLS = ["All Workspaces", "Priority", "Due date", "Assignee"];
-
-// One grid template, shared by every task row in every Section card, so a
+// One grid template, shared by every task row and the column header, so a
 // field's horizontal position never depends on what any row puts inside it
 // — every non-Task track is a hardcoded pixel width (never auto/min-content),
-// so a wider word can never shift the columns after it. Each width is sized
-// tight to that column's longest realistic value ("In Progress", "Normal", a
-// long Assignee name) plus a small cushion, not a generously wide slot —
-// oversizing a column left slack that piled onto the *outside* of its
-// right/left-aligned content, making the row's gaps read as uneven even
-// though the shared `gap-4` below is the same everywhere.
-const ROW_GRID_COLS = "grid-cols-[minmax(0,1fr)_84px_112px_56px_100px_32px]";
+// so a wider word can never shift the columns after it. The whole grid gets
+// a min-width and sits in an overflow-x-auto track (see the Sections wrapper
+// below) rather than compressing on narrow viewports, the same disclosed
+// trade-off Home's My Tasks panel makes at 390px (DESIGN.md).
+const ROW_GRID_COLS = "grid-cols-[minmax(0,1fr)_96px_112px_64px_96px_32px]";
+const GRID_MIN_WIDTH = "min-w-[600px]";
 
 // Shared horizontal inset for every row so a column's left edge never
 // depends on row-specific state — subtask indentation is drawn *inside* the
 // Task cell instead (see `ItemRow`).
-const ROW_INSET = "px-3";
+const ROW_INSET = "px-2.5";
 
 // Width of the indentation spacer drawn inside a subtask's Task cell.
 const SUBTASK_INDENT_WIDTH = "w-[28px]";
@@ -110,31 +73,30 @@ function CompleteToggle({
   );
 }
 
-// Exactly one pill per row: an Item's category Label takes priority over its
-// Priority level so a row never shows both at once. Wrapped in a full-width,
-// right-justified flex container (rather than returned as a bare `w-fit`
-// grid item) so the pill's right edge — not its left edge — stays fixed
-// regardless of "HIGH" vs "NORMAL" width.
-function BadgeCell({ item }: { item: ItemSummary }) {
+// Exactly one label per row: an Item's category Label takes priority over
+// its Priority level, and Priority itself only prints for the one level
+// that needs flagging (High) — Normal/Low stay silent, the same convention
+// My Tasks' row uses for its own priority marker. Plain text, right-
+// justified so the right edge stays fixed regardless of word length.
+function LabelCell({ item }: { item: ItemSummary }) {
   if (item.labels.length > 0) {
     return (
       <div className="flex w-full justify-end">
-        <span className="inline-flex items-center whitespace-nowrap rounded-full border border-line-strong bg-surface-3 px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] text-ink-muted">
-          {item.labels[0].name}
-        </span>
+        <span className="truncate text-[12.5px] text-ink-muted">{item.labels[0].name}</span>
       </div>
     );
   }
 
-  return (
-    <div className="flex w-full justify-end">
-      <span
-        className={`inline-flex items-center whitespace-nowrap rounded-full bg-surface-4 px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] font-semibold uppercase tracking-[0.04em] ${PRIORITY_COLOR[item.priority]}`}
-      >
-        {PRIORITY_LABEL[item.priority]}
-      </span>
-    </div>
-  );
+  if (item.priority === "HIGH") {
+    return (
+      <div className="flex w-full items-center justify-end gap-1.5">
+        <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#f2545b]" aria-hidden />
+        <span className="text-[12.5px] text-ink-muted">High</span>
+      </div>
+    );
+  }
+
+  return <div className="flex w-full justify-end" />;
 }
 
 // Left-aligned: the avatar always starts at this column's fixed left edge,
@@ -151,7 +113,7 @@ function AssigneeCell({ assignees }: { assignees: ItemSummary["assignees"] }) {
   const [assignee] = assignees;
   return (
     <div className="flex w-full min-w-0 items-center gap-2">
-      <MemberAvatar name={assignee.name} />
+      <AssigneeAvatar name={assignee.name} />
       <span className="min-w-0 truncate text-[13px] text-ink-muted">{assignee.name}</span>
     </div>
   );
@@ -167,17 +129,28 @@ function DueDateCell({ dueDate }: { dueDate: Date | null }) {
   );
 }
 
-// Right-justified so the pill's right edge is constant regardless of
-// "Open" vs "In Progress" vs "Complete" width.
-function StatusPill({ state }: { state: ItemSummary["state"] }) {
-  const { tone, label } = STATUS_BADGE[state];
+// Plain colored/weighted text, never a pill — DESIGN.md's No-Pill-Status
+// Rule. Complete rows stay silent (the checkbox + strikethrough already
+// told that story) and so does the default To Do state, the same
+// "only the exception needs flagging" convention My Tasks' row status uses.
+function itemStatusText(state: ItemSummary["state"]): { text: string; className: string } | null {
+  switch (state) {
+    case "IN_PROGRESS":
+      return { text: "In Progress", className: "text-ink-muted" };
+    case "BLOCKED":
+      return { text: "Blocked", className: "text-[color:var(--accent-blocked)]" };
+    case "ARCHIVED":
+      return { text: "Archived", className: "text-ink-muted" };
+    default:
+      return null;
+  }
+}
+
+function StatusCell({ state }: { state: ItemSummary["state"] }) {
+  const status = itemStatusText(state);
   return (
     <div className="flex w-full justify-end">
-      <span
-        className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-[3px] font-[family-name:var(--font-mono-label)] text-[10.5px] font-semibold tracking-[0.04em] ${TONE_CLASSES[tone]}`}
-      >
-        {label}
-      </span>
+      {status && <span className={`whitespace-nowrap text-[12.5px] ${status.className}`}>{status.text}</span>}
     </div>
   );
 }
@@ -211,7 +184,7 @@ function ItemRow({
 }) {
   return (
     <div
-      className={`grid ${ROW_GRID_COLS} items-center gap-4 rounded-[8px] ${ROW_INSET} py-2.5 transition-colors duration-150 hover:bg-surface-3`}
+      className={`grid ${ROW_GRID_COLS} ${GRID_MIN_WIDTH} items-center gap-4 rounded-[6px] ${ROW_INSET} py-2.5 transition-colors duration-150 hover:bg-surface-3`}
     >
       <div className="flex min-w-0 items-center gap-2 overflow-hidden">
         {indented && <span className={`${SUBTASK_INDENT_WIDTH} flex-shrink-0`} aria-hidden="true" />}
@@ -226,10 +199,10 @@ function ItemRow({
           {item.title}
         </Link>
       </div>
-      <BadgeCell item={item} />
+      <LabelCell item={item} />
       <AssigneeCell assignees={item.assignees} />
       <DueDateCell dueDate={item.dueDate} />
-      <StatusPill state={item.state} />
+      <StatusCell state={item.state} />
       <div className="flex justify-end">
         <ItemActionsButton itemTitle={item.title} />
       </div>
@@ -247,7 +220,7 @@ function AddItemForm({
   autoFocus?: boolean;
 }) {
   return (
-    <form action={boundAddItem} className={`flex items-center gap-2 ${ROW_INSET} py-2`}>
+    <form action={boundAddItem} className={`${GRID_MIN_WIDTH} flex items-center gap-2 ${ROW_INSET} py-2`}>
       {sectionId && <input type="hidden" name="sectionId" value={sectionId} />}
       <span className="text-ink-faint">+</span>
       <input
@@ -265,19 +238,22 @@ function AddItemForm({
   );
 }
 
-function FilterPillButton({ label }: { label: string }) {
+function ColumnHeader() {
   return (
-    <button
-      type="button"
-      className="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-line-strong bg-surface-2 px-3 py-1.5 text-[12.5px] font-medium text-ink-muted transition-colors duration-150 hover:text-ink"
+    <div
+      className={`hidden sm:grid ${ROW_GRID_COLS} ${GRID_MIN_WIDTH} items-center gap-4 ${ROW_INSET} pb-2 text-[11px] font-medium uppercase tracking-wide text-ink-muted`}
     >
-      {label}
-      <ChevronDown className="h-3 w-3" />
-    </button>
+      <span>Task</span>
+      <span className="text-right">Label</span>
+      <span>Assignee</span>
+      <span className="text-right">Due</span>
+      <span className="text-right">Status</span>
+      <span />
+    </div>
   );
 }
 
-function SectionCard({
+function SectionGroup({
   name,
   count,
   collapsed,
@@ -291,8 +267,8 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[14px] border border-line bg-surface-2 p-2">
-      <div className={`flex items-center gap-2 ${ROW_INSET} py-3`}>
+    <div>
+      <div className={`flex items-center gap-2 ${ROW_INSET} py-2`}>
         <button
           type="button"
           onClick={onToggleCollapse}
@@ -304,7 +280,7 @@ function SectionCard({
         </button>
         <SectionIcon name={name} />
         <span className="text-[13px] font-semibold text-ink">{name}</span>
-        <StatusBadge tone="muted">{count}</StatusBadge>
+        <span className="text-[12px] text-ink-muted">{count}</span>
       </div>
       {!collapsed && <div>{children}</div>}
     </div>
@@ -373,21 +349,15 @@ export function SectionList({
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center gap-2.5">
-        <div className="flex flex-shrink-0 items-center gap-2 rounded-[8px] border border-line-strong bg-surface-2 px-3 py-2">
-          <Search className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
+        <div className="flex h-[30px] flex-shrink-0 items-center gap-1.5 rounded-[6px] bg-surface-3 px-2.5">
+          <Search className="h-3.5 w-3.5 flex-shrink-0 text-ink-muted" />
           <input
             type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search Items…"
-            className="w-52 bg-transparent text-[13px] text-ink placeholder:text-ink-faint focus:outline-none"
+            className="w-44 bg-transparent text-[13px] text-ink placeholder:text-ink-faint focus:outline-none"
           />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {FILTER_PILLS.map((label) => (
-            <FilterPillButton key={label} label={label} />
-          ))}
         </div>
 
         <div className="flex-1" />
@@ -400,68 +370,71 @@ export function SectionList({
       </div>
 
       {searchedSections.length === 0 && !showUnsectioned ? (
-        <div className="rounded-[14px] border border-dashed border-line px-4 py-16 text-center text-sm text-ink-faint">
+        <div className="px-4 py-16 text-center text-sm text-ink-muted">
           {normalizedSearch !== "" ? "No Items match your search." : "No Sections yet."}
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          {searchedSections.map((section) => (
-            <div key={section.id} id={sectionDomId(section.id)}>
-              <SectionCard
-                name={section.name}
-                count={section.items.length}
-                collapsed={collapsedIds.has(section.id)}
-                onToggleCollapse={() => toggleCollapsed(section.id)}
-              >
-                {section.items.length === 0 ? (
-                  <div className="px-3 py-4 text-center text-xs text-ink-faint">No Items yet.</div>
-                ) : (
-                  section.items.map((item) => (
-                    <ItemRow
-                      key={item.id}
-                      item={item}
-                      workspaceId={workspaceId}
-                      listId={listId}
-                      indented={item.hasParent}
-                      boundComplete={boundCompleteItem}
-                    />
-                  ))
-                )}
-                {canManage && addOpenIds.has(section.id) && (
-                  <AddItemForm sectionId={section.id} boundAddItem={boundAddItem} autoFocus />
-                )}
-              </SectionCard>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <ColumnHeader />
+          <div className="flex flex-col gap-6">
+            {searchedSections.map((section) => (
+              <div key={section.id} id={sectionDomId(section.id)}>
+                <SectionGroup
+                  name={section.name}
+                  count={section.items.length}
+                  collapsed={collapsedIds.has(section.id)}
+                  onToggleCollapse={() => toggleCollapsed(section.id)}
+                >
+                  {section.items.length === 0 ? (
+                    <div className={`${GRID_MIN_WIDTH} px-3 py-4 text-center text-xs text-ink-muted`}>No Items yet.</div>
+                  ) : (
+                    section.items.map((item) => (
+                      <ItemRow
+                        key={item.id}
+                        item={item}
+                        workspaceId={workspaceId}
+                        listId={listId}
+                        indented={item.hasParent}
+                        boundComplete={boundCompleteItem}
+                      />
+                    ))
+                  )}
+                  {canManage && addOpenIds.has(section.id) && (
+                    <AddItemForm sectionId={section.id} boundAddItem={boundAddItem} autoFocus />
+                  )}
+                </SectionGroup>
+              </div>
+            ))}
 
-          {showUnsectioned && (
-            <div id={sectionDomId(UNSECTIONED_KEY)}>
-              <SectionCard
-                name="No Section"
-                count={searchedUnsectionedItems.length}
-                collapsed={collapsedIds.has(UNSECTIONED_KEY)}
-                onToggleCollapse={() => toggleCollapsed(UNSECTIONED_KEY)}
-              >
-                {searchedUnsectionedItems.length === 0 ? (
-                  <div className="px-3 py-4 text-center text-xs text-ink-faint">No Items yet.</div>
-                ) : (
-                  searchedUnsectionedItems.map((item) => (
-                    <ItemRow
-                      key={item.id}
-                      item={item}
-                      workspaceId={workspaceId}
-                      listId={listId}
-                      indented={item.hasParent}
-                      boundComplete={boundCompleteItem}
-                    />
-                  ))
-                )}
-                {canManage && addOpenIds.has(UNSECTIONED_KEY) && (
-                  <AddItemForm sectionId={null} boundAddItem={boundAddItem} autoFocus />
-                )}
-              </SectionCard>
-            </div>
-          )}
+            {showUnsectioned && (
+              <div id={sectionDomId(UNSECTIONED_KEY)}>
+                <SectionGroup
+                  name="No Section"
+                  count={searchedUnsectionedItems.length}
+                  collapsed={collapsedIds.has(UNSECTIONED_KEY)}
+                  onToggleCollapse={() => toggleCollapsed(UNSECTIONED_KEY)}
+                >
+                  {searchedUnsectionedItems.length === 0 ? (
+                    <div className={`${GRID_MIN_WIDTH} px-3 py-4 text-center text-xs text-ink-muted`}>No Items yet.</div>
+                  ) : (
+                    searchedUnsectionedItems.map((item) => (
+                      <ItemRow
+                        key={item.id}
+                        item={item}
+                        workspaceId={workspaceId}
+                        listId={listId}
+                        indented={item.hasParent}
+                        boundComplete={boundCompleteItem}
+                      />
+                    ))
+                  )}
+                  {canManage && addOpenIds.has(UNSECTIONED_KEY) && (
+                    <AddItemForm sectionId={null} boundAddItem={boundAddItem} autoFocus />
+                  )}
+                </SectionGroup>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

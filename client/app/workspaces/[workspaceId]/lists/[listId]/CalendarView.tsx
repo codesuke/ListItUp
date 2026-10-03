@@ -39,33 +39,28 @@ export function CalendarView({
   const todayKey = toDateKey(now);
 
   return (
-    <div className="mt-2">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            href={prevHref}
-            aria-label="Previous month"
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </Link>
-          <span className="text-[15px] font-semibold text-ink">{monthLabel}</span>
-          <Link
-            href={nextHref}
-            aria-label="Next month"
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
+    <div className="mt-6">
+      <div className="mb-4 flex items-center gap-3">
+        <Link
+          href={prevHref}
+          aria-label="Previous month"
+          className="flex h-7 w-7 items-center justify-center rounded-[6px] text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Link>
+        <span className="text-sm font-medium text-ink">{monthLabel}</span>
+        <Link
+          href={nextHref}
+          aria-label="Next month"
+          className="flex h-7 w-7 items-center justify-center rounded-[6px] text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Link>
       </div>
 
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-[12px] border border-line bg-line">
+      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-[8px] border border-line bg-line">
         {WEEKDAY_LABELS.map((label) => (
-          <div
-            key={label}
-            className="bg-surface-1 py-2 text-center font-[family-name:var(--font-mono-label)] text-[10px] uppercase tracking-[0.1em] text-ink-faint"
-          >
+          <div key={label} className="bg-surface-1 py-2 text-center text-[11px] text-ink-muted">
             {label}
           </div>
         ))}
@@ -79,11 +74,7 @@ export function CalendarView({
                 cell.inCurrentMonth ? "" : "opacity-40"
               } ${isToday ? "shadow-[inset_0_0_0_1.5px_#ff6b4a]" : ""}`}
             >
-              <span
-                className={`text-[11px] ${
-                  isToday ? "font-semibold text-[#ff8a70]" : "text-ink-faint"
-                }`}
-              >
+              <span className={`text-[11px] ${isToday ? "font-semibold text-[#ff8a70]" : "text-ink-muted"}`}>
                 {cell.date.getUTCDate()}
               </span>
               {cell.items.slice(0, MAX_VISIBLE_ITEMS_PER_DAY).map((item) => (
@@ -100,7 +91,7 @@ export function CalendarView({
                 </Link>
               ))}
               {cell.items.length > MAX_VISIBLE_ITEMS_PER_DAY && (
-                <span className="text-[11px] text-ink-faint">
+                <span className="text-[11px] text-ink-muted">
                   +{cell.items.length - MAX_VISIBLE_ITEMS_PER_DAY} more
                 </span>
               )}
@@ -110,13 +101,13 @@ export function CalendarView({
       </div>
 
       <div className="mt-3 flex items-center gap-4">
-        <span className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+        <span className="flex items-center gap-1.5 text-[11px] text-ink-muted">
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: CHIP_DOT_COLOR.red }} /> Overdue
         </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+        <span className="flex items-center gap-1.5 text-[11px] text-ink-muted">
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: CHIP_DOT_COLOR.amber }} /> Blocked
         </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+        <span className="flex items-center gap-1.5 text-[11px] text-ink-muted">
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: CHIP_DOT_COLOR.muted }} /> Scheduled
         </span>
       </div>

@@ -1,6 +1,6 @@
 import { ArrowRight, Check, LayoutList, Users } from "lucide-react";
 
-import { avatarColorForName, initialsFromName } from "@/lib/ui/member-display";
+import { AssigneeAvatar } from "@/components/workspace/AssigneeAvatar";
 import type { AssignedByMeItem } from "@/lib/item/item-assigned-by-me";
 import type { MyTaskItem, MyTasksGroup } from "@/lib/item/item-my-tasks";
 import { describeNotification, type ActivityNotification } from "@/lib/notification/notification-inbox";
@@ -44,21 +44,6 @@ function DueDateText({ status }: { status: DueDateStatus }) {
       className={`flex-shrink-0 text-xs ${status.tone === "overdue" ? "font-medium text-[color:var(--accent-attention)]" : "text-ink-muted"}`}
     >
       {status.text}
-    </span>
-  );
-}
-
-// A local, Inter-set stand-in for the shared MemberAvatar — that component
-// still renders initials in the app's old mono label font (other, as-yet
-// unredesigned screens depend on it), which this calm surface doesn't use.
-function AssigneeAvatar({ name }: { name: string }) {
-  return (
-    <span
-      className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-2 text-[10px] font-semibold text-[#1a0800]"
-      style={{ backgroundColor: avatarColorForName(name) }}
-      title={name}
-    >
-      {initialsFromName(name)}
     </span>
   );
 }
