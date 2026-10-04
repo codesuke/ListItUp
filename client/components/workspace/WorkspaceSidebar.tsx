@@ -3,7 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronRight, ChevronsUpDown, Home, LayoutList, ListChecks, Plus, Settings } from "lucide-react";
+import {
+  Bell,
+  ChevronRight,
+  ChevronsUpDown,
+  Home,
+  LayoutList,
+  ListChecks,
+  Plus,
+  Settings,
+  Trash2,
+} from "lucide-react";
 
 import type { WorkspaceNavEntry } from "@/app/workspaces/[workspaceId]/layout-data";
 import { Logo } from "@/components/logo";
@@ -229,6 +239,13 @@ export function WorkspaceSidebar({
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Create Workspace
+                </Link>
+                <Link
+                  href="/workspaces/deleted"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-sidebar-foreground/70 transition-colors duration-150 hover:bg-surface-3 hover:text-sidebar-foreground"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Deleted Workspaces
                 </Link>
               </li>
             </ul>
