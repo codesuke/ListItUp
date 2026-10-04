@@ -77,6 +77,20 @@ async function run() {
       assert.equal(byId.get(personal.workspaceId)?.isPersonal, true);
     }
 
+    // A Deleted Workspace never appears in the "Workspace" filter dropdown
+    // (#76).
+    {
+      const userId = await createUser();
+      const live = await createWorkspaceWithList("Marketing");
+      await joinWorkspace(live.workspaceId, live.listId, userId);
+      const retired = await createWorkspaceWithList("Retired");
+      await joinWorkspace(retired.workspaceId, retired.listId, userId);
+      await prisma.workspace.update({ where: { id: retired.workspaceId }, data: { deletedAt: new Date() } });
+
+      const data = await loadMyTasksPageData(prisma, { userId });
+      assert.deepEqual(data.filterWorkspaces.map((workspace) => workspace.id), [live.workspaceId]);
+    }
+
     // Filtering by a specific source Workspace threads through to the
     // returned data and excludes Items from other sources.
     {

@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
 export type SearchedList = {
   id: string;
@@ -60,8 +61,12 @@ export async function globalSearch(
 
   const workspaceMembership = await database.workspaceMember.findUnique({
     where: { workspaceId_userId: { workspaceId, userId } },
+    include: { workspace: { select: { deletedAt: true } } },
   });
-  if (!workspaceMembership) {
+  // This membership check is the sole authorization gate for the whole
+  // search (no Workspace shell renders a palette for a non-member) — a
+  // Deleted Workspace must fail it too (#76).
+  if (!workspaceMembership || isDeletedWorkspace(workspaceMembership.workspace)) {
     return EMPTY_RESULT;
   }
 

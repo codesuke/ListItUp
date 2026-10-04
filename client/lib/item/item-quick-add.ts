@@ -3,6 +3,7 @@ import { applyLabel } from "@/lib/item/item-labels";
 import { createItem } from "@/lib/item/item-creation";
 import { parseQuickAdd } from "@/lib/item/quick-add-parser";
 import { meetsListAccessLevel, resolveListAccess } from "@/lib/permissions/list-access";
+import { ACTIVE_WORKSPACE_WHERE } from "@/lib/workspace/workspace-visibility";
 
 export type CreateItemFromQuickAddResult =
   | { status: "created"; itemId: string }
@@ -25,7 +26,7 @@ export async function loadQuickAddMentionCandidates(
   userId: string
 ): Promise<QuickAddMentionCandidate[]> {
   const ownMemberships = await database.workspaceMember.findMany({
-    where: { userId },
+    where: { userId, workspace: ACTIVE_WORKSPACE_WHERE },
     select: { workspaceId: true },
   });
   const workspaceIds = ownMemberships.map((membership) => membership.workspaceId);
@@ -51,7 +52,7 @@ export async function loadQuickAddMentionCandidates(
 // Inbox List" (#45) means that List, not a per-Workspace concept.
 async function findInboxListId(database: PrismaClient, userId: string): Promise<string | null> {
   const inboxList = await database.list.findFirst({
-    where: { isInbox: true, workspace: { kind: "PERSONAL", members: { some: { userId } } } },
+    where: { isInbox: true, workspace: { kind: "PERSONAL", ...ACTIVE_WORKSPACE_WHERE, members: { some: { userId } } } },
     select: { id: true },
   });
   return inboxList?.id ?? null;

@@ -249,6 +249,23 @@ async function run() {
         "NONE"
       );
     }
+
+    // A Deleted Workspace's List resolves to NONE for everyone — Owner,
+    // Guest, and export — regardless of role (#76).
+    {
+      const workspaceId = await createWorkspace();
+      const listId = await createListIn(workspaceId);
+      const owner = await createUser();
+      await addWorkspaceMember(workspaceId, owner, "OWNER");
+      const guest = await createUser();
+      await addGuest(listId, guest);
+
+      await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+
+      assert.equal(await resolveListAccess(prisma, { userId: owner, listId }), "NONE");
+      assert.equal(await resolveListAccess(prisma, { userId: guest, listId }), "NONE");
+      assert.equal(await canExportList(prisma, { userId: owner, listId }), false);
+    }
   } finally {
     await prisma.guest.deleteMany({ where: { userId: { in: createdUserIds } } });
     await prisma.listMember.deleteMany({ where: { userId: { in: createdUserIds } } });

@@ -73,6 +73,28 @@ async function run() {
 
       assert.equal(await resolveDefaultWorkspaceId(prisma, userId), olderSharedId);
     }
+
+    // A Deleted Workspace is skipped even when it's the oldest SHARED one
+    // the User joined, falling back to the next-oldest live one (#76).
+    {
+      const userId = await createUser();
+      const deletedId = await joinWorkspace("SHARED", "Retired Co", userId, new Date("2026-01-01"));
+      const liveId = await joinWorkspace("SHARED", "Newer Co", userId, new Date("2026-02-01"));
+      await prisma.workspace.update({ where: { id: deletedId }, data: { deletedAt: new Date() } });
+
+      assert.equal(await resolveDefaultWorkspaceId(prisma, userId), liveId);
+    }
+
+    // When every SHARED Workspace is deleted, the User falls back to their
+    // Personal Space just as if they belonged to no SHARED Workspace at all.
+    {
+      const userId = await createUser();
+      const personalId = await joinWorkspace("PERSONAL", "Personal Space", userId);
+      const deletedId = await joinWorkspace("SHARED", "Retired Co", userId);
+      await prisma.workspace.update({ where: { id: deletedId }, data: { deletedAt: new Date() } });
+
+      assert.equal(await resolveDefaultWorkspaceId(prisma, userId), personalId);
+    }
   } finally {
     await prisma.workspaceMember.deleteMany({ where: { workspaceId: { in: createdWorkspaceIds } } });
     await prisma.workspace.deleteMany({ where: { id: { in: createdWorkspaceIds } } });

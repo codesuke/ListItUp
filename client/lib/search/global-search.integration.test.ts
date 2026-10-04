@@ -185,6 +185,19 @@ async function run() {
       const results = await globalSearch(prisma, { userId: ownerId, workspaceId, query: "   " });
       assert.deepEqual(results, { lists: [], items: [], members: [] });
     }
+
+    // A Deleted Workspace's Owner gets no results (#76) — the membership
+    // gate must fail the same way a non-member's does.
+    {
+      const workspaceId = await createWorkspace();
+      const ownerId = await createUser();
+      await addWorkspaceMember(workspaceId, ownerId, "OWNER");
+      await createList(workspaceId, { name: "Retired List" });
+      await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+
+      const results = await globalSearch(prisma, { userId: ownerId, workspaceId, query: "retired" });
+      assert.deepEqual(results, { lists: [], items: [], members: [] });
+    }
   } finally {
     await cleanupWorkspaces();
     await prisma.$disconnect();

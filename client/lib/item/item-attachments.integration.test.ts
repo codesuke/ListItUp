@@ -181,6 +181,28 @@ async function run() {
       const missingResult = await getAttachmentForDownload(prisma, { actorUserId: memberId, attachmentId: randomUUID() });
       assert.deepEqual(missingResult, { status: "not-found" });
     }
+
+    // Once the owning Workspace is soft-deleted, even a previously-valid
+    // download is refused (#76).
+    {
+      const { listId, workspaceId, userId: memberId } = await createWorkspaceListAndMember();
+      const itemId = await createTestItem(listId, memberId);
+      const created = await createAttachment(prisma, {
+        actorUserId: memberId,
+        itemId,
+        fileName: "notes.txt",
+        contentType: "text/plain",
+        sizeBytes: 10,
+        storageKey: `items/${itemId}/${randomUUID()}-notes.txt`,
+      });
+      assert.equal(created.status, "created");
+      const attachmentId = created.status === "created" ? created.attachmentId : "";
+
+      await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+
+      const result = await getAttachmentForDownload(prisma, { actorUserId: memberId, attachmentId });
+      assert.deepEqual(result, { status: "forbidden" });
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

@@ -1,4 +1,12 @@
 import type { NotificationType, PrismaClient } from "@/generated/prisma/client";
+import { ACTIVE_WORKSPACE_WHERE } from "@/lib/workspace/workspace-visibility";
+
+// Every notification reads/writes below join through to the Item's
+// Workspace and exclude a Deleted Workspace (#76) — a Notification row is
+// otherwise access-controlled purely by recipientId (see the comment on
+// loadActivityNotifications), so this is the one place that exclusion has
+// to be added explicitly rather than inheriting it from a membership check.
+const NOT_DELETED_WORKSPACE_ITEM = { item: { list: { workspace: ACTIVE_WORKSPACE_WHERE } } } as const;
 
 // The Activity tab's explicit scope (#47): Assignee changes, Notes, Item
 // state changes, and Mentions. DUE_DATE_REMINDER is a system-triggered
@@ -97,7 +105,7 @@ export async function loadActivityNotifications(
   const types = input.category ? ACTIVITY_CATEGORY_TYPES[input.category] : ACTIVITY_TYPES;
 
   const notifications = await database.notification.findMany({
-    where: { recipientId: input.recipientId, type: { in: types }, archivedAt: null },
+    where: { recipientId: input.recipientId, type: { in: types }, archivedAt: null, ...NOT_DELETED_WORKSPACE_ITEM },
     include: NOTIFICATION_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
@@ -116,7 +124,12 @@ export async function loadBookmarkedNotifications(
   input: { recipientId: string }
 ): Promise<ActivityNotification[]> {
   const notifications = await database.notification.findMany({
-    where: { recipientId: input.recipientId, bookmarkedAt: { not: null }, archivedAt: null },
+    where: {
+      recipientId: input.recipientId,
+      bookmarkedAt: { not: null },
+      archivedAt: null,
+      ...NOT_DELETED_WORKSPACE_ITEM,
+    },
     include: NOTIFICATION_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
@@ -132,7 +145,7 @@ export async function loadArchivedNotifications(
   input: { recipientId: string }
 ): Promise<ActivityNotification[]> {
   const notifications = await database.notification.findMany({
-    where: { recipientId: input.recipientId, archivedAt: { not: null } },
+    where: { recipientId: input.recipientId, archivedAt: { not: null }, ...NOT_DELETED_WORKSPACE_ITEM },
     include: NOTIFICATION_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
@@ -148,7 +161,12 @@ export async function loadMentionedNotifications(
   input: { recipientId: string }
 ): Promise<ActivityNotification[]> {
   const notifications = await database.notification.findMany({
-    where: { recipientId: input.recipientId, type: { in: ACTIVITY_CATEGORY_TYPES.mentions }, archivedAt: null },
+    where: {
+      recipientId: input.recipientId,
+      type: { in: ACTIVITY_CATEGORY_TYPES.mentions },
+      archivedAt: null,
+      ...NOT_DELETED_WORKSPACE_ITEM,
+    },
     include: NOTIFICATION_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
@@ -161,7 +179,9 @@ export async function loadMentionedNotifications(
 // so the nav badge reflects the User's full unread count, not just what
 // this ticket's tab happens to render (#47).
 export async function countUnreadNotifications(database: PrismaClient, recipientId: string): Promise<number> {
-  return database.notification.count({ where: { recipientId, readAt: null, archivedAt: null } });
+  return database.notification.count({
+    where: { recipientId, readAt: null, archivedAt: null, ...NOT_DELETED_WORKSPACE_ITEM },
+  });
 }
 
 // Scoped to recipientId so a User can only ever mark their own

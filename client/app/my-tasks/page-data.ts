@@ -37,6 +37,7 @@ import {
   type PersonalAttentionImbalance,
   type StateBreakdownEntry,
 } from "@/lib/report/list-dashboard";
+import { ACTIVE_WORKSPACE_WHERE } from "@/lib/workspace/workspace-visibility";
 
 export type MyTasksFilterWorkspace = { id: string; name: string; isPersonal: boolean };
 
@@ -136,7 +137,7 @@ export async function loadMyTasksPageData(
     // can't reuse the toggle-filtered `items` above.
     loadMyTasksItems(database, { userId, sourceWorkspaceId, includeCompleted: true, now }),
     database.workspaceMember.findMany({
-      where: { userId },
+      where: { userId, workspace: ACTIVE_WORKSPACE_WHERE },
       include: { workspace: true },
       orderBy: { createdAt: "asc" },
     }),

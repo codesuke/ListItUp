@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 import type { ActivityCategory } from "@/lib/notification/notification-inbox";
 import { resolveDefaultWorkspaceId } from "@/lib/workspace/default-workspace";
+import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
 import { NotificationList } from "./NotificationList";
 import { archiveNotificationAction, openNotificationAction, toggleBookmarkAction } from "./actions";
@@ -74,24 +75,30 @@ export default async function UpdatesPage({ searchParams }: Props) {
   // membership check as the /workspaces/[workspaceId] layout), else the
   // same oldest-SHARED-else-Personal-Space fallback as the root landing
   // page — Updates is cross-Workspace, so there's no URL segment to source
-  // this from the way /workspaces/[id] pages do.
+  // this from the way /workspaces/[id] pages do. A Deleted Workspace is
+  // treated the same as "not a member" here (#76), falling back rather than
+  // 404ing since Updates isn't scoped to one Workspace the way /workspaces/
+  // [id] pages are.
   const requestedMembership = query.workspace
     ? await prisma.workspaceMember.findUnique({
         where: { workspaceId_userId: { workspaceId: query.workspace, userId: session.user.id } },
         include: { workspace: true },
       })
     : null;
-
-  const shellWorkspaceId = requestedMembership?.workspaceId ?? (await resolveDefaultWorkspaceId(prisma, session.user.id));
+  const shellWorkspaceId =
+    requestedMembership && !isDeletedWorkspace(requestedMembership.workspace)
+      ? requestedMembership.workspaceId
+      : await resolveDefaultWorkspaceId(prisma, session.user.id);
   if (!shellWorkspaceId) {
     notFound();
   }
   const shellWorkspace =
-    requestedMembership?.workspace ??
-    (await prisma.workspace.findUnique({
-      where: { id: shellWorkspaceId },
-      select: { name: true, kind: true },
-    }));
+    requestedMembership && !isDeletedWorkspace(requestedMembership.workspace)
+      ? requestedMembership.workspace
+      : await prisma.workspace.findUnique({
+          where: { id: shellWorkspaceId },
+          select: { name: true, kind: true },
+        });
   if (!shellWorkspace) {
     notFound();
   }

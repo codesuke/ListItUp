@@ -326,6 +326,36 @@ async function run() {
       );
       assert.equal(candidates.some((candidate) => candidate.id === strangerId), false);
     }
+
+    // A teammate only shared via a Deleted Workspace never suggests as a
+    // mention candidate (#76).
+    {
+      const userId = await createUser();
+      const { workspaceId } = await createSharedList("Retired", userId, "MEMBER");
+      const teammateId = await createUser("Jane Doe");
+      await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId, userId: teammateId, role: "MEMBER" } });
+      await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+
+      const candidates = await loadQuickAddMentionCandidates(prisma, userId);
+      assert.deepEqual(candidates, []);
+    }
+
+    // Scoped to a Deleted Workspace, Quick-Add has no writable List to fall
+    // back to and is rejected the same as any other workspace with none
+    // (#76).
+    {
+      const userId = await createUser();
+      await createPersonalWorkspaceWithInbox(userId);
+      const { workspaceId: deletedWorkspaceId } = await createSharedList("Retired", userId, "MEMBER");
+      await prisma.workspace.update({ where: { id: deletedWorkspaceId }, data: { deletedAt: new Date() } });
+
+      const result = await createItemFromQuickAdd(prisma, {
+        actorUserId: userId,
+        text: "Buy milk",
+        scopedWorkspaceId: deletedWorkspaceId,
+      });
+      assert.deepEqual(result, { status: "no-writable-list" });
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

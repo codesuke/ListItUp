@@ -175,6 +175,22 @@ async function run() {
       });
       assert.deepEqual(results.map((r) => r.id), [shared]);
     }
+
+    // A Deleted Workspace returns no Lists, for an Owner or a Guest alike
+    // (#76).
+    {
+      const workspaceId = await createWorkspace();
+      const ownerId = await createUser();
+      await addWorkspaceMember(workspaceId, ownerId, "OWNER");
+      const guestId = await createUser();
+      const guestList = await createList(workspaceId, { name: "Guest List" });
+      await addGuest(guestList, guestId);
+
+      await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+
+      assert.deepEqual(await browseLists(prisma, { userId: ownerId, workspaceId }), []);
+      assert.deepEqual(await browseLists(prisma, { userId: guestId, workspaceId }), []);
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

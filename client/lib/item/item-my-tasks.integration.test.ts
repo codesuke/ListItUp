@@ -211,6 +211,29 @@ async function run() {
       const stillInMyTasks = await loadMyTasksItems(prisma, { userId });
       assert.equal(stillInMyTasks.length, 0, "a COMPLETE Item drops out of the default My Tasks view");
     }
+
+    // An Item assigned in a Deleted Workspace never surfaces in My Tasks,
+    // across every other source Workspace's Items still showing (#76).
+    {
+      const userId = await createUser();
+
+      const live = await createWorkspaceWithList("Live");
+      await addMember(live.workspaceId, live.listId, userId);
+      const liveItemId = await createItem(live.listId, userId, { title: "Still visible" });
+      await assign(liveItemId, userId);
+
+      const deleted = await createWorkspaceWithList("Retired");
+      await addMember(deleted.workspaceId, deleted.listId, userId);
+      const deletedItemId = await createItem(deleted.listId, userId, { title: "Should vanish" });
+      await assign(deletedItemId, userId);
+      await prisma.workspace.update({
+        where: { id: deleted.workspaceId },
+        data: { deletedAt: new Date() },
+      });
+
+      const items = await loadMyTasksItems(prisma, { userId });
+      assert.deepEqual(items.map((item) => item.title), ["Still visible"]);
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

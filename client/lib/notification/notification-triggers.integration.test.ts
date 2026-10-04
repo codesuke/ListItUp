@@ -350,6 +350,33 @@ async function run() {
       assert.equal(secondRun.remindersCreated, 0);
     }
 
+    // An Item due inside the window never gets a reminder once its
+    // Workspace is soft-deleted (#76).
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const creatorId = await addListMember(workspaceId, listId);
+      const assigneeId = await addListMember(workspaceId, listId);
+      const now = new Date("2026-09-15T12:00:00.000Z");
+      const windowMs = 24 * 60 * 60 * 1000;
+
+      const itemId = await createTestItem(listId, creatorId, {
+        dueDate: new Date(now.getTime() + windowMs / 2),
+        state: "TO_DO",
+      });
+      await prisma.itemAssignee.create({
+        data: { id: randomUUID(), itemId, userId: assigneeId },
+      });
+      await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+
+      const run = await createDueDateReminders(prisma, { now, windowMs });
+      assert.equal(run.remindersCreated, 0);
+
+      const reminders = await prisma.notification.findMany({
+        where: { recipientId: assigneeId, type: "DUE_DATE_REMINDER" },
+      });
+      assert.equal(reminders.length, 0);
+    }
+
     // A recipient who has muted a NotificationType's category gets no new
     // notification row of that type, checked here at trigger time (#48) —
     // other, un-muted types for the same recipient are unaffected.

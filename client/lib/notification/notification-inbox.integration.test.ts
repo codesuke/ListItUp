@@ -275,6 +275,63 @@ async function run() {
         notificationId,
       ]);
     }
+
+    // A Notification whose Item lives in a Deleted Workspace drops out of
+    // every tab and the unread badge count, while a sibling notification
+    // from a live Workspace still shows (#76).
+    {
+      const live = await createWorkspaceWithItem();
+      const deleted = await createWorkspaceWithItem();
+      const recipientId = await createUser("Recipient");
+
+      const liveNotificationId = await createNotification({
+        recipientId,
+        actorId: live.creatorId,
+        itemId: live.itemId,
+        type: "ASSIGNEE_ADDED",
+      });
+      await createNotification({
+        recipientId,
+        actorId: deleted.creatorId,
+        itemId: deleted.itemId,
+        type: "ASSIGNEE_ADDED",
+        bookmarkedAt: new Date(),
+      });
+      await createNotification({
+        recipientId,
+        actorId: deleted.creatorId,
+        itemId: deleted.itemId,
+        type: "MENTIONED",
+      });
+      await createNotification({
+        recipientId,
+        actorId: deleted.creatorId,
+        itemId: deleted.itemId,
+        type: "STATE_CHANGED",
+        archivedAt: new Date(),
+      });
+
+      const deletedItem = await prisma.item.findUniqueOrThrow({ where: { id: deleted.itemId } });
+      const deletedList = await prisma.list.findUniqueOrThrow({ where: { id: deletedItem.listId } });
+      await prisma.workspace.update({ where: { id: deletedList.workspaceId }, data: { deletedAt: new Date() } });
+
+      assert.deepEqual(
+        (await loadActivityNotifications(prisma, { recipientId })).map((n) => n.id),
+        [liveNotificationId]
+      );
+      assert.deepEqual(
+        (await loadBookmarkedNotifications(prisma, { recipientId })).map((n) => n.id),
+        [],
+        "the Deleted Workspace's bookmarked notification must not surface"
+      );
+      assert.deepEqual((await loadMentionedNotifications(prisma, { recipientId })).map((n) => n.id), []);
+      assert.deepEqual(
+        (await loadArchivedNotifications(prisma, { recipientId })).map((n) => n.id),
+        [],
+        "even an archived notification from a Deleted Workspace stays excluded"
+      );
+      assert.equal(await countUnreadNotifications(prisma, recipientId), 1, "only the live Workspace's notification counts");
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

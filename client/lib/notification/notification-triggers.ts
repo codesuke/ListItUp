@@ -4,6 +4,7 @@ import type { ItemState, PrismaClient } from "@/generated/prisma/client";
 import { excludingMutedRecipients } from "@/lib/notification/notification-preferences";
 import { resolveItemAccess } from "@/lib/permissions/item-access";
 import { meetsListAccessLevel } from "@/lib/permissions/list-access";
+import { ACTIVE_WORKSPACE_WHERE } from "@/lib/workspace/workspace-visibility";
 
 // "Approaching" has no pinned value anywhere in the spec/QnA — a 24h window
 // is an implementation-time call, not a durable contract (mirrors the
@@ -224,6 +225,8 @@ export async function createDueDateReminders(
     where: {
       dueDate: { gte: input.now, lte: upperBound },
       state: { in: [...REMINDABLE_STATES] },
+      // A Deleted Workspace's Items never generate a reminder (#76).
+      list: { workspace: ACTIVE_WORKSPACE_WHERE },
     },
     select: {
       id: true,

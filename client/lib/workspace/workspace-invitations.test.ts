@@ -221,6 +221,46 @@ async function run() {
       where: { workspaceId, userId: inviteeId },
     });
     assert.equal(membershipCount, 1);
+
+    // An invitation into a Deleted Workspace resolves as invalid, same as
+    // an expired one, and accepting it grants no membership (#76).
+    const deletedWorkspaceId = randomUUID();
+    await prisma.workspace.create({ data: { id: deletedWorkspaceId, name: "Retired", deletedAt: new Date() } });
+    const deletedWorkspaceToken = randomUUID();
+    const deletedWorkspaceEmail = `deleted-workspace-${randomUUID()}@example.test`;
+    await prisma.workspaceInvitation.create({
+      data: {
+        id: randomUUID(),
+        workspaceId: deletedWorkspaceId,
+        email: deletedWorkspaceEmail,
+        role: "VIEWER",
+        token: deletedWorkspaceToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+    assert.equal(
+      await resolveInvitation(prisma, deletedWorkspaceToken),
+      null,
+      "an invitation into a Deleted Workspace must not resolve"
+    );
+    const deletedWorkspaceInvitee = randomUUID();
+    await prisma.user.create({
+      data: { id: deletedWorkspaceInvitee, name: "Invitee", email: deletedWorkspaceEmail, emailVerified: true },
+    });
+    assert.deepEqual(
+      await acceptInvitation(prisma, deletedWorkspaceToken, deletedWorkspaceInvitee, deletedWorkspaceEmail),
+      { status: "invalid" }
+    );
+    assert.equal(
+      await prisma.workspaceMember.findUnique({
+        where: { workspaceId_userId: { workspaceId: deletedWorkspaceId, userId: deletedWorkspaceInvitee } },
+      }),
+      null,
+      "accepting an invitation into a Deleted Workspace must grant no membership"
+    );
+    await prisma.workspaceInvitation.deleteMany({ where: { workspaceId: deletedWorkspaceId } });
+    await prisma.workspace.deleteMany({ where: { id: deletedWorkspaceId } });
+    await prisma.user.deleteMany({ where: { id: deletedWorkspaceInvitee } });
   } finally {
     await prisma.workspaceMember.deleteMany({ where: { workspaceId } });
     await prisma.workspaceInvitation.deleteMany({ where: { workspaceId } });
@@ -323,6 +363,19 @@ async function runCreateInvitationTests() {
       0,
       "a forbidden attempt must not be counted against the rate limit"
     );
+
+    // Even the Owner of a Deleted Workspace is forbidden from inviting to
+    // it (#76) — its settings are unreachable, and a crafted Server Action
+    // call must be refused the same way.
+    await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+    const deletedWorkspaceResult = await createInvitation(prisma, dependencies, {
+      workspaceId,
+      actingUserId: ownerId,
+      email: `deleted-workspace-${randomUUID()}@example.test`,
+      role: "MEMBER",
+    });
+    assert.deepEqual(deletedWorkspaceResult, { status: "forbidden" });
+    await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: null } });
 
     // Only MEMBER or VIEWER are accepted invite-time roles.
     for (const role of ["ADMIN", "OWNER", "not-a-role"]) {
@@ -677,6 +730,19 @@ async function runResendInvitationTests() {
     });
     assert.deepEqual(rateLimitedAfter, rateLimitedBefore);
     fakeRateLimiter.setAllows(true);
+
+    // Owner/Admin of a Deleted Workspace are forbidden from resending too
+    // (#76).
+    await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+    const deletedWorkspaceInvitationId = await seedInvitation();
+    assert.deepEqual(
+      await resendInvitation(prisma, dependencies, {
+        invitationId: deletedWorkspaceInvitationId,
+        actingUserId: ownerId,
+      }),
+      { status: "forbidden" }
+    );
+    await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: null } });
   } finally {
     await prisma.workspaceMember.deleteMany({ where: { workspaceId } });
     await prisma.workspaceInvitation.deleteMany({ where: { workspaceId } });
@@ -834,6 +900,26 @@ async function runRevokeInvitationTests() {
       invitationId: adminRevokedId,
     });
     assert.deepEqual(adminResult, { status: "revoked" });
+
+    // Owner/Admin of a Deleted Workspace are forbidden from revoking too
+    // (#76) — the invitation row survives untouched.
+    const deletedWorkspaceInvitationId = randomUUID();
+    await prisma.workspaceInvitation.create({
+      data: {
+        id: deletedWorkspaceInvitationId,
+        workspaceId,
+        email: `deleted-workspace-${randomUUID()}@example.test`,
+        role: "MEMBER",
+        token: randomUUID(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+    await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+    assert.deepEqual(
+      await revokeInvitation(prisma, { actingUserId: ownerId, invitationId: deletedWorkspaceInvitationId }),
+      { status: "forbidden" }
+    );
+    await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: null } });
   } finally {
     await prisma.workspaceMember.deleteMany({ where: { workspaceId } });
     await prisma.workspaceInvitation.deleteMany({ where: { workspaceId } });

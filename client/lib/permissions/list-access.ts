@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@/generated/prisma/client";
+import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
 // The single resolution order settled by ADR 0009: Workspace Owner/Admin
 // implicit access -> Workspace Viewer ceiling -> explicit List-level role ->
@@ -30,10 +31,13 @@ export async function resolveListAccess(
 
   const list = await database.list.findUnique({
     where: { id: listId },
-    select: { workspaceId: true },
+    select: { workspaceId: true, workspace: { select: { deletedAt: true } } },
   });
 
-  if (!list) {
+  // A Deleted Workspace is treated as nonexistent for every List-scoped
+  // check (#76) — Owner/Admin implicit access, explicit List roles, and
+  // Guest grants all resolve to NONE rather than resolving normally.
+  if (!list || isDeletedWorkspace(list.workspace)) {
     return "NONE";
   }
 

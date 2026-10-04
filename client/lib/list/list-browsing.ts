@@ -1,4 +1,5 @@
 import type { ListStatus, PrismaClient } from "@/generated/prisma/client";
+import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
 export type ListSummary = {
   id: string;
@@ -33,6 +34,17 @@ export async function browseLists(
   input: BrowseListsInput
 ): Promise<ListSummary[]> {
   const { userId, workspaceId, search, status, memberUserId, starredOnly, archived = false } = input;
+
+  // Checked independently of WorkspaceMember below since a Guest (who has
+  // no WorkspaceMember row) must also see no Lists once the Workspace is
+  // deleted (#76).
+  const workspace = await database.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { deletedAt: true },
+  });
+  if (!workspace || isDeletedWorkspace(workspace)) {
+    return [];
+  }
 
   const workspaceMembership = await database.workspaceMember.findUnique({
     where: { workspaceId_userId: { workspaceId, userId } },

@@ -6,6 +6,7 @@ import { canAccessWorkspaceSettings } from "@/lib/permissions/workspace-access";
 import type { Mailer, SendEmailResult } from "@/lib/mailer/mailer-core";
 import { workspaceInvitationEmail } from "@/lib/mailer/email-templates/workspace-invitation";
 import type { WorkspaceInvitationRateLimiter } from "@/lib/workspace/workspace-invitation-rate-limit";
+import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
 // Invitations may only ever grant these two Workspace-level roles — ADMIN
 // and OWNER are never invite-time grants (see domain model spec).
@@ -79,15 +80,18 @@ function newExpiry(): Date {
 
 // Shared by createInvitation and resendInvitation: only the Workspace Owner
 // and Admins may create, resend or revoke invitations, and only for a
-// SHARED Workspace (docs/Specs-Planned/workspace-invitations.md).
+// SHARED Workspace (docs/Specs-Planned/workspace-invitations.md). A Deleted
+// Workspace's settings are unreachable (#76), so its Owner/Admin can't act
+// on invitations either, even via a crafted Server Action call.
 function canActOnWorkspaceSettings<Membership extends { role: WorkspaceRole }>(
   membership: Membership | null | undefined,
-  workspaceKind: WorkspaceKind | null | undefined
+  workspace: { kind: WorkspaceKind; deletedAt: Date | null } | null | undefined
 ): membership is Membership {
   return (
     membership != null &&
-    workspaceKind != null &&
-    canAccessWorkspaceSettings({ role: membership.role, workspaceKind })
+    workspace != null &&
+    !isDeletedWorkspace(workspace) &&
+    canAccessWorkspaceSettings({ role: membership.role, workspaceKind: workspace.kind })
   );
 }
 
@@ -100,7 +104,9 @@ export async function resolveInvitation(
     include: { workspace: true },
   });
 
-  if (!invitation || !isLiveInvitation(invitation)) {
+  // An invitation into a Deleted Workspace is reported the same as a
+  // nonexistent one (#76) — nothing distinguishes the two to the caller.
+  if (!invitation || !isLiveInvitation(invitation) || isDeletedWorkspace(invitation.workspace)) {
     return null;
   }
 
@@ -149,9 +155,12 @@ export async function acceptInvitation(
 ): Promise<AcceptInvitationResult> {
   const invitation = await database.workspaceInvitation.findUnique({
     where: { token },
+    include: { workspace: true },
   });
 
-  if (!invitation || !isLiveInvitation(invitation)) {
+  // Accepting into a Deleted Workspace fails the same as an expired or
+  // already-accepted invitation (#76) — no WorkspaceMember row is granted.
+  if (!invitation || !isLiveInvitation(invitation) || isDeletedWorkspace(invitation.workspace)) {
     return { status: "invalid" };
   }
 
@@ -220,7 +229,7 @@ export async function createInvitation(
     include: { user: true, workspace: true },
   });
 
-  if (!canActOnWorkspaceSettings(actingMembership, actingMembership?.workspace.kind)) {
+  if (!canActOnWorkspaceSettings(actingMembership, actingMembership?.workspace)) {
     return { status: "forbidden" };
   }
 
@@ -337,7 +346,7 @@ export async function resendInvitation(
     include: { user: true },
   });
 
-  if (!canActOnWorkspaceSettings(actingMembership, invitation.workspace.kind)) {
+  if (!canActOnWorkspaceSettings(actingMembership, invitation.workspace)) {
     return { status: "forbidden" };
   }
 
@@ -412,7 +421,7 @@ export async function revokeInvitation(
     },
   });
 
-  if (!canActOnWorkspaceSettings(actingMembership, invitation.workspace.kind)) {
+  if (!canActOnWorkspaceSettings(actingMembership, invitation.workspace)) {
     return { status: "forbidden" };
   }
 

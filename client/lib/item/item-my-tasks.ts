@@ -1,4 +1,5 @@
 import type { Item, ItemPriority, ItemState, PrismaClient, WorkspaceKind } from "@/generated/prisma/client";
+import { ACTIVE_WORKSPACE_WHERE } from "@/lib/workspace/workspace-visibility";
 
 export type MyTaskAttachment = {
   id: string;
@@ -365,7 +366,10 @@ export async function loadMyTasksItems(
     where: {
       userId,
       item: {
-        ...(sourceWorkspaceId ? { list: { workspaceId: sourceWorkspaceId } } : {}),
+        list: {
+          workspace: ACTIVE_WORKSPACE_WHERE,
+          ...(sourceWorkspaceId ? { workspaceId: sourceWorkspaceId } : {}),
+        },
         ...(search ? { title: { contains: search, mode: "insensitive" as const } } : {}),
       },
     },
