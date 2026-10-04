@@ -52,16 +52,25 @@ function CompleteToggle({
   checked,
   itemId,
   boundComplete,
+  boundUncomplete,
 }: {
   checked: boolean;
   itemId: string;
   boundComplete: (formData: FormData) => Promise<void>;
+  boundUncomplete: (formData: FormData) => Promise<void>;
 }) {
   if (checked) {
     return (
-      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[5px] bg-[#ff6b4a] animate-in fade-in-0 zoom-in-90 duration-150">
-        <Check className="h-[11px] w-[11px] text-[#1a0800] animate-in fade-in-0 zoom-in-50 duration-200" />
-      </span>
+      <form action={boundUncomplete}>
+        <input type="hidden" name="itemId" value={itemId} />
+        <button
+          type="submit"
+          aria-label="Mark incomplete"
+          className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[5px] bg-[#ff6b4a] transition-colors duration-150 hover:bg-[#ff8a70] animate-in fade-in-0 zoom-in-90 duration-150"
+        >
+          <Check className="h-[11px] w-[11px] text-[#1a0800] animate-in fade-in-0 zoom-in-50 duration-200" />
+        </button>
+      </form>
     );
   }
 
@@ -179,12 +188,14 @@ function ItemRow({
   listId,
   indented,
   boundComplete,
+  boundUncomplete,
 }: {
   item: ItemSummary;
   workspaceId: string;
   listId: string;
   indented: boolean;
   boundComplete: (formData: FormData) => Promise<void>;
+  boundUncomplete: (formData: FormData) => Promise<void>;
 }) {
   return (
     <div
@@ -192,7 +203,12 @@ function ItemRow({
     >
       <div className="flex min-w-0 items-center gap-2 overflow-hidden">
         {indented && <span className={`${SUBTASK_INDENT_WIDTH} flex-shrink-0`} aria-hidden="true" />}
-        <CompleteToggle checked={item.state === "COMPLETE"} itemId={item.id} boundComplete={boundComplete} />
+        <CompleteToggle
+          checked={item.state === "COMPLETE"}
+          itemId={item.id}
+          boundComplete={boundComplete}
+          boundUncomplete={boundUncomplete}
+        />
         <Link
           href={`/workspaces/${workspaceId}/lists/${listId}/items/${item.id}`}
           className={`min-w-0 truncate text-[13.5px] transition-colors duration-150 hover:underline ${
@@ -302,6 +318,7 @@ export function SectionList({
   listId,
   boundAddItem,
   boundCompleteItem,
+  boundUncompleteItem,
 }: {
   sections: SectionWithItems[];
   unsectionedItems: ItemSummary[];
@@ -310,6 +327,7 @@ export function SectionList({
   listId: string;
   boundAddItem: (formData: FormData) => Promise<void>;
   boundCompleteItem: (formData: FormData) => Promise<void>;
+  boundUncompleteItem: (formData: FormData) => Promise<void>;
 }) {
   const [search, setSearch] = useState("");
   const [addOpenIds, setAddOpenIds] = useState<Set<string>>(new Set());
@@ -353,6 +371,7 @@ export function SectionList({
             listId={listId}
             indented={item.hasParent}
             boundComplete={boundCompleteItem}
+            boundUncomplete={boundUncompleteItem}
           />
         ))
       )}
@@ -439,6 +458,7 @@ export function SectionList({
                         listId={listId}
                         indented={item.hasParent}
                         boundComplete={boundCompleteItem}
+                        boundUncomplete={boundUncompleteItem}
                       />
                     ))
                   )}

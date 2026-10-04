@@ -139,14 +139,30 @@ function AttentionGlance({ counts }: { counts: MyTasksAttentionCount[] }) {
   );
 }
 
-function TaskCompleteToggle({ item, boundComplete }: { item: MyTaskItem; boundComplete: () => Promise<void> }) {
-  const canComplete = item.state !== "COMPLETE" && item.state !== "ARCHIVED";
+function TaskCompleteToggle({
+  item,
+  boundComplete,
+  boundUncomplete,
+}: {
+  item: MyTaskItem;
+  boundComplete: () => Promise<void>;
+  boundUncomplete: () => Promise<void>;
+}) {
+  if (item.state === "ARCHIVED") {
+    return <span className="h-[18px] w-[18px] flex-shrink-0 rounded-full border-[1.5px] border-line-strong" />;
+  }
 
-  if (!canComplete) {
+  if (item.state === "COMPLETE") {
     return (
-      <span className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-[#ff6b4a]">
-        <Check className="h-3 w-3 text-[#1a0800]" />
-      </span>
+      <form action={boundUncomplete}>
+        <button
+          type="submit"
+          aria-label="Mark incomplete"
+          className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-[#ff6b4a] transition-colors hover:bg-[#ff8a70]"
+        >
+          <Check className="h-3 w-3 text-[#1a0800]" />
+        </button>
+      </form>
     );
   }
 
@@ -161,11 +177,21 @@ function TaskCompleteToggle({ item, boundComplete }: { item: MyTaskItem; boundCo
   );
 }
 
-function TaskRow({ item, now, boundComplete }: { item: MyTaskItem; now: Date; boundComplete: () => Promise<void> }) {
+function TaskRow({
+  item,
+  now,
+  boundComplete,
+  boundUncomplete,
+}: {
+  item: MyTaskItem;
+  now: Date;
+  boundComplete: () => Promise<void>;
+  boundUncomplete: () => Promise<void>;
+}) {
   const status = dueDateStatus(item, now);
   return (
     <li className="flex items-center gap-3 rounded-md px-2 py-2.5 transition-colors duration-150 hover:bg-surface-3">
-      <TaskCompleteToggle item={item} boundComplete={boundComplete} />
+      <TaskCompleteToggle item={item} boundComplete={boundComplete} boundUncomplete={boundUncomplete} />
       <a
         href={`/workspaces/${item.sourceWorkspaceId}/lists/${item.listId}/items/${item.id}`}
         className={`min-w-0 flex-1 truncate text-[14px] transition-colors duration-150 hover:underline ${
@@ -186,6 +212,7 @@ export function MyTasksPreviewWidget({
   workspaceId,
   now,
   boundComplete,
+  boundUncomplete,
 }: {
   sections: MyTasksGroup<MyTaskItem>[];
   totalCount: number;
@@ -193,6 +220,7 @@ export function MyTasksPreviewWidget({
   workspaceId: string;
   now: Date;
   boundComplete: (itemId: string) => () => Promise<void>;
+  boundUncomplete: (itemId: string) => () => Promise<void>;
 }) {
   return (
     <section className="rounded-2xl bg-surface-2 p-4 shadow-sm sm:p-6 md:p-7">
@@ -215,7 +243,13 @@ export function MyTasksPreviewWidget({
               </h3>
               <ul className="flex flex-col">
                 {section.items.map((item) => (
-                  <TaskRow key={item.id} item={item} now={now} boundComplete={boundComplete(item.id)} />
+                  <TaskRow
+                    key={item.id}
+                    item={item}
+                    now={now}
+                    boundComplete={boundComplete(item.id)}
+                    boundUncomplete={boundUncomplete(item.id)}
+                  />
                 ))}
               </ul>
             </div>

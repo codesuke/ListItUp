@@ -264,6 +264,26 @@ export async function completeItemAction(workspaceId: string, listId: string, fo
   revalidatePath(listPath(workspaceId, listId));
 }
 
+// The checkbox's other direction — completing an Item here was a one-way
+// door (once checked, the row rendered a static checkmark with no control
+// left to click), so a mis-click or a change of mind had no way back short
+// of opening the Item and changing its Status there. Reopening always
+// lands on TO_DO rather than whatever state preceded COMPLETE — the Item
+// has no stored "state before complete" the way Archive does
+// (stateBeforeArchive) — same fallback restoreItem itself uses when that
+// history is missing.
+export async function uncompleteItemAction(workspaceId: string, listId: string, formData: FormData): Promise<void> {
+  const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
+  const itemId = String(formData.get("itemId") ?? "");
+
+  if (!itemId) {
+    return;
+  }
+
+  await transitionItemState(prisma, { actorUserId: session.user.id, itemId, state: "TO_DO" });
+  revalidatePath(listPath(workspaceId, listId));
+}
+
 export async function setBoardGroupByAction(
   workspaceId: string,
   listId: string,

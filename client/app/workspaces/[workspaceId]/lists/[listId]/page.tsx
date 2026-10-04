@@ -33,6 +33,7 @@ import {
   setBoardGroupByAction,
   setListStatusAction,
   togglePeerComparisonAction,
+  uncompleteItemAction,
   updateListDescriptionAction,
 } from "./actions";
 import { BoardView } from "./BoardView";
@@ -310,6 +311,7 @@ export default async function ListPage({ params, searchParams }: Props) {
   const boundMoveItem = moveItemToColumnAction.bind(null, workspaceId, listId, data.boardGroupBy);
   const boundRestoreItem = restoreItemAction.bind(null, workspaceId, listId);
   const boundCompleteItem = completeItemAction.bind(null, workspaceId, listId);
+  const boundUncompleteItem = uncompleteItemAction.bind(null, workspaceId, listId);
   const boundTogglePeerComparison = togglePeerComparisonAction.bind(null, workspaceId, listId);
 
   return (
@@ -390,6 +392,7 @@ export default async function ListPage({ params, searchParams }: Props) {
             listId={listId}
             boundAddItem={boundAddItem}
             boundCompleteItem={boundCompleteItem}
+            boundUncompleteItem={boundUncompleteItem}
           />
         ) : activeTab === "board" ? (
           <BoardView

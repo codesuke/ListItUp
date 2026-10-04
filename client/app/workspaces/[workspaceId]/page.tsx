@@ -5,7 +5,7 @@ import { HomeBreadcrumb } from "@/components/workspace/HomeBreadcrumb";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 
-import { completeHomeTaskItemAction } from "./actions";
+import { completeHomeTaskItemAction, uncompleteHomeTaskItemAction } from "./actions";
 import { greetingForHour } from "./greeting";
 import {
   AssignedByMeWidget,
@@ -72,6 +72,7 @@ export default async function WorkspacePage({
                 workspaceId={workspaceId}
                 now={now}
                 boundComplete={(itemId) => completeHomeTaskItemAction.bind(null, workspaceId, itemId)}
+                boundUncomplete={(itemId) => uncompleteHomeTaskItemAction.bind(null, workspaceId, itemId)}
               />
             </div>
             <RecentActivityWidget activity={data.recentActivity} now={now} />
