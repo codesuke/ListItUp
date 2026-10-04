@@ -18,6 +18,7 @@ import {
   workspaceDeletedNoticeEmail,
   workspaceRestoredNoticeEmail,
 } from "./workspace-deletion-notice";
+import { workspacePurgeWarningEmail } from "./workspace-purge-warning-notice";
 import type { EmailTemplate } from "./render";
 
 function assertWellFormed(template: EmailTemplate, label: string) {
@@ -192,6 +193,14 @@ function run() {
   });
   assertWellFormed(restoredNotice, "workspace-restored-notice");
   assert.equal(restoredNotice.subject, "Launch Team was restored");
+
+  const purgeWarning = workspacePurgeWarningEmail({
+    workspaceName: "Launch Team",
+    purgeDate: new Date("2026-04-01T00:00:00.000Z"),
+  });
+  assertWellFormed(purgeWarning, "workspace-purge-warning-notice");
+  assert.equal(purgeWarning.subject, "Launch Team will be permanently deleted soon");
+  assert.ok(purgeWarning.html.includes("April 1, 2026"));
 
   console.log("email templates test passed");
 }

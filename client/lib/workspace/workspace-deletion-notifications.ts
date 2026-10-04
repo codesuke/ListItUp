@@ -5,6 +5,7 @@ import {
   workspaceDeletedNoticeEmail,
   workspaceRestoredNoticeEmail,
 } from "@/lib/mailer/email-templates/workspace-deletion-notice";
+import { workspacePurgeWarningEmail } from "@/lib/mailer/email-templates/workspace-purge-warning-notice";
 import { restoreWindowEndsAt } from "@/lib/workspace/workspace-deletion";
 
 // Fans the same rendered template out to every other member. A mail
@@ -79,5 +80,28 @@ export async function notifyMembersOfWorkspaceRestoration(
     excludeUserId: params.restoredByUserId,
     type: "workspace-restored-notice",
     template: workspaceRestoredNoticeEmail({ workspaceName: params.workspaceName }),
+  });
+}
+
+export interface NotifyOwnerOfUpcomingPurgeParams {
+  ownerEmail: string;
+  workspaceName: string;
+  purgeDate: Date;
+}
+
+// The Owner is warned once, shortly before the Restore Window ends and the
+// Workspace is purged for good (#79). Unlike delete/restore notices this
+// goes to the Owner alone — it's their last chance to restore.
+export async function notifyOwnerOfUpcomingPurge(
+  mailer: Mailer,
+  params: NotifyOwnerOfUpcomingPurgeParams
+): Promise<void> {
+  await mailer.send({
+    to: params.ownerEmail,
+    type: "workspace-purge-warning-notice",
+    template: workspacePurgeWarningEmail({
+      workspaceName: params.workspaceName,
+      purgeDate: params.purgeDate,
+    }),
   });
 }

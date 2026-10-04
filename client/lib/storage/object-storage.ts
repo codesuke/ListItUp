@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // The upload transport for Attachments (#39): private S3-compatible object
@@ -60,6 +60,16 @@ export async function uploadAttachmentObject(input: {
       Body: input.body,
       ContentType: input.contentType,
     })
+  );
+}
+
+// Removes a stored Attachment object (#79's Workspace purge) — the DB
+// cascade that hard-deletes a Workspace's Attachment rows never touches
+// the object itself, so the purge job must call this for each one first.
+export async function deleteAttachmentObject(storageKey: string): Promise<void> {
+  const bucket = readRequiredEnv("OBJECT_STORAGE_BUCKET");
+  await getObjectStorageClient().send(
+    new DeleteObjectCommand({ Bucket: bucket, Key: storageKey })
   );
 }
 

@@ -95,7 +95,7 @@ export async function restoreWorkspace(
 
     await tx.workspace.update({
       where: { id: workspaceId },
-      data: { deletedAt: null, deletedByUserId: null },
+      data: { deletedAt: null, deletedByUserId: null, purgeWarningSentAt: null },
     });
 
     return { status: "restored" };

@@ -125,6 +125,10 @@ model Workspace {
   // deletedAt as nonexistent (lib/workspace/workspace-deletion.ts).
   deletedAt             DateTime?
   deletedByUserId       String?
+  // Set once the Owner has been emailed that the Restore Window is about
+  // to end (#79) — guards the warning from being sent more than once.
+  // Null for an active Workspace and reset to null on restore.
+  purgeWarningSentAt    DateTime?
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   lists                 List[]

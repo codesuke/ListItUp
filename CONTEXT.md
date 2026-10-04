@@ -108,6 +108,14 @@ _Avoid_: Dashboard, tenant, organization, personal space, project space
 A pre-filled Workspace provisioned automatically alongside a User's Personal Space after verified first sign-in, giving them real-looking Lists, Items, and teammates to explore before creating anything of their own. Functionally an ordinary Workspace (a User may edit or leave it like any other); distinguished only by having been auto-provisioned with sample content rather than by any different capability.
 _Avoid_: Sample workspace, tutorial, onboarding workspace
 
+**Deleted Workspace**:
+A shared Workspace its Owner has soft-deleted. Invisible to every member immediately — no access, no listing, no notifications — but kept for its Restore Window, during which only the Owner can bring it back exactly as it was. A Personal Space can never become a Deleted Workspace.
+_Avoid_: Archived Workspace, trashed Workspace
+
+**Restore Window**:
+The 3-month period after a Workspace is deleted during which its Owner can restore it. A Workspace not restored before the Restore Window ends is permanently purged.
+_Avoid_: Grace period, retention period
+
 **Workspace Owner**:
 The sole User with ultimate authority over a Workspace. Cannot be removed, demoted, or modified by any other User, and can only transfer ownership explicitly. Has implicit access to every List in the Workspace, including private ones.
 _Avoid_: Admin, superuser, account holder

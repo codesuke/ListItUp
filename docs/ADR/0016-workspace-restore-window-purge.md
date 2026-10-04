@@ -1,0 +1,5 @@
+# Workspace Restore Window Purge
+
+A Deleted Workspace past its 3-month Restore Window (#74) is permanently hard-deleted by a scheduled sweep (#79), not archived or soft-purged further. Lists, Items, members, invitations and labels are removed via Postgres cascade from one `Workspace` delete; Attachment files are removed from S3-compatible object storage (ADR 0002) separately, since the database cascade never reaches stored objects. This is hard to reverse by design — once the window closes, the data is gone — so the Owner is warned once by email a fixed number of days before the purge runs, giving a last chance to restore.
+
+The sweep reuses the scheduler mechanism established for security retention (#61's design, `/api/internal/security-retention`): a daily secret-authenticated internal route invoked by the deployment platform's cron, rather than a second in-process scheduler. Purge and the pre-purge warning are both evaluated in a single sweep over every still-deleted Workspace, each recorded as its own security/ops event or email rather than inferred after the fact.
