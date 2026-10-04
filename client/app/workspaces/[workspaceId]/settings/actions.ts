@@ -9,6 +9,7 @@ import {
   workspaceOwnershipTransferredToNewOwnerEmail,
 } from "@/lib/mailer/email-templates/workspace-ownership-transfer";
 import { mailer } from "@/lib/mailer/mailer";
+import { canManageWorkspace } from "@/lib/permissions/workspace-access";
 import { prisma } from "@/lib/prisma";
 import { requestIpAddress } from "@/lib/auth/request-ip-address";
 import { recordSecurityEvent } from "@/lib/security/platform-operations";
@@ -17,9 +18,57 @@ import { resolveDefaultWorkspaceId } from "@/lib/workspace/default-workspace";
 import { deleteWorkspace } from "@/lib/workspace/workspace-deletion";
 import { notifyMembersOfWorkspaceDeletion } from "@/lib/workspace/workspace-deletion-notifications";
 import { transferWorkspaceOwnership } from "@/lib/workspace/workspace-ownership";
+import { renameWorkspace, type RenameWorkspaceResult } from "@/lib/workspace/workspace-rename";
+import { WORKSPACE_NAME_MAX_LENGTH } from "@/lib/workspace/workspace-creation";
 
 function settingsPath(workspaceId: string): string {
   return `/workspaces/${workspaceId}/settings`;
+}
+
+export type RenameWorkspaceState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "success"; name: string };
+
+export async function renameWorkspaceAction(
+  workspaceId: string,
+  _prevState: RenameWorkspaceState,
+  formData: FormData
+): Promise<RenameWorkspaceState> {
+  const session = await requireAuthenticatedSession(settingsPath(workspaceId));
+
+  // Re-validated here regardless of the page's own Owner/Admin-only
+  // gating — a Server Action needs the same authz check as an API
+  // endpoint (see docs/agents/nextjs-conventions.md).
+  const membership = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: session.user.id } },
+    include: { workspace: true },
+  });
+
+  if (!membership || membership.workspace.kind !== "SHARED" || !canManageWorkspace(membership.role)) {
+    return { status: "error", message: "Only a Workspace Owner or Admin can rename this Workspace." };
+  }
+
+  const result: RenameWorkspaceResult = await renameWorkspace(
+    prisma,
+    workspaceId,
+    String(formData.get("name") ?? "")
+  );
+
+  if (result.status === "invalid-name") {
+    return {
+      status: "error",
+      message:
+        result.reason === "empty"
+          ? "Give the Workspace a name."
+          : `Keep the name to ${WORKSPACE_NAME_MAX_LENGTH} characters or fewer.`,
+    };
+  }
+
+  revalidatePath(settingsPath(workspaceId));
+  revalidatePath("/workspaces", "layout");
+
+  return { status: "success", name: result.name };
 }
 
 export type TransferOwnershipState =

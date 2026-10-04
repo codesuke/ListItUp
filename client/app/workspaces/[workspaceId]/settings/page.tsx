@@ -7,6 +7,7 @@ import { requireAuthenticatedSession } from "@/lib/session/require-authenticated
 import { DeleteWorkspaceForm } from "./DeleteWorkspaceForm";
 import { loadWorkspaceSettingsPageData } from "./page-data";
 import { TransferOwnershipForm } from "./TransferOwnershipForm";
+import { WorkspaceNameForm } from "./WorkspaceNameForm";
 
 const ROLE_LABEL = {
   OWNER: "Owner",
@@ -48,14 +49,7 @@ export default async function WorkspaceSettingsPage({ params }: Props) {
 
         <section className="mt-10">
           <h2 className="mb-4 text-lg font-light text-ink">General</h2>
-          <div className="group">
-            <span className="mb-3 block font-mono text-[11px] uppercase tracking-[0.22em] text-ink-muted">
-              Workspace name
-            </span>
-            <div className="flex h-11 items-center border border-surface-3 bg-surface-1/95 px-4 text-sm text-ink">
-              {workspaceName}
-            </div>
-          </div>
+          <WorkspaceNameForm workspaceId={workspaceId} workspaceName={workspaceName} />
         </section>
 
         <section className="mt-10 border-t border-surface-3 pt-10">
