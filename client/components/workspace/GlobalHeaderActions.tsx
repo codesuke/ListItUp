@@ -29,7 +29,7 @@ export function GlobalHeaderActions({
       <ThemeToggle />
 
       <Link
-        href="/updates"
+        href={`/updates?workspace=${workspaceId}`}
         aria-label={
           unreadNotificationCount > 0
             ? `${unreadNotificationCount} unread notifications`

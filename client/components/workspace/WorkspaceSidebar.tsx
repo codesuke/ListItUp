@@ -118,7 +118,7 @@ export function WorkspaceSidebar({
                 label="My Tasks"
               />
               <NavMenuItem
-                href="/updates"
+                href={`/updates?workspace=${currentWorkspaceId}`}
                 isActive={isUpdatesActive}
                 icon={<Bell />}
                 label="Updates"

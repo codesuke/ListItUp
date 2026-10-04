@@ -11,23 +11,38 @@ import { resolveDefaultWorkspaceId } from "@/lib/workspace/default-workspace";
 import { NotificationPreferencesForm } from "./NotificationPreferencesForm";
 import { loadNotificationsPreferencesPageData } from "./page-data";
 
-export default async function NotificationsSettingsPage() {
-  const session = await requireAuthenticatedSession("/settings/notifications");
+type Query = { workspace?: string };
+type Props = { searchParams: Promise<Query> };
 
-  const [data, workspaceId, unreadNotificationCount] = await Promise.all([
+export default async function NotificationsSettingsPage({ searchParams }: Props) {
+  const session = await requireAuthenticatedSession("/settings/notifications");
+  const query = await searchParams;
+
+  const [data, requestedMembership, unreadNotificationCount] = await Promise.all([
     loadNotificationsPreferencesPageData(prisma, session.user.id),
-    resolveDefaultWorkspaceId(prisma, session.user.id),
+    query.workspace
+      ? prisma.workspaceMember.findUnique({
+          where: { workspaceId_userId: { workspaceId: query.workspace, userId: session.user.id } },
+          include: { workspace: true },
+        })
+      : null,
     countUnreadNotifications(prisma, session.user.id),
   ]);
 
+  // Same requested-membership-or-fallback pattern as /updates
+  // (app/updates/page.tsx) — this page is cross-Workspace too, so there's
+  // no URL segment to source currentWorkspaceId from.
+  const workspaceId = requestedMembership?.workspaceId ?? (await resolveDefaultWorkspaceId(prisma, session.user.id));
   if (!workspaceId) {
     notFound();
   }
 
-  const workspace = await prisma.workspace.findUnique({
-    where: { id: workspaceId },
-    select: { name: true, kind: true },
-  });
+  const workspace =
+    requestedMembership?.workspace ??
+    (await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { name: true, kind: true },
+    }));
 
   if (!workspace) {
     notFound();
@@ -42,7 +57,10 @@ export default async function NotificationsSettingsPage() {
       <div className="flex min-h-screen flex-col animate-in fade-in duration-200">
         <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-7">
           <div className="flex items-center gap-2">
-            <a href="/updates" className="text-[13px] text-ink-faint transition-colors duration-150 hover:text-ink-muted">
+            <a
+              href={`/updates?workspace=${workspaceId}`}
+              className="text-[13px] text-ink-faint transition-colors duration-150 hover:text-ink-muted"
+            >
               Updates
             </a>
             <ChevronRight className="h-3 w-3 text-ink-faint" />
