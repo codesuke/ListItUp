@@ -29,6 +29,7 @@ const QUICK_ADD_ERROR_MESSAGES: Record<
   string
 > = {
   "no-inbox-list": "Couldn't find your Inbox list — try again in a moment.",
+  "no-writable-list": "This workspace has no list you can add tasks to yet.",
   "list-not-found": "That list doesn't exist anymore.",
   forbidden: "You don't have permission to add tasks there.",
 };
@@ -43,18 +44,25 @@ const QUICK_ADD_ERROR_MESSAGES: Record<
 // just vanished on Enter with nothing visibly created, because this action
 // ignored createItemFromQuickAdd's result entirely. This is Add Task's
 // (#44) implementation — no separate Quick-Add path is added here.
+//
+// `scopedWorkspaceId` is My Tasks' own "Workspace" filter (QuickAddForm's
+// hidden field, sourced from page.tsx's data.selectedWorkspaceId) — when
+// the User has that filter set to one Workspace rather than "All
+// Workspaces", an unscoped capture (no `~list` typed) belongs there, not
+// always the Personal Space Inbox regardless of what's on screen.
 export async function quickAddItemAction(
   _prevState: QuickAddItemState,
   formData: FormData
 ): Promise<QuickAddItemState> {
   const session = await requireAuthenticatedSession(MY_TASKS_PATH);
   const text = String(formData.get("quickAddText") ?? "").trim();
+  const scopedWorkspaceId = String(formData.get("scopedWorkspaceId") ?? "").trim() || undefined;
 
   if (!text) {
     return { status: "idle" };
   }
 
-  const result = await createItemFromQuickAdd(prisma, { actorUserId: session.user.id, text });
+  const result = await createItemFromQuickAdd(prisma, { actorUserId: session.user.id, text, scopedWorkspaceId });
   if (result.status === "empty-title") {
     return { status: "idle" };
   }

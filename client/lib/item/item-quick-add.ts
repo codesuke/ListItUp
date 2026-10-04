@@ -8,6 +8,7 @@ export type CreateItemFromQuickAddResult =
   | { status: "created"; itemId: string }
   | { status: "empty-title" }
   | { status: "no-inbox-list" }
+  | { status: "no-writable-list" }
   | { status: "list-not-found" }
   | { status: "forbidden" };
 
@@ -54,6 +55,49 @@ async function findInboxListId(database: PrismaClient, userId: string): Promise<
     select: { id: true },
   });
   return inboxList?.id ?? null;
+}
+
+// Quick-Add's fallback when no `~list` shorthand was typed: the My Tasks
+// "Workspace" filter (not "All Workspaces") is the User's stated context,
+// so an unscoped capture belongs in that Workspace, not always the
+// Personal Space Inbox — landing it somewhere the User wasn't even
+// looking at defeats the point of filtering. There's no "default List"
+// concept for a shared Workspace the way Personal Space has an Inbox, so
+// this picks the Workspace's oldest List the User can write to, skipping
+// archived Lists since those are hidden from the Workspace's normal views.
+async function resolveWorkspaceDefaultListId(
+  database: PrismaClient,
+  userId: string,
+  workspaceId: string
+): Promise<string | null> {
+  const candidates = await database.list.findMany({
+    where: { workspaceId, archivedAt: null },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+
+  for (const candidate of candidates) {
+    const access = await resolveListAccess(database, { userId, listId: candidate.id });
+    if (meetsListAccessLevel(access, "WRITE")) {
+      return candidate.id;
+    }
+  }
+
+  return null;
+}
+
+// Falls back to the scoped Workspace's own default List when My Tasks is
+// filtered to one; otherwise the Personal Space Inbox, same as before the
+// Workspace filter was threaded through at all.
+async function resolveFallbackListId(
+  database: PrismaClient,
+  userId: string,
+  scopedWorkspaceId: string | undefined
+): Promise<string | null> {
+  if (scopedWorkspaceId) {
+    return resolveWorkspaceDefaultListId(database, userId, scopedWorkspaceId);
+  }
+  return findInboxListId(database, userId);
 }
 
 // Matches Quick-Add's `~list` shorthand against Lists the User can write
@@ -141,9 +185,9 @@ async function resolveAssigneeUserIds(
 // creation path.
 export async function createItemFromQuickAdd(
   database: PrismaClient,
-  input: { actorUserId: string; text: string; now?: Date }
+  input: { actorUserId: string; text: string; now?: Date; scopedWorkspaceId?: string }
 ): Promise<CreateItemFromQuickAddResult> {
-  const { actorUserId, text, now } = input;
+  const { actorUserId, text, now, scopedWorkspaceId } = input;
   const parsed = parseQuickAdd(text, now);
 
   if (parsed.title.length === 0) {
@@ -152,11 +196,11 @@ export async function createItemFromQuickAdd(
 
   const listId = parsed.listName
     ? ((await resolveNamedListId(database, actorUserId, parsed.listName)) ??
-      (await findInboxListId(database, actorUserId)))
-    : await findInboxListId(database, actorUserId);
+      (await resolveFallbackListId(database, actorUserId, scopedWorkspaceId)))
+    : await resolveFallbackListId(database, actorUserId, scopedWorkspaceId);
 
   if (!listId) {
-    return { status: "no-inbox-list" };
+    return scopedWorkspaceId ? { status: "no-writable-list" } : { status: "no-inbox-list" };
   }
 
   const list = await database.list.findUniqueOrThrow({ where: { id: listId }, select: { workspaceId: true } });

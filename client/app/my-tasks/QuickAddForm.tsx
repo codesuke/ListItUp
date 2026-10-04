@@ -36,9 +36,11 @@ function findMentionTrigger(value: string, caret: number): { start: number; quer
 export function QuickAddForm({
   quickAddItemAction,
   mentionCandidates,
+  selectedWorkspaceId,
 }: {
   quickAddItemAction: (prevState: QuickAddItemState, formData: FormData) => Promise<QuickAddItemState>;
   mentionCandidates: QuickAddMentionCandidate[];
+  selectedWorkspaceId: string | null;
 }) {
   const [state, formAction] = useActionState(quickAddItemAction, INITIAL_STATE);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +111,7 @@ export function QuickAddForm({
   return (
     <form action={formAction} onSubmit={() => setMention(null)} className="relative mb-6">
       <div className="flex items-center gap-3 border-b border-line px-1 pb-3 transition-colors focus-within:border-[#ff6b4a]/40">
+        <input type="hidden" name="scopedWorkspaceId" value={selectedWorkspaceId ?? ""} />
         <button
           type="submit"
           aria-label="Add task"

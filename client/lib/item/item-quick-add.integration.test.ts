@@ -104,6 +104,70 @@ async function run() {
       assert.equal(item.title, "Fix the bug");
     }
 
+    // No `~list` shorthand, but My Tasks' own Workspace filter is scoped to
+    // a shared Workspace — the Item lands in that Workspace's List, not the
+    // Personal Space Inbox, matching what the User was actually looking at.
+    {
+      const userId = await createUser();
+      const { inboxListId } = await createPersonalWorkspaceWithInbox(userId);
+      const { workspaceId: engineeringWorkspaceId, listId: engineeringListId } = await createSharedList(
+        "Engineering",
+        userId,
+        "MEMBER"
+      );
+
+      const result = await createItemFromQuickAdd(prisma, {
+        actorUserId: userId,
+        text: "Buy milk",
+        scopedWorkspaceId: engineeringWorkspaceId,
+      });
+      assert.equal(result.status, "created");
+      const itemId = result.status === "created" ? result.itemId : "";
+      const item = await prisma.item.findUniqueOrThrow({ where: { id: itemId } });
+      assert.equal(item.listId, engineeringListId);
+      assert.notEqual(item.listId, inboxListId);
+    }
+
+    // An explicit `~list` shorthand still overrides the scoped Workspace —
+    // typing a List name is a more specific instruction than the ambient
+    // "Workspace" filter.
+    {
+      const userId = await createUser();
+      const { workspaceId: engineeringWorkspaceId } = await createSharedList("Engineering", userId, "MEMBER");
+      const { workspaceId: designWorkspaceId, listId: designListId } = await createSharedList(
+        "Design",
+        userId,
+        "MEMBER"
+      );
+
+      const result = await createItemFromQuickAdd(prisma, {
+        actorUserId: userId,
+        text: "Review the draft ~Design",
+        scopedWorkspaceId: engineeringWorkspaceId,
+      });
+      assert.equal(result.status, "created");
+      const itemId = result.status === "created" ? result.itemId : "";
+      const item = await prisma.item.findUniqueOrThrow({ where: { id: itemId } });
+      assert.equal(item.listId, designListId);
+      assert.notEqual(designWorkspaceId, engineeringWorkspaceId);
+    }
+
+    // Scoped to a Workspace where the User has no writable List (their only
+    // List access there is read-only, as a Viewer) — rejected with its own
+    // status rather than silently falling back to an unrelated Workspace.
+    {
+      const userId = await createUser();
+      await createPersonalWorkspaceWithInbox(userId);
+      const { workspaceId: readOnlyWorkspaceId } = await createSharedList("ReadOnly", userId, "VIEWER");
+
+      const result = await createItemFromQuickAdd(prisma, {
+        actorUserId: userId,
+        text: "Buy milk",
+        scopedWorkspaceId: readOnlyWorkspaceId,
+      });
+      assert.deepEqual(result, { status: "no-writable-list" });
+    }
+
     // List-name matching is case-insensitive.
     {
       const userId = await createUser();
