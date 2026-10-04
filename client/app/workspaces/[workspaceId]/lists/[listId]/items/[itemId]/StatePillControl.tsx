@@ -44,6 +44,7 @@ export function StatePillControl({
       <FieldSelect
         value={selected}
         onChange={(event) => selectState(event.target.value as ItemState)}
+        aria-label="Status"
         wrapperClassName="w-auto"
         controlClassName={CHIP_CONTROL_CLASS}
       >

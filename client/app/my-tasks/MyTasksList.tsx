@@ -64,17 +64,37 @@ function rowStatus(item: MyTaskItem, now: Date): { text: string; className: stri
 }
 
 function CompleteToggle({
-  canComplete,
+  isComplete,
+  isToggleable,
   boundComplete,
+  boundUncomplete,
 }: {
-  canComplete: boolean;
+  isComplete: boolean;
+  isToggleable: boolean;
   boundComplete: () => Promise<void>;
+  boundUncomplete: () => Promise<void>;
 }) {
-  if (!canComplete) {
-    return (
-      <span className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-[#ff6b4a] animate-in fade-in-0 zoom-in-90 duration-150">
-        <Check className="h-3 w-3 text-[#1a0800] animate-in fade-in-0 zoom-in-50 duration-200" />
+  if (!isToggleable) {
+    return isComplete ? (
+      <span className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-[#ff6b4a]">
+        <Check className="h-3 w-3 text-[#1a0800]" />
       </span>
+    ) : (
+      <span className="h-[18px] w-[18px] flex-shrink-0 rounded-full border-[1.5px] border-line-strong" />
+    );
+  }
+
+  if (isComplete) {
+    return (
+      <form action={boundUncomplete}>
+        <button
+          type="submit"
+          aria-label="Mark incomplete"
+          className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-[#ff6b4a] transition-colors hover:bg-[#ff8a70] animate-in fade-in-0 zoom-in-90 duration-150"
+        >
+          <Check className="h-3 w-3 text-[#1a0800] animate-in fade-in-0 zoom-in-50 duration-200" />
+        </button>
+      </form>
     );
   }
 
@@ -94,20 +114,27 @@ function MyTaskRow({
   now,
   baseUrl,
   boundComplete,
+  boundUncomplete,
 }: {
   item: MyTaskItem;
   now: Date;
   baseUrl: string;
   boundComplete: () => Promise<void>;
+  boundUncomplete: () => Promise<void>;
 }) {
   const isComplete = item.state === "COMPLETE";
-  const canComplete = item.state !== "COMPLETE" && item.state !== "ARCHIVED";
+  const isToggleable = item.state !== "ARCHIVED";
   const status = rowStatus(item, now);
 
   return (
     <div className="group flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[6px] px-2.5 py-2.5 transition-colors hover:bg-surface-3">
       <div className="flex min-w-0 flex-1 basis-full items-center gap-3 sm:basis-0">
-        <CompleteToggle canComplete={canComplete} boundComplete={boundComplete} />
+        <CompleteToggle
+          isComplete={isComplete}
+          isToggleable={isToggleable}
+          boundComplete={boundComplete}
+          boundUncomplete={boundUncomplete}
+        />
         <a
           href={myTaskItemHref(item, item.id)}
           className={`flex min-w-0 flex-1 items-center truncate text-[14px] transition-colors hover:underline ${
@@ -146,11 +173,13 @@ export function MyTasksList({
   now,
   baseUrl,
   boundComplete,
+  boundUncomplete,
 }: {
   groups: MyTasksGroup<MyTaskItem>[];
   now: Date;
   baseUrl: string;
   boundComplete: (itemId: string) => () => Promise<void>;
+  boundUncomplete: (itemId: string) => () => Promise<void>;
 }) {
   const isEmpty = groups.every((group) => group.items.length === 0);
 
@@ -169,7 +198,14 @@ export function MyTasksList({
         <div key={group.key}>
           {group.label && <GroupHeader groupKey={group.key} label={group.label} count={group.items.length} />}
           {group.items.map((item) => (
-            <MyTaskRow key={item.id} item={item} now={now} baseUrl={baseUrl} boundComplete={boundComplete(item.id)} />
+            <MyTaskRow
+              key={item.id}
+              item={item}
+              now={now}
+              baseUrl={baseUrl}
+              boundComplete={boundComplete(item.id)}
+              boundUncomplete={boundUncomplete(item.id)}
+            />
           ))}
         </div>
       ))}

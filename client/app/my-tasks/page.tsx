@@ -24,7 +24,7 @@ import { countUnreadNotifications } from "@/lib/notification/notification-inbox"
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 
-import { completeMyTaskItemAction, moveMyTaskItemAction, quickAddItemAction } from "./actions";
+import { completeMyTaskItemAction, moveMyTaskItemAction, quickAddItemAction, uncompleteMyTaskItemAction } from "./actions";
 import { BoardView } from "./BoardView";
 import { CalendarView } from "./CalendarView";
 import { DashboardView } from "./DashboardView";
@@ -157,6 +157,7 @@ export default async function MyTasksPage({ searchParams }: Props) {
   const baseUrl = process.env.BETTER_AUTH_URL;
   if (!baseUrl) throw new Error("BETTER_AUTH_URL must be set.");
   const boundComplete = (itemId: string) => completeMyTaskItemAction.bind(null, itemId);
+  const boundUncomplete = (itemId: string) => uncompleteMyTaskItemAction.bind(null, itemId);
   const boundMoveItem = moveMyTaskItemAction.bind(null, data.boardGroupBy);
 
   const calendarMonthStart = parseCalendarMonth(query.month, now);
@@ -314,7 +315,13 @@ export default async function MyTasksPage({ searchParams }: Props) {
                   </div>
                 </div>
 
-                <MyTasksList groups={data.groups} now={now} baseUrl={baseUrl} boundComplete={boundComplete} />
+                <MyTasksList
+                  groups={data.groups}
+                  now={now}
+                  baseUrl={baseUrl}
+                  boundComplete={boundComplete}
+                  boundUncomplete={boundUncomplete}
+                />
 
                 {!includeCompleted && !includeArchived && (
                   <p className="mt-4 text-[12px] text-ink-muted">

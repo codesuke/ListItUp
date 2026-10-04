@@ -19,6 +19,20 @@ export async function completeMyTaskItemAction(itemId: string): Promise<void> {
   revalidatePath(MY_TASKS_PATH);
 }
 
+// The checkbox's other direction — completing an Item from My Tasks was a
+// one-way door (once filled, there was no control left to click: the row
+// renders a static checkmark with no form once state is COMPLETE), so a
+// mis-click or a change of mind had no way back short of opening the Item
+// and changing its Status there. Reopening always lands on TO_DO rather
+// than whatever state preceded COMPLETE — the Item has no stored
+// "state before complete" the way Archive does (stateBeforeArchive) — same
+// fallback restoreItem itself uses when that history is missing.
+export async function uncompleteMyTaskItemAction(itemId: string): Promise<void> {
+  const session = await requireAuthenticatedSession(MY_TASKS_PATH);
+  await transitionItemState(prisma, { actorUserId: session.user.id, itemId, state: "TO_DO" });
+  revalidatePath(MY_TASKS_PATH);
+}
+
 export type QuickAddItemState =
   | { status: "idle" }
   | { status: "created" }

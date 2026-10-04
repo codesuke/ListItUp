@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Lock, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Lock } from "lucide-react";
 import Link from "next/link";
 
 import { MemberAvatar } from "@/components/workspace/MemberAvatar";
@@ -21,7 +21,6 @@ import {
   HEADING_SECTION_CLASS,
   INPUT_CLASS,
   SECTION_CLASS,
-  SMALL_ICON_BTN_CLASS,
 } from "./panel-styles";
 import { RevealAddControl } from "@/components/workspace/RevealAddControl";
 import { StatePillControl } from "./StatePillControl";
@@ -271,8 +270,13 @@ export function ItemDetailPanel({
                 <input
                   type="text"
                   name="title"
+                  aria-label="Title"
                   defaultValue={data.title}
-                  className="-mx-2 w-[calc(100%+1rem)] rounded-[6px] bg-transparent px-2 py-1 text-[22px] font-semibold leading-snug tracking-tight text-ink transition-colors duration-150 hover:bg-surface-3 focus:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]/50"
+                  // A persistent (if faint) border rather than hover-only chrome — on
+                  // a touch device there's no hover to reveal that this heading is
+                  // actually an editable field, so the affordance has to be visible
+                  // at rest, not just discovered by accident.
+                  className="-mx-2 w-[calc(100%+1rem)] rounded-[6px] border border-line-strong/30 bg-transparent px-2 py-1 text-[22px] font-semibold leading-snug tracking-tight text-ink transition-colors duration-150 hover:border-line-strong hover:bg-surface-3 focus:border-transparent focus:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]/50"
                 />
               </AutoSubmitField>
               {/* Section isn't user-editable from this page (moving an Item
@@ -296,158 +300,188 @@ export function ItemDetailPanel({
         </div>
       </div>
 
-      {/* Properties strip: Status, Priority, Assignees, Due date, Labels —
-          the only place these fields appear. A single row, every chip/control
-          sharing one 30px height (CHIP_CLASS/CHIP_CONTROL_CLASS), so it reads
-          as one aligned line instead of labeled columns; it only wraps if the
-          viewport can't fit the whole row. */}
-      <div className="mt-5 flex flex-wrap items-center gap-2 border-b border-line-strong/60 pb-3.5">
+      {/* Properties strip: Status, Priority, Due date, Assignees, Labels —
+          the only place these fields appear. Each one is its own labeled
+          group (a small uppercase caption, the same FIELD_LABEL_CLASS
+          convention Custom Fields already use below) rather than one
+          unlabeled row of same-looking chips, which previously gave no way
+          to tell what a given chip meant without already knowing the app.
+          Assignee/Label selection auto-submits on choosing a value
+          (AutoSubmitField, matching Priority/Due date below) instead of
+          needing a separate "+" click — that mismatch was the one control
+          in this strip that didn't save on change, which read as broken
+          rather than deliberate. */}
+      <div className="mt-5 flex flex-wrap items-start gap-x-6 gap-y-4 border-b border-line-strong/60 pb-4">
         {/* Status */}
-        {data.state === "ARCHIVED" ? (
-          <>
-            <span className={CHIP_CLASS}>Archived</span>
-            {data.canEdit && (
-              <form action={boundRestore}>
-                <button type="submit" className={GHOST_BUTTON_CLASS}>
-                  Restore
-                </button>
-              </form>
-            )}
-          </>
-        ) : data.canEdit ? (
-          <StatePillControl
-            currentState={data.state}
-            currentBlockerReason={data.blockerReason}
-            boundTransition={boundTransition}
-          />
-        ) : (
-          <span className={CHIP_CLASS}>{STATE_LABEL[data.state]}</span>
-        )}
+        <div className="flex flex-col gap-1.5">
+          <span className={FIELD_LABEL_CLASS}>Status</span>
+          {data.state === "ARCHIVED" ? (
+            <div className="flex items-center gap-2">
+              <span className={CHIP_CLASS}>Archived</span>
+              {data.canEdit && (
+                <form action={boundRestore}>
+                  <button type="submit" className={GHOST_BUTTON_CLASS}>
+                    Restore
+                  </button>
+                </form>
+              )}
+            </div>
+          ) : data.canEdit ? (
+            <StatePillControl
+              currentState={data.state}
+              currentBlockerReason={data.blockerReason}
+              boundTransition={boundTransition}
+            />
+          ) : (
+            <span className={CHIP_CLASS}>{STATE_LABEL[data.state]}</span>
+          )}
+        </div>
 
         {/* Priority — same chip size/shape as the rest; only High tints red */}
-        {data.canEdit ? (
-          <AutoSubmitField>
-            <FieldSelect
-              name="priority"
-              form={DETAILS_FORM_ID}
-              defaultValue={data.priority}
-              wrapperClassName="w-auto"
-              controlClassName={CHIP_CONTROL_CLASS}
+        <div className="flex flex-col gap-1.5">
+          <span className={FIELD_LABEL_CLASS}>Priority</span>
+          {data.canEdit ? (
+            <AutoSubmitField>
+              <FieldSelect
+                name="priority"
+                form={DETAILS_FORM_ID}
+                defaultValue={data.priority}
+                aria-label="Priority"
+                wrapperClassName="w-auto"
+                controlClassName={CHIP_CONTROL_CLASS}
+              >
+                <option value="LOW">Low</option>
+                <option value="NORMAL">Normal</option>
+                <option value="HIGH">High</option>
+              </FieldSelect>
+            </AutoSubmitField>
+          ) : (
+            <span
+              className={`inline-flex h-[30px] items-center whitespace-nowrap rounded-[7px] border px-[11px] box-border text-[12px] ${
+                data.priority === "HIGH"
+                  ? "border-[#f2545b66] bg-[#f2545b1a] text-[#f2545b]"
+                  : "border-line-strong bg-surface-3 text-ink-muted"
+              }`}
             >
-              <option value="LOW">Low</option>
-              <option value="NORMAL">Normal</option>
-              <option value="HIGH">High</option>
-            </FieldSelect>
-          </AutoSubmitField>
-        ) : (
-          <span
-            className={`inline-flex h-[30px] items-center whitespace-nowrap rounded-[7px] border px-[11px] box-border text-[12px] ${
-              data.priority === "HIGH"
-                ? "border-[#f2545b66] bg-[#f2545b1a] text-[#f2545b]"
-                : "border-line-strong bg-surface-3 text-ink-muted"
-            }`}
-          >
-            {priorityBadge.label}
-          </span>
-        )}
-
-        {/* Assignees */}
-        {data.assignees.map((assignee) => (
-          <span key={assignee.userId} className={CHIP_CLASS}>
-            <MemberAvatar name={assignee.name} />
-            {assignee.name}
-            {data.canEdit && (
-              <form action={boundRemoveAssignee(assignee.userId)}>
-                <button
-                  type="submit"
-                  aria-label={`Remove ${assignee.name}`}
-                  className="text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]"
-                >
-                  ×
-                </button>
-              </form>
-            )}
-          </span>
-        ))}
-        {data.assignees.length === 0 && <span className="text-[13px] text-ink-faint">No one yet.</span>}
-        {data.canEdit && unassignedMembers.length > 0 && (
-          <form action={boundAddAssignee} className="flex items-center gap-2">
-            <FieldSelect name="userId" required defaultValue="" wrapperClassName="min-w-0" controlClassName={CHIP_CONTROL_CLASS}>
-              <option value="" disabled>
-                Add an Assignee…
-              </option>
-              {unassignedMembers.map((member) => (
-                <option key={member.userId} value={member.userId}>
-                  {member.name}
-                </option>
-              ))}
-            </FieldSelect>
-            <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Add assignee">
-              <Plus className="h-3 w-3" />
-            </button>
-          </form>
-        )}
+              {priorityBadge.label}
+            </span>
+          )}
+        </div>
 
         {/* Due date */}
-        {data.canEdit ? (
-          <AutoSubmitField>
-            <input
-              type="date"
-              name="dueDate"
-              form={DETAILS_FORM_ID}
-              defaultValue={data.dueDate ? data.dueDate.toISOString().slice(0, 10) : ""}
-              className={`w-auto ${CHIP_CONTROL_CLASS}`}
-            />
-          </AutoSubmitField>
-        ) : (
-          <span className={CHIP_CLASS}>
-            {data.dueDate
-              ? data.dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
-              : "None"}
-          </span>
-        )}
+        <div className="flex flex-col gap-1.5">
+          <span className={FIELD_LABEL_CLASS}>Due date</span>
+          {data.canEdit ? (
+            <AutoSubmitField>
+              <input
+                type="date"
+                name="dueDate"
+                form={DETAILS_FORM_ID}
+                aria-label="Due date"
+                defaultValue={data.dueDate ? data.dueDate.toISOString().slice(0, 10) : ""}
+                className={`w-auto ${CHIP_CONTROL_CLASS}`}
+              />
+            </AutoSubmitField>
+          ) : (
+            <span className={CHIP_CLASS}>
+              {data.dueDate
+                ? data.dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+                : "None"}
+            </span>
+          )}
+        </div>
 
-        {/* Divider before Labels */}
-        <span aria-hidden="true" className="h-[30px] w-px flex-shrink-0 bg-line-strong/60" />
-
-        {/* Labels — existing label chips, then "Apply a Label" to attach one.
-            No inline label-creation UI here; that lives elsewhere. */}
-        {data.labels.map((label) => (
-          <span key={label.id} className={CHIP_CLASS}>
-            {label.name}
-            {data.canEdit && (
-              <form action={boundRemoveLabel(label.id)}>
-                <button type="submit" className="text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
-                  ×
-                </button>
+        {/* Assignees */}
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <span className={FIELD_LABEL_CLASS}>Assignees</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {data.assignees.map((assignee) => (
+              <span key={assignee.userId} className={CHIP_CLASS}>
+                <MemberAvatar name={assignee.name} />
+                {assignee.name}
+                {data.canEdit && (
+                  <form action={boundRemoveAssignee(assignee.userId)}>
+                    <button
+                      type="submit"
+                      aria-label={`Remove ${assignee.name}`}
+                      className="text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]"
+                    >
+                      ×
+                    </button>
+                  </form>
+                )}
+              </span>
+            ))}
+            {data.assignees.length === 0 && <span className="text-[13px] text-ink-faint">No one yet.</span>}
+            {data.canEdit && unassignedMembers.length > 0 && (
+              <form action={boundAddAssignee} className="contents">
+                <AutoSubmitField>
+                  <FieldSelect
+                    name="userId"
+                    required
+                    defaultValue=""
+                    aria-label="Add an assignee"
+                    wrapperClassName="min-w-0"
+                    controlClassName={CHIP_CONTROL_CLASS}
+                  >
+                    <option value="" disabled>
+                      Add an Assignee…
+                    </option>
+                    {unassignedMembers.map((member) => (
+                      <option key={member.userId} value={member.userId}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </FieldSelect>
+                </AutoSubmitField>
               </form>
             )}
-          </span>
-        ))}
-        {data.labels.length === 0 && <span className="text-[13px] text-ink-faint">None yet.</span>}
-        {data.canEdit && data.availableLabels.length > 0 && (
-          <form action={boundApplyExistingLabel} className="flex items-center gap-2">
-            <FieldSelect
-              name="labelId"
-              required
-              defaultValue=""
-              wrapperClassName={BOUNDED_CONTROL_CLASS}
-              controlClassName={CHIP_CONTROL_CLASS}
-            >
-              <option value="" disabled>
-                Apply a Label…
-              </option>
-              {data.availableLabels.map((label) => (
-                <option key={label.id} value={label.id}>
-                  {label.name}
-                </option>
-              ))}
-            </FieldSelect>
-            <button type="submit" className={SMALL_ICON_BTN_CLASS} aria-label="Apply label">
-              <Plus className="h-3 w-3" />
-            </button>
-          </form>
-        )}
+          </div>
+        </div>
+
+        {/* Labels — existing label chips, then "Apply a Label" to attach
+            one. No inline label-creation UI here; that lives elsewhere. */}
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <span className={FIELD_LABEL_CLASS}>Labels</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {data.labels.map((label) => (
+              <span key={label.id} className={CHIP_CLASS}>
+                {label.name}
+                {data.canEdit && (
+                  <form action={boundRemoveLabel(label.id)}>
+                    <button type="submit" className="text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
+                      ×
+                    </button>
+                  </form>
+                )}
+              </span>
+            ))}
+            {data.labels.length === 0 && <span className="text-[13px] text-ink-faint">None yet.</span>}
+            {data.canEdit && data.availableLabels.length > 0 && (
+              <form action={boundApplyExistingLabel} className="contents">
+                <AutoSubmitField>
+                  <FieldSelect
+                    name="labelId"
+                    required
+                    defaultValue=""
+                    aria-label="Apply a label"
+                    wrapperClassName={BOUNDED_CONTROL_CLASS}
+                    controlClassName={CHIP_CONTROL_CLASS}
+                  >
+                    <option value="" disabled>
+                      Apply a Label…
+                    </option>
+                    {data.availableLabels.map((label) => (
+                      <option key={label.id} value={label.id}>
+                        {label.name}
+                      </option>
+                    ))}
+                  </FieldSelect>
+                </AutoSubmitField>
+              </form>
+            )}
+          </div>
+        </div>
       </div>
 
       {data.state === "BLOCKED" && !data.canEdit && data.blockerReason && (
