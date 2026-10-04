@@ -19,7 +19,7 @@ export default async function WorkspaceLayout({
     include: { workspace: true },
   });
 
-  if (!membership) {
+  if (!membership || membership.workspace.deletedAt) {
     notFound();
   }
 

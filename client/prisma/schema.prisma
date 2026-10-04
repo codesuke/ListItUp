@@ -38,6 +38,7 @@ model User {
   revokedPlatformRoleAssignments PlatformRoleAssignment[] @relation("PlatformRoleAssignmentRevoker")
   securityEvents                 SecurityEvent[]
   sentWorkspaceInvitations       WorkspaceInvitation[]    @relation("WorkspaceInvitationInviter")
+  deletedWorkspaces              Workspace[]              @relation("WorkspaceDeletedBy")
 
   @@map("user")
 }
@@ -119,12 +120,18 @@ model Workspace {
   // creating anything of their own (lib/workspace/demo-workspace.ts).
   // Always kind: SHARED — a Demo Workspace is a normal shared Workspace.
   isDemo                Boolean               @default(false)
+  // Soft-delete marker (#75/#74): null means active. Every read path that
+  // resolves a Workspace or membership for a member must treat a non-null
+  // deletedAt as nonexistent (lib/workspace/workspace-deletion.ts).
+  deletedAt             DateTime?
+  deletedByUserId       String?
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   lists                 List[]
   members               WorkspaceMember[]
   invitations           WorkspaceInvitation[]
   labels                Label[]
+  deletedBy             User?                 @relation("WorkspaceDeletedBy", fields: [deletedByUserId], references: [id], onDelete: SetNull)
 
   @@map("workspace")
 }

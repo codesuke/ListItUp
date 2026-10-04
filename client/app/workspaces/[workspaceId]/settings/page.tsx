@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 
+import { DeleteWorkspaceForm } from "./DeleteWorkspaceForm";
 import { loadWorkspaceSettingsPageData } from "./page-data";
 import { TransferOwnershipForm } from "./TransferOwnershipForm";
 
@@ -112,6 +113,20 @@ export default async function WorkspaceSettingsPage({ params }: Props) {
             ) : (
               <p className="text-sm text-ink-faint">
                 Only the current Owner can transfer ownership.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-6 border border-destructive/40 p-4">
+            <h3 className="mb-1 text-sm font-medium text-ink">Delete Workspace</h3>
+            <p className="mb-4 text-sm text-ink-muted">
+              Members lose access immediately and you&apos;ll be moved to your default Workspace.
+            </p>
+            {viewerRole === "OWNER" ? (
+              <DeleteWorkspaceForm workspaceId={workspaceId} workspaceName={workspaceName} />
+            ) : (
+              <p className="text-sm text-ink-faint">
+                Only the current Owner can delete this Workspace.
               </p>
             )}
           </div>

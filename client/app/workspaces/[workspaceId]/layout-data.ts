@@ -31,7 +31,7 @@ export async function loadWorkspaceNavData(
   const [switchableMemberships, personalMembership, unreadNotificationCount, lists, currentMembership] =
     await Promise.all([
       database.workspaceMember.findMany({
-        where: { userId, workspace: { kind: "SHARED" } },
+        where: { userId, workspace: { kind: "SHARED", deletedAt: null } },
         include: { workspace: { select: { id: true, name: true } } },
         orderBy: { workspace: { name: "asc" } },
       }),

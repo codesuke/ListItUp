@@ -51,7 +51,9 @@ async function run() {
 
   try {
     // The Owner of a SHARED Workspace sees the page, with every member
-    // listed Owner-first, then by role, then alphabetically.
+    // listed Owner-first, then by role, then alphabetically. viewerRole
+    // === "OWNER" is also what makes page.tsx render DeleteWorkspaceForm
+    // in the Danger zone (#75) rather than the Owner-only message.
     {
       const workspaceId = await createWorkspace("SHARED", "Launch Team");
       const ownerId = await createUser("Zoe Owner");
@@ -73,7 +75,10 @@ async function run() {
       );
     }
 
-    // An Admin also sees the page (Owner+Admin are both management tier).
+    // An Admin also sees the page (Owner+Admin are both management tier),
+    // but viewerRole !== "OWNER" is what drives page.tsx to render the
+    // Owner-only message instead of TransferOwnershipForm/DeleteWorkspaceForm
+    // in both Danger zone blocks.
     {
       const workspaceId = await createWorkspace("SHARED", "Design Guild");
       const ownerId = await createUser("Owner");

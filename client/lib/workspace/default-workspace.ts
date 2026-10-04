@@ -12,7 +12,7 @@ export async function resolveDefaultWorkspaceId(
 ): Promise<string | null> {
   const [oldestSharedMembership, personalMembership] = await Promise.all([
     database.workspaceMember.findFirst({
-      where: { userId, workspace: { kind: "SHARED" } },
+      where: { userId, workspace: { kind: "SHARED", deletedAt: null } },
       orderBy: { createdAt: "asc" },
       select: { workspaceId: true },
     }),

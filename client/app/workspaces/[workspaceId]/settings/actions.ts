@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import {
   workspaceOwnershipTransferredFromPreviousOwnerEmail,
@@ -8,7 +10,11 @@ import {
 } from "@/lib/mailer/email-templates/workspace-ownership-transfer";
 import { mailer } from "@/lib/mailer/mailer";
 import { prisma } from "@/lib/prisma";
+import { requestIpAddress } from "@/lib/auth/request-ip-address";
+import { recordSecurityEvent } from "@/lib/security/platform-operations";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
+import { resolveDefaultWorkspaceId } from "@/lib/workspace/default-workspace";
+import { deleteWorkspace } from "@/lib/workspace/workspace-deletion";
 import { transferWorkspaceOwnership } from "@/lib/workspace/workspace-ownership";
 
 function settingsPath(workspaceId: string): string {
@@ -86,4 +92,54 @@ export async function transferOwnershipAction(
   revalidatePath(settingsPath(workspaceId));
 
   return { status: "success" };
+}
+
+export type DeleteWorkspaceState =
+  | { status: "idle" }
+  | { status: "error"; message: string };
+
+export async function deleteWorkspaceAction(
+  workspaceId: string,
+  _prevState: DeleteWorkspaceState,
+  formData: FormData
+): Promise<DeleteWorkspaceState> {
+  const session = await requireAuthenticatedSession(settingsPath(workspaceId));
+  const confirmedWorkspaceName = String(formData.get("confirmedWorkspaceName") ?? "");
+
+  // Re-validated here regardless of the page's own Owner-only gating — a
+  // Server Action needs the same authz check as an API endpoint (see
+  // docs/agents/nextjs-conventions.md).
+  const membership = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: session.user.id } },
+    include: { workspace: true },
+  });
+
+  if (!membership || membership.role !== "OWNER" || membership.workspace.kind !== "SHARED") {
+    return { status: "error", message: "Only the current Owner can delete this Workspace." };
+  }
+
+  if (confirmedWorkspaceName !== membership.workspace.name) {
+    return { status: "error", message: "Type the Workspace name exactly to confirm." };
+  }
+
+  const result = await deleteWorkspace(prisma, workspaceId, session.user.id);
+
+  if (result.status === "already-deleted") {
+    return { status: "error", message: "This Workspace is already deleted." };
+  }
+
+  if (result.status !== "deleted") {
+    return { status: "error", message: "Delete failed. Try again." };
+  }
+
+  await recordSecurityEvent(prisma, {
+    type: "workspace-deleted",
+    userId: session.user.id,
+    ipAddress: requestIpAddress(await headers()),
+  });
+
+  revalidatePath("/workspaces", "layout");
+
+  const defaultWorkspaceId = await resolveDefaultWorkspaceId(prisma, session.user.id);
+  redirect(defaultWorkspaceId ? `/workspaces/${defaultWorkspaceId}` : "/");
 }
