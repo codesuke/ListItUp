@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ADD_BUTTON_PRIMARY, ADD_BUTTON_SECONDARY } from "@/components/workspace/add-button";
+import { ADD_BUTTON_SECONDARY } from "@/components/workspace/add-button";
 import { AssigneeAvatar } from "@/components/workspace/AssigneeAvatar";
 import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
 import { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/calendar/month-grid";
@@ -38,6 +38,7 @@ import {
 import { BoardView } from "./BoardView";
 import { CalendarView } from "./CalendarView";
 import { DashboardTab } from "./DashboardTab";
+import { DescriptionForm } from "./DescriptionForm";
 import { FilesView } from "./FilesView";
 import { ListStatusControl } from "./ListStatusControl";
 import { loadListPageData, type ListPageData } from "./page-data";
@@ -176,18 +177,7 @@ function OverviewTab({
       <div>
         <div className="text-[12px] font-medium uppercase tracking-wide text-ink-muted">Description</div>
         {canManage ? (
-          <form action={boundUpdateDescription} className="mt-2 flex flex-col gap-2">
-            <textarea
-              name="description"
-              defaultValue={data.description ?? ""}
-              placeholder="What is this List for?"
-              rows={3}
-              className="w-full rounded-[8px] border border-line-strong bg-surface-2 px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]"
-            />
-            <button type="submit" className={`self-start ${ADD_BUTTON_PRIMARY}`}>
-              Save
-            </button>
-          </form>
+          <DescriptionForm description={data.description} boundUpdateDescription={boundUpdateDescription} />
         ) : (
           <p className="mt-2 text-sm text-ink-muted">{data.description || "No description yet."}</p>
         )}
