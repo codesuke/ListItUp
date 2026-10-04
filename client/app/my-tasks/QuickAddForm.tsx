@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Plus } from "lucide-react";
 
+import type { QuickAddItemState } from "./actions";
 import type { QuickAddMentionCandidate } from "@/lib/item/item-quick-add";
 
 const MAX_SUGGESTIONS = 6;
+const INITIAL_STATE: QuickAddItemState = { status: "idle" };
 
 function firstName(name: string): string {
   return name.split(/\s+/)[0] ?? name;
@@ -35,16 +37,25 @@ export function QuickAddForm({
   quickAddItemAction,
   mentionCandidates,
 }: {
-  quickAddItemAction: (formData: FormData) => Promise<void>;
+  quickAddItemAction: (prevState: QuickAddItemState, formData: FormData) => Promise<QuickAddItemState>;
   mentionCandidates: QuickAddMentionCandidate[];
 }) {
+  const [state, formAction] = useActionState(quickAddItemAction, INITIAL_STATE);
   const inputRef = useRef<HTMLInputElement>(null);
   const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
-  // Left uncontrolled on purpose: React resets a <form action={...}> back
-  // to blank after the Server Action resolves, which is what clears this
-  // input on a successful Add — a controlled `value` would fight that reset.
+  // Left uncontrolled on purpose — cleared imperatively below only once an
+  // Item was actually created, rather than relying on React's form-reset
+  // behavior, which would also wipe out whatever the User typed on a
+  // failed submission (lib/item/item-quick-add.ts's "no-inbox-list" /
+  // "list-not-found" / "forbidden" results).
+  useEffect(() => {
+    if (state.status === "created" && inputRef.current) {
+      inputRef.current.value = "";
+    }
+  }, [state]);
+
   const matches = useMemo(() => {
     if (mention === null) {
       return [];
@@ -96,34 +107,37 @@ export function QuickAddForm({
   }
 
   return (
-    <form
-      action={quickAddItemAction}
-      onSubmit={() => setMention(null)}
-      className="relative mb-6 flex items-center gap-3 border-b border-line px-1 pb-3 transition-colors focus-within:border-[#ff6b4a]/40"
-    >
-      <button
-        type="submit"
-        aria-label="Add task"
-        className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#ff8a70] transition-colors hover:text-[#ff6b4a]"
-      >
-        <Plus className="h-4 w-4" />
-      </button>
-      <input
-        ref={inputRef}
-        type="text"
-        name="quickAddText"
-        placeholder='Add a task — try "Fix platform signage tomorrow #retrofit @sam ~ClientDeliverables"'
-        required
-        role="combobox"
-        aria-expanded={mention !== null}
-        aria-controls="quick-add-mentions"
-        aria-autocomplete="list"
-        autoComplete="off"
-        onChange={(event) => syncMentionTrigger(event.currentTarget)}
-        onKeyDown={handleKeyDown}
-        onBlur={() => setMention(null)}
-        className="flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-faint"
-      />
+    <form action={formAction} onSubmit={() => setMention(null)} className="relative mb-6">
+      <div className="flex items-center gap-3 border-b border-line px-1 pb-3 transition-colors focus-within:border-[#ff6b4a]/40">
+        <button
+          type="submit"
+          aria-label="Add task"
+          className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#ff8a70] transition-colors hover:text-[#ff6b4a]"
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+        <input
+          ref={inputRef}
+          type="text"
+          name="quickAddText"
+          placeholder='Add a task — try "Fix platform signage tomorrow #retrofit @sam ~ClientDeliverables"'
+          required
+          role="combobox"
+          aria-expanded={mention !== null}
+          aria-controls="quick-add-mentions"
+          aria-autocomplete="list"
+          autoComplete="off"
+          onChange={(event) => syncMentionTrigger(event.currentTarget)}
+          onKeyDown={handleKeyDown}
+          onBlur={() => setMention(null)}
+          className="flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-faint"
+        />
+      </div>
+      {state.status === "error" && (
+        <p role="alert" className="mt-1.5 px-1 text-[12px] text-[#ff8a70]">
+          {state.message}
+        </p>
+      )}
       {mention !== null && (
         <div
           id="quick-add-mentions"
