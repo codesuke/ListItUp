@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
+import { isAssignableWorkspaceRole } from "@/lib/workspace/workspace-member-roles";
 
 import { InviteMemberForm } from "./InviteMemberForm";
+import { MemberRoleSelect } from "./MemberRoleSelect";
 import { loadWorkspaceMembersPageData } from "./page-data";
 import { ResendInvitationButton } from "./ResendInvitationButton";
 import { RevokeInvitationButton } from "./RevokeInvitationButton";
@@ -61,9 +63,17 @@ export default async function WorkspaceMembersPage({ params }: Props) {
                   <span className="text-ink-faint"> (you)</span>
                 ) : null}
               </div>
-              <span className="shrink-0 border border-line-strong px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-muted">
-                {ROLE_LABEL[member.role]}
-              </span>
+              {canManageInvitations && isAssignableWorkspaceRole(member.role) ? (
+                <MemberRoleSelect
+                  workspaceId={workspaceId}
+                  userId={member.userId}
+                  role={member.role}
+                />
+              ) : (
+                <span className="shrink-0 border border-line-strong px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                  {ROLE_LABEL[member.role]}
+                </span>
+              )}
             </li>
           ))}
         </ul>

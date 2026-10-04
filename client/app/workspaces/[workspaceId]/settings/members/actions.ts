@@ -11,6 +11,7 @@ import {
   resendInvitation,
   revokeInvitation,
 } from "@/lib/workspace/workspace-invitations";
+import { updateWorkspaceMemberRole } from "@/lib/workspace/workspace-member-roles";
 import {
   createRedisWorkspaceInvitationRateLimiter,
   GENERIC_INVITATION_RATE_LIMIT_MESSAGE,
@@ -107,6 +108,42 @@ export async function resendInvitationAction(
   revalidatePath(membersPath(workspaceId));
 
   return { status: "success" };
+}
+
+export type UpdateMemberRoleState =
+  | { status: "idle" }
+  | { status: "error"; message: string };
+
+const UPDATE_MEMBER_ROLE_ERROR_MESSAGE = {
+  forbidden: "Only the Workspace Owner or an Admin can change roles.",
+  "invalid-role": "Choose Admin, Member, or Viewer.",
+  "not-found": "That person is no longer a member of this Workspace.",
+  "cannot-change-owner": "The Workspace Owner's role can only change via ownership transfer.",
+} as const;
+
+export async function updateMemberRoleAction(
+  workspaceId: string,
+  targetUserId: string,
+  _prevState: UpdateMemberRoleState,
+  formData: FormData
+): Promise<UpdateMemberRoleState> {
+  const session = await requireAuthenticatedSession(membersPath(workspaceId));
+  const role = String(formData.get("role") ?? "");
+
+  const result = await updateWorkspaceMemberRole(prisma, {
+    workspaceId,
+    actingUserId: session.user.id,
+    targetUserId,
+    role,
+  });
+
+  if (result.status !== "updated") {
+    return { status: "error", message: UPDATE_MEMBER_ROLE_ERROR_MESSAGE[result.status] };
+  }
+
+  revalidatePath(membersPath(workspaceId));
+
+  return { status: "idle" };
 }
 
 export type RevokeInvitationState =
