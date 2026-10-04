@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
@@ -68,4 +69,9 @@ export async function updateProfileAction(
   revalidatePath("/profile");
 
   return { status: "success" };
+}
+
+export async function signOutAction(): Promise<void> {
+  await auth.api.signOut({ headers: await headers() });
+  redirect("/sign-in");
 }
