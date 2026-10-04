@@ -14,7 +14,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ADD_BUTTON_SECONDARY } from "@/components/workspace/add-button";
-import { AssigneeAvatar } from "@/components/workspace/AssigneeAvatar";
 import { GlobalHeaderActions } from "@/components/workspace/GlobalHeaderActions";
 import { addCalendarMonths, formatCalendarMonthParam, parseCalendarMonth } from "@/lib/calendar/month-grid";
 import { countUnreadNotifications } from "@/lib/notification/notification-inbox";
@@ -23,10 +22,11 @@ import { requireAuthenticatedSession } from "@/lib/session/require-authenticated
 
 import {
   addItemAction,
+  addListAccessByEmailAction,
   addListMemberAction,
   completeItemAction,
-  grantGuestAccessAction,
   moveItemToColumnAction,
+  moveListRoleAssignmentAction,
   removeListMemberAction,
   restoreItemAction,
   revokeGuestAccessAction,
@@ -42,6 +42,7 @@ import { DashboardTab } from "./DashboardTab";
 import { DescriptionForm } from "./DescriptionForm";
 import { FilesView } from "./FilesView";
 import { ListStatusControl } from "./ListStatusControl";
+import { OverviewRolesBoard } from "./OverviewRolesBoard";
 import { loadListPageData, type ListPageData } from "./page-data";
 import { SectionList } from "./SectionList";
 import { TimelineView } from "./TimelineView";
@@ -109,69 +110,28 @@ function calendarMonthHref(workspaceId: string, listId: string, month: string): 
   return `/workspaces/${workspaceId}/lists/${listId}?tab=calendar&month=${month}`;
 }
 
-function RolesColumn({
-  title,
-  entries,
-  removeLabel,
-  bindRemove,
-}: {
-  title: string;
-  entries: { userId: string; name: string }[];
-  removeLabel?: string;
-  bindRemove?: (userId: string) => (formData: FormData) => Promise<void>;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">{title}</span>
-        <span className="text-[11px] text-ink-muted">{entries.length}</span>
-      </div>
-      <div className="mt-2 border-t border-line" />
-      {entries.length === 0 ? (
-        <div className="mt-2 text-sm text-ink-muted">No members</div>
-      ) : (
-        <ul className="mt-1 flex max-h-64 flex-col gap-0.5 overflow-y-auto">
-          {entries.map((entry) => (
-            <li
-              key={entry.userId}
-              className="group flex items-center gap-2 rounded-[6px] px-1 py-1.5 transition-colors duration-150 hover:bg-surface-3"
-            >
-              <AssigneeAvatar name={entry.name} />
-              <span className="min-w-0 flex-1 truncate text-sm text-ink">{entry.name}</span>
-              {bindRemove && (
-                <form action={bindRemove(entry.userId)} className="shrink-0">
-                  <button
-                    type="submit"
-                    className="text-xs text-ink-muted opacity-0 transition-opacity duration-150 hover:text-[#ff8a70] focus-visible:opacity-100 group-hover:opacity-100"
-                  >
-                    {removeLabel ?? "Remove"}
-                  </button>
-                </form>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 function OverviewTab({
   data,
   boundUpdateDescription,
   boundAddMember,
   boundRemoveMember,
-  boundGrantGuest,
+  boundAddByEmail,
   boundRevokeGuest,
+  boundMoveRole,
 }: {
   data: ListPageData;
   boundUpdateDescription: (formData: FormData) => Promise<void>;
   boundAddMember: (formData: FormData) => Promise<void>;
-  boundRemoveMember: (userId: string) => (formData: FormData) => Promise<void>;
-  boundGrantGuest: (formData: FormData) => Promise<void>;
-  boundRevokeGuest: (userId: string) => (formData: FormData) => Promise<void>;
+  boundRemoveMember: (userId: string) => Promise<void>;
+  boundAddByEmail: (formData: FormData) => Promise<void>;
+  boundRevokeGuest: (userId: string) => Promise<void>;
+  boundMoveRole: (userId: string, toRole: string) => Promise<void>;
 }) {
   const canManage = data.canEditDescription;
+  // Owner/Admin implicit access (ListAccessLevel "ADMIN") only — a List
+  // Lead can still add/remove roles via the controls below, just not drag
+  // them between columns.
+  const canDragRoles = data.access === "ADMIN";
 
   return (
     <div className="mt-6 flex flex-col gap-10">
@@ -186,17 +146,14 @@ function OverviewTab({
 
       <div>
         <div className="mb-3 text-[12px] font-medium uppercase tracking-wide text-ink-muted">Roles</div>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
-          <RolesColumn title="Lead" entries={data.roles.leads} bindRemove={canManage ? boundRemoveMember : undefined} />
-          <RolesColumn title="Member" entries={data.roles.members} bindRemove={canManage ? boundRemoveMember : undefined} />
-          <RolesColumn title="Viewer" entries={data.roles.viewers} bindRemove={canManage ? boundRemoveMember : undefined} />
-          <RolesColumn
-            title="Guest"
-            entries={data.roles.guests}
-            removeLabel="Revoke"
-            bindRemove={canManage ? boundRevokeGuest : undefined}
-          />
-        </div>
+        <OverviewRolesBoard
+          roles={data.roles}
+          canRemove={canManage}
+          canDrag={canDragRoles}
+          boundRemoveMember={boundRemoveMember}
+          boundRevokeGuest={boundRevokeGuest}
+          boundMoveRole={boundMoveRole}
+        />
       </div>
 
       {canManage && (
@@ -234,16 +191,25 @@ function OverviewTab({
               </form>
             )}
 
-            <form action={boundGrantGuest} className="flex items-center gap-2">
+            <form action={boundAddByEmail} className="flex items-center gap-2">
               <input
                 type="email"
                 name="email"
                 required
-                placeholder="Grant Guest access by email"
-                className="h-9 w-72 rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]"
+                placeholder="Add by email"
+                className="h-9 w-56 rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]"
               />
+              <select
+                name="role"
+                defaultValue="GUEST"
+                className="h-9 w-28 rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink"
+              >
+                <option value="MEMBER">Member</option>
+                <option value="VIEWER">Viewer</option>
+                <option value="GUEST">Guest</option>
+              </select>
               <button type="submit" className={`h-9 shrink-0 ${ADD_BUTTON_SECONDARY}`}>
-                Grant
+                Add
               </button>
             </form>
           </div>
@@ -294,9 +260,10 @@ export default async function ListPage({ params, searchParams }: Props) {
   const boundUpdateDescription = updateListDescriptionAction.bind(null, workspaceId, listId);
   const boundSetStatus = setListStatusAction.bind(null, workspaceId, listId);
   const boundAddMember = addListMemberAction.bind(null, workspaceId, listId);
-  const boundRemoveMember = (userId: string) => removeListMemberAction.bind(null, workspaceId, listId, userId);
-  const boundGrantGuest = grantGuestAccessAction.bind(null, workspaceId, listId);
-  const boundRevokeGuest = (userId: string) => revokeGuestAccessAction.bind(null, workspaceId, listId, userId);
+  const boundRemoveMember = removeListMemberAction.bind(null, workspaceId, listId);
+  const boundAddByEmail = addListAccessByEmailAction.bind(null, workspaceId, listId);
+  const boundRevokeGuest = revokeGuestAccessAction.bind(null, workspaceId, listId);
+  const boundMoveRole = moveListRoleAssignmentAction.bind(null, workspaceId, listId);
   // Bound only through workspaceId/listId (never further, e.g. per-Item) —
   // SectionList and BoardView are Client Components, and a Server Component
   // can only pass a Client Component an already-bound Server Action
@@ -380,8 +347,9 @@ export default async function ListPage({ params, searchParams }: Props) {
             boundUpdateDescription={boundUpdateDescription}
             boundAddMember={boundAddMember}
             boundRemoveMember={boundRemoveMember}
-            boundGrantGuest={boundGrantGuest}
+            boundAddByEmail={boundAddByEmail}
             boundRevokeGuest={boundRevokeGuest}
+            boundMoveRole={boundMoveRole}
           />
         ) : activeTab === "list" ? (
           <SectionList

@@ -6,9 +6,11 @@ import type { ListMemberRole } from "@/generated/prisma/client";
 import { createItem } from "@/lib/item/item-creation";
 import { restoreItem, transitionItemState } from "@/lib/item/item-lifecycle";
 import { isValidBoardGroupBy, moveItemToColumn, setBoardGroupBy, type BoardGroupBy } from "@/lib/list/list-board";
-import { grantGuestAccess, revokeGuestAccess } from "@/lib/list/list-guests";
+import { addListAccessByEmail, type ListAccessByEmailRole } from "@/lib/list/list-access-by-email";
+import { revokeGuestAccess } from "@/lib/list/list-guests";
 import { setListStatus, updateListDescription } from "@/lib/list/list-lifecycle";
 import { addListMember, removeListMember } from "@/lib/list/list-membership";
+import { moveListRoleAssignment, type ListRoleBoardRole } from "@/lib/list/list-role-board";
 import {
   createSection,
   deleteSection,
@@ -28,6 +30,16 @@ function listPath(workspaceId: string, listId: string): string {
 // The Roles panel only ever offers Member/Viewer (#28) — promoting someone
 // to List Lead isn't part of this ticket's scope.
 const ADDABLE_ROLES: readonly ListMemberRole[] = ["MEMBER", "VIEWER"];
+
+// The Manage Access email field's role selector — Lead stays out of scope
+// here too, same reasoning as ADDABLE_ROLES above.
+const EMAIL_ADDABLE_ROLES: readonly ListAccessByEmailRole[] = ["MEMBER", "VIEWER", "GUEST"];
+
+// The Roles kanban can drag a person into any of the four columns, Lead
+// included — unlike the two role selectors above, this interaction is
+// scoped to Workspace Owner/Admin by moveListRoleAssignment itself, so a
+// coarser, full set of destinations is safe to expose.
+const DRAGGABLE_ROLES: readonly ListRoleBoardRole[] = ["LEAD", "MEMBER", "VIEWER", "GUEST"];
 
 export async function updateListDescriptionAction(
   workspaceId: string,
@@ -85,19 +97,48 @@ export async function removeListMemberAction(
   revalidatePath(listPath(workspaceId, listId));
 }
 
-export async function grantGuestAccessAction(
+export async function addListAccessByEmailAction(
   workspaceId: string,
   listId: string,
   formData: FormData
 ): Promise<void> {
   const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
   const email = String(formData.get("email") ?? "").trim();
+  const role = String(formData.get("role") ?? "");
 
-  if (!email) {
+  if (!email || !EMAIL_ADDABLE_ROLES.includes(role as ListAccessByEmailRole)) {
     return;
   }
 
-  await grantGuestAccess(prisma, { actorUserId: session.user.id, listId, email });
+  await addListAccessByEmail(prisma, {
+    actorUserId: session.user.id,
+    listId,
+    email,
+    role: role as ListAccessByEmailRole,
+  });
+  revalidatePath(listPath(workspaceId, listId));
+}
+
+// The Roles kanban's drag-and-drop (Workspace Owner/Admin only — enforced
+// in moveListRoleAssignment itself, not just by hiding the drag handle).
+export async function moveListRoleAssignmentAction(
+  workspaceId: string,
+  listId: string,
+  targetUserId: string,
+  toRole: string
+): Promise<void> {
+  const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
+
+  if (!DRAGGABLE_ROLES.includes(toRole as ListRoleBoardRole)) {
+    return;
+  }
+
+  await moveListRoleAssignment(prisma, {
+    actorUserId: session.user.id,
+    listId,
+    userId: targetUserId,
+    toRole: toRole as ListRoleBoardRole,
+  });
   revalidatePath(listPath(workspaceId, listId));
 }
 
