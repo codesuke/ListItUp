@@ -89,7 +89,7 @@ A freeform, multi-valued, User-defined tag on an Item, used to organize and filt
 _Avoid_: Tag (as a verb, to avoid confusion with Mention), category
 
 **Custom Field**:
-A typed field (Text, Number, Dropdown, or Date) defined on a List by its Lead or a Workspace Admin, with a value set per Item by any List Member. Distinct from Label: a Custom Field is structured and scoped to one List; a Label is freeform and spans Lists.
+A typed field (Text, Number, Dropdown, or Date) defined on a List by its Lead (or the Workspace Owner), with a value set per Item by any List Member. Distinct from Label: a Custom Field is structured and scoped to one List; a Label is freeform and spans Lists.
 _Avoid_: Property, attribute, metadata field
 
 **Dependency**:
@@ -117,11 +117,11 @@ The 3-month period after a Workspace is deleted during which its Owner can resto
 _Avoid_: Grace period, retention period
 
 **Workspace Owner**:
-The sole User with ultimate authority over a Workspace. Cannot be removed, demoted, or modified by any other User, and can only transfer ownership explicitly. Has implicit access to every List in the Workspace, including private ones.
+The sole User with ultimate authority over a Workspace. Cannot be removed, demoted, or modified by any other User, and can only transfer ownership explicitly. Has implicit Lead-equivalent access to every List in the Workspace, including private ones, without being a List member; the only Workspace role with implicit List access. Does not count as a List Lead for the never-zero-Leads rule. After an ownership transfer the former Owner keeps only the access any Admin has.
 _Avoid_: Admin, superuser, account holder
 
 **Admin**:
-A Workspace-level role for a User who can manage the Workspace, its members, and its Lists (including creating new Lists). Has implicit access to every List in the Workspace, including private ones. Cannot remove, demote, or replace the Workspace Owner.
+A Workspace-level role for a User who can manage the Workspace and its members and create new Lists. Has no implicit access to any List: a List is invisible to an Admin, and its contents uneditable, until the Admin is explicitly added to it. Cannot remove, demote, or replace the Workspace Owner.
 _Avoid_: Workspace owner, manager, superuser
 
 **Platform Operator**:
@@ -133,11 +133,11 @@ A Workspace-level role for a User who belongs to the Workspace but has no access
 _Avoid_: Collaborator, teammate, contributor
 
 **Viewer**:
-A Workspace-level role for a User who is strictly read-only, both in the Workspace and in any List they are explicitly added to. Viewer is a permission ceiling: even if given a higher List-level role, a Viewer's effective permissions never exceed read-only. This ceiling applies to Items and List content; it does not extend to a List's Channels, where a Viewer can read, post, and attach files like any other role (see Channel, ADR 0013).
+A Workspace-level role for a User who is strictly read-only, both in the Workspace and in any List they are explicitly added to. Viewer is a permission ceiling: even if given a higher List-level role, a Viewer's effective permissions never exceed read-only; a Viewer can only be added to a List as a List Viewer. This ceiling applies to Items and List content; it does not extend to a List's Channels, where a Viewer can read, post, and attach files like any other role (see Channel, ADR 0013).
 _Avoid_: Guest, observer, read-only user
 
 **List Lead**:
-A List-level role for a User who manages one specific List: its settings, its List-level membership, and its Guests. A List may have one or more Leads.
+A List-level role for a User who manages one specific List: its settings, its List-level membership, and its Guests, with full access to its content. The List's creator becomes its first Lead. A List always has at least one Lead: the last Lead cannot be removed, demoted, or leave, and no User can lose Workspace access while sole Lead of any List. A Workspace Viewer cannot be a Lead.
 _Avoid_: Project lead, list owner, list admin
 
 **List Member**:
