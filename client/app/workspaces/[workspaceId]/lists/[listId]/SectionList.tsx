@@ -18,6 +18,10 @@ function sectionDomId(key: string): string {
   return `list-section-${key}`;
 }
 
+function addItemInputDomId(key: string): string {
+  return `list-section-${key}-add-item-input`;
+}
+
 // One grid template, shared by every task row and the column header, so a
 // field's horizontal position never depends on what any row puts inside it
 // — every non-Task track is a hardcoded pixel width (never auto/min-content),
@@ -211,10 +215,12 @@ function ItemRow({
 }
 
 function AddItemForm({
+  inputId,
   sectionId,
   boundAddItem,
   autoFocus,
 }: {
+  inputId: string;
   sectionId: string | null;
   boundAddItem: (formData: FormData) => Promise<void>;
   autoFocus?: boolean;
@@ -224,6 +230,7 @@ function AddItemForm({
       {sectionId && <input type="hidden" name="sectionId" value={sectionId} />}
       <span className="text-ink-faint">+</span>
       <input
+        id={inputId}
         type="text"
         name="title"
         placeholder="Add an Item"
@@ -331,6 +338,34 @@ export function SectionList({
   const searchedUnsectionedItems = unsectionedItems.filter(matchesSearch);
 
   const showUnsectioned = searchedUnsectionedItems.length > 0 || (canManage && normalizedSearch === "");
+  const hasRealSections = searchedSections.length > 0;
+
+  const unsectionedItemRows = (
+    <>
+      {searchedUnsectionedItems.length === 0 ? (
+        <div className={`${GRID_MIN_WIDTH} px-3 py-4 text-center text-xs text-ink-muted`}>No Items yet.</div>
+      ) : (
+        searchedUnsectionedItems.map((item) => (
+          <ItemRow
+            key={item.id}
+            item={item}
+            workspaceId={workspaceId}
+            listId={listId}
+            indented={item.hasParent}
+            boundComplete={boundCompleteItem}
+          />
+        ))
+      )}
+      {canManage && addOpenIds.has(UNSECTIONED_KEY) && (
+        <AddItemForm
+          inputId={addItemInputDomId(UNSECTIONED_KEY)}
+          sectionId={null}
+          boundAddItem={boundAddItem}
+          autoFocus
+        />
+      )}
+    </>
+  );
 
   function handleNewTask() {
     const targetKey = searchedSections[0]?.id ?? UNSECTIONED_KEY;
@@ -343,6 +378,14 @@ export function SectionList({
     setAddOpenIds((current) => new Set(current).add(targetKey));
     requestAnimationFrame(() => {
       document.getElementById(sectionDomId(targetKey))?.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Explicit focus (rather than relying on AddItemForm's autoFocus-on-mount)
+      // so a second "New Task" click still gives feedback when the form from a
+      // previous click is still open — autoFocus only fires once, on mount.
+      const input = document.getElementById(addItemInputDomId(targetKey));
+      if (input instanceof HTMLInputElement) {
+        input.focus();
+        input.select();
+      }
     });
   }
 
@@ -400,7 +443,12 @@ export function SectionList({
                     ))
                   )}
                   {canManage && addOpenIds.has(section.id) && (
-                    <AddItemForm sectionId={section.id} boundAddItem={boundAddItem} autoFocus />
+                    <AddItemForm
+                      inputId={addItemInputDomId(section.id)}
+                      sectionId={section.id}
+                      boundAddItem={boundAddItem}
+                      autoFocus
+                    />
                   )}
                 </SectionGroup>
               </div>
@@ -408,30 +456,22 @@ export function SectionList({
 
             {showUnsectioned && (
               <div id={sectionDomId(UNSECTIONED_KEY)}>
-                <SectionGroup
-                  name="No Section"
-                  count={searchedUnsectionedItems.length}
-                  collapsed={collapsedIds.has(UNSECTIONED_KEY)}
-                  onToggleCollapse={() => toggleCollapsed(UNSECTIONED_KEY)}
-                >
-                  {searchedUnsectionedItems.length === 0 ? (
-                    <div className={`${GRID_MIN_WIDTH} px-3 py-4 text-center text-xs text-ink-muted`}>No Items yet.</div>
-                  ) : (
-                    searchedUnsectionedItems.map((item) => (
-                      <ItemRow
-                        key={item.id}
-                        item={item}
-                        workspaceId={workspaceId}
-                        listId={listId}
-                        indented={item.hasParent}
-                        boundComplete={boundCompleteItem}
-                      />
-                    ))
-                  )}
-                  {canManage && addOpenIds.has(UNSECTIONED_KEY) && (
-                    <AddItemForm sectionId={null} boundAddItem={boundAddItem} autoFocus />
-                  )}
-                </SectionGroup>
+                {hasRealSections ? (
+                  <SectionGroup
+                    name="No Section"
+                    count={searchedUnsectionedItems.length}
+                    collapsed={collapsedIds.has(UNSECTIONED_KEY)}
+                    onToggleCollapse={() => toggleCollapsed(UNSECTIONED_KEY)}
+                  >
+                    {unsectionedItemRows}
+                  </SectionGroup>
+                ) : (
+                  // No real Sections exist yet, so every Item is unsectioned —
+                  // showing a "No Section" folder with nothing to contrast it
+                  // against just reads as leftover chrome. Render the Items
+                  // flat instead, same row markup, no header/icon/chevron.
+                  <div>{unsectionedItemRows}</div>
+                )}
               </div>
             )}
           </div>
