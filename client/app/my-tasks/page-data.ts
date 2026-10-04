@@ -23,6 +23,7 @@ import {
   type MyTasksCalendarCell,
 } from "@/lib/item/item-my-tasks-calendar";
 import { buildMyTasksFileEntries, type MyTasksFileEntry } from "@/lib/item/item-my-tasks-files";
+import { loadQuickAddMentionCandidates, type QuickAddMentionCandidate } from "@/lib/item/item-quick-add";
 import {
   breakdownByState,
   buildCompletionOverTime,
@@ -85,6 +86,7 @@ export type MyTasksPageData = {
   calendarCells: MyTasksCalendarCell[];
   fileEntries: MyTasksFileEntry[];
   dashboard: MyTasksDashboardData;
+  mentionCandidates: QuickAddMentionCandidate[];
 };
 
 // Kept separate from the page component (same rationale as the List page's
@@ -119,7 +121,7 @@ export async function loadMyTasksPageData(
     calendarMonth: rawCalendarMonth,
   } = input;
 
-  const [items, dashboardItems, memberships] = await Promise.all([
+  const [items, dashboardItems, memberships, mentionCandidates] = await Promise.all([
     loadMyTasksItems(database, {
       userId,
       sourceWorkspaceId,
@@ -138,6 +140,7 @@ export async function loadMyTasksPageData(
       include: { workspace: true },
       orderBy: { createdAt: "asc" },
     }),
+    loadQuickAddMentionCandidates(database, userId),
   ]);
 
   const boardGroupBy: MyTasksBoardGroupBy =
@@ -166,6 +169,7 @@ export async function loadMyTasksPageData(
     calendarMonth: formatCalendarMonthParam(calendarMonthStart),
     calendarCells: buildMyTasksCalendarGrid(items, calendarMonthStart),
     fileEntries: buildMyTasksFileEntries(items),
+    mentionCandidates,
     dashboard: {
       counts: dashboardCounts,
       byState: breakdownByState(dashboardItems),

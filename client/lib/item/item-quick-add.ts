@@ -11,6 +11,40 @@ export type CreateItemFromQuickAddResult =
   | { status: "list-not-found" }
   | { status: "forbidden" };
 
+export type QuickAddMentionCandidate = { id: string; name: string };
+
+// Suggestions for Quick-Add's `@name` autocomplete: every teammate across
+// every Workspace the User belongs to, deduped by User. The target List
+// (and therefore which single Workspace an `@name` must actually resolve
+// within, per resolveAssigneeUserIds below) isn't known until the typed
+// shorthand is parsed at submit time, so suggestions can't be scoped any
+// narrower than "everyone the User could plausibly mean" up front.
+export async function loadQuickAddMentionCandidates(
+  database: PrismaClient,
+  userId: string
+): Promise<QuickAddMentionCandidate[]> {
+  const ownMemberships = await database.workspaceMember.findMany({
+    where: { userId },
+    select: { workspaceId: true },
+  });
+  const workspaceIds = ownMemberships.map((membership) => membership.workspaceId);
+  if (workspaceIds.length === 0) {
+    return [];
+  }
+
+  const members = await database.workspaceMember.findMany({
+    where: { workspaceId: { in: workspaceIds } },
+    orderBy: { id: "asc" },
+    include: { user: { select: { id: true, name: true } } },
+  });
+
+  const candidateById = new Map<string, QuickAddMentionCandidate>();
+  for (const member of members) {
+    candidateById.set(member.user.id, { id: member.user.id, name: member.user.name });
+  }
+  return [...candidateById.values()];
+}
+
 // The Personal Space Workspace is the only Workspace auto-provisioned with
 // an Inbox List (lib/workspace/workspace-provisioning.ts) — "the User's
 // Inbox List" (#45) means that List, not a per-Workspace concept.

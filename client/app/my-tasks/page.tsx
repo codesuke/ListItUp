@@ -259,7 +259,7 @@ export default async function MyTasksPage({ searchParams }: Props) {
               })}
             </nav>
 
-            <QuickAddForm quickAddItemAction={quickAddItemAction} />
+            <QuickAddForm quickAddItemAction={quickAddItemAction} mentionCandidates={data.mentionCandidates} />
 
             {activeTab === "list" ? (
               <>

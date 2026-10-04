@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
-import { createItemFromQuickAdd } from "./item-quick-add";
+import { createItemFromQuickAdd, loadQuickAddMentionCandidates } from "./item-quick-add";
 
 async function run() {
   if (!process.env.DATABASE_URL) {
@@ -237,6 +237,30 @@ async function run() {
 
       const result = await createItemFromQuickAdd(prisma, { actorUserId: userId, text: "@alex #bug" });
       assert.deepEqual(result, { status: "empty-title" });
+    }
+
+    // Quick-Add's `@name` autocomplete suggests every teammate across every
+    // Workspace the User belongs to, deduped by User even when they share
+    // more than one Workspace with the actor — and never a User the actor
+    // shares no Workspace with at all.
+    {
+      const userId = await createUser();
+      const { workspaceId: workspaceA } = await createSharedList("Design", userId, "MEMBER");
+      const { workspaceId: workspaceB } = await createSharedList("Ops", userId, "MEMBER");
+
+      const teammateId = await createUser("Jane Doe");
+      await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId: workspaceA, userId: teammateId, role: "MEMBER" } });
+      await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId: workspaceB, userId: teammateId, role: "MEMBER" } });
+
+      const strangerId = await createUser("Not Shared");
+      await createSharedList("Elsewhere", strangerId, "MEMBER");
+
+      const candidates = await loadQuickAddMentionCandidates(prisma, userId);
+      assert.deepEqual(
+        candidates.map((candidate) => candidate.id).sort(),
+        [userId, teammateId].sort()
+      );
+      assert.equal(candidates.some((candidate) => candidate.id === strangerId), false);
     }
   } finally {
     const listIds = (
