@@ -8,6 +8,8 @@ import { requestIpAddress } from "@/lib/auth/request-ip-address";
 import { recordSecurityEvent } from "@/lib/security/platform-operations";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 import { restoreWorkspace } from "@/lib/workspace/workspace-deletion";
+import { notifyMembersOfWorkspaceRestoration } from "@/lib/workspace/workspace-deletion-notifications";
+import { mailer } from "@/lib/mailer/mailer";
 
 const DELETED_WORKSPACES_PATH = "/workspaces/deleted";
 
@@ -43,6 +45,13 @@ export async function restoreWorkspaceAction(
     type: "workspace-restored",
     userId: session.user.id,
     ipAddress: requestIpAddress(await headers()),
+  });
+
+  const workspace = await prisma.workspace.findUniqueOrThrow({ where: { id: workspaceId } });
+  await notifyMembersOfWorkspaceRestoration(prisma, mailer, {
+    workspaceId,
+    workspaceName: workspace.name,
+    restoredByUserId: session.user.id,
   });
 
   revalidatePath("/workspaces", "layout");

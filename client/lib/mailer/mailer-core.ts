@@ -12,7 +12,9 @@ export type EmailMessageType =
   | "failed-sign-in-notice"
   | "recovery-code-notice"
   | "workspace-invitation"
-  | "workspace-ownership-transfer";
+  | "workspace-ownership-transfer"
+  | "workspace-deleted-notice"
+  | "workspace-restored-notice";
 
 export interface TransportMessage {
   from: string;

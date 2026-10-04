@@ -14,6 +14,10 @@ import {
   workspaceOwnershipTransferredFromPreviousOwnerEmail,
   workspaceOwnershipTransferredToNewOwnerEmail,
 } from "./workspace-ownership-transfer";
+import {
+  workspaceDeletedNoticeEmail,
+  workspaceRestoredNoticeEmail,
+} from "./workspace-deletion-notice";
 import type { EmailTemplate } from "./render";
 
 function assertWellFormed(template: EmailTemplate, label: string) {
@@ -172,6 +176,22 @@ function run() {
     "You transferred ownership of Launch Team"
   );
   assert.ok(transferFromPreviousOwner.html.includes("Priya"));
+
+  const deletedNotice = workspaceDeletedNoticeEmail({
+    workspaceName: "Launch Team",
+    deletedByName: "Priya",
+    restoreDeadline: new Date("2026-01-15T00:00:00.000Z"),
+  });
+  assertWellFormed(deletedNotice, "workspace-deleted-notice");
+  assert.equal(deletedNotice.subject, "Launch Team was deleted");
+  assert.ok(deletedNotice.html.includes("Priya"));
+  assert.ok(deletedNotice.html.includes("January 15, 2026"));
+
+  const restoredNotice = workspaceRestoredNoticeEmail({
+    workspaceName: "Launch Team",
+  });
+  assertWellFormed(restoredNotice, "workspace-restored-notice");
+  assert.equal(restoredNotice.subject, "Launch Team was restored");
 
   console.log("email templates test passed");
 }

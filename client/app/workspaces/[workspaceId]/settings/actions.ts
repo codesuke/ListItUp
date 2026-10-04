@@ -15,6 +15,7 @@ import { recordSecurityEvent } from "@/lib/security/platform-operations";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 import { resolveDefaultWorkspaceId } from "@/lib/workspace/default-workspace";
 import { deleteWorkspace } from "@/lib/workspace/workspace-deletion";
+import { notifyMembersOfWorkspaceDeletion } from "@/lib/workspace/workspace-deletion-notifications";
 import { transferWorkspaceOwnership } from "@/lib/workspace/workspace-ownership";
 
 function settingsPath(workspaceId: string): string {
@@ -122,6 +123,7 @@ export async function deleteWorkspaceAction(
     return { status: "error", message: "Type the Workspace name exactly to confirm." };
   }
 
+  const deletedAt = new Date();
   const result = await deleteWorkspace(prisma, workspaceId, session.user.id);
 
   if (result.status === "already-deleted") {
@@ -136,6 +138,14 @@ export async function deleteWorkspaceAction(
     type: "workspace-deleted",
     userId: session.user.id,
     ipAddress: requestIpAddress(await headers()),
+  });
+
+  await notifyMembersOfWorkspaceDeletion(prisma, mailer, {
+    workspaceId,
+    workspaceName: membership.workspace.name,
+    deletedByUserId: session.user.id,
+    deletedByName: session.user.name,
+    deletedAt,
   });
 
   revalidatePath("/workspaces", "layout");
