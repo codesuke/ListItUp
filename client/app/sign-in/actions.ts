@@ -85,3 +85,37 @@ export async function requestMagicLinkAction(
 
   return { status: "sent" };
 }
+
+const OAUTH_PROVIDERS = ["google", "github"] as const;
+type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
+
+function isOAuthProvider(value: string): value is OAuthProvider {
+  return (OAUTH_PROVIDERS as readonly string[]).includes(value);
+}
+
+export async function signInWithOAuthAction(formData: FormData): Promise<void> {
+  const provider = String(formData.get("provider") ?? "");
+  const callbackURL = readCallbackUrl(formData);
+
+  if (!isOAuthProvider(provider)) {
+    redirect("/sign-in?error=oauth");
+  }
+
+  let authorizationUrl: string | undefined;
+
+  try {
+    const result = await auth.api.signInSocial({
+      body: {
+        provider,
+        callbackURL,
+        errorCallbackURL: "/sign-in?error=oauth",
+      },
+      headers: await headers(),
+    });
+    authorizationUrl = result.url;
+  } catch {
+    redirect("/sign-in?error=oauth");
+  }
+
+  redirect(authorizationUrl ?? "/sign-in?error=oauth");
+}

@@ -187,6 +187,32 @@ function signedCookieReader(
     : null;
 }
 
+function socialProvidersFromEnv() {
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const githubClientId = process.env.GITHUB_CLIENT_ID;
+  const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+  return {
+    ...(googleClientId && googleClientSecret
+      ? {
+          google: {
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          },
+        }
+      : {}),
+    ...(githubClientId && githubClientSecret
+      ? {
+          github: {
+            clientId: githubClientId,
+            clientSecret: githubClientSecret,
+          },
+        }
+      : {}),
+  };
+}
+
 export function createAuth(
   database: PrismaClient,
   mailer: Mailer,
@@ -305,6 +331,7 @@ export function createAuth(
       expiresIn: VERIFICATION_TOKEN_EXPIRES_IN_SECONDS,
       autoSignInAfterVerification: true,
     },
+    socialProviders: socialProvidersFromEnv(),
     session: {
       expiresIn: THIRTY_DAYS_IN_SECONDS,
       updateAge: SESSION_UPDATE_AGE_SECONDS,

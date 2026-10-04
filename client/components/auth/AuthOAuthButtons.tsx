@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { signInWithOAuthAction } from "@/app/sign-in/actions";
 
-export function AuthOAuthButtons() {
-  const [status, setStatus] = useState("");
-
+export function AuthOAuthButtons({ callbackURL }: { callbackURL: string }) {
   return (
     <div className="my-6">
       <div className="flex items-center gap-4 font-mono text-xs uppercase tracking-[0.18em] text-[#a5aaaf]">
@@ -13,15 +11,13 @@ export function AuthOAuthButtons() {
         <span className="h-px flex-1 bg-[#31363a]" />
       </div>
 
-      <div className="mt-5 grid gap-3">
+      <form action={signInWithOAuthAction} className="mt-5 grid gap-3">
+        <input type="hidden" name="callbackURL" value={callbackURL} />
         <button
-          type="button"
+          type="submit"
+          name="provider"
+          value="google"
           className="relative flex h-12 items-center justify-center gap-3 rounded-lg border border-[#31363a] bg-[#0e1113] px-4 text-sm font-medium text-[#e6e6e6] transition duration-200 hover:border-white/30 hover:bg-[#1d2125] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c4581a] active:scale-[.98]"
-          onClick={() =>
-            setStatus(
-              "Google sign-in will open when authentication is connected."
-            )
-          }
         >
           <svg
             className="absolute left-4 h-5 w-5"
@@ -48,13 +44,10 @@ export function AuthOAuthButtons() {
           Continue with Google
         </button>
         <button
-          type="button"
+          type="submit"
+          name="provider"
+          value="github"
           className="relative flex h-12 items-center justify-center gap-3 rounded-lg border border-[#31363a] bg-[#0e1113] px-4 text-sm font-medium text-[#e6e6e6] transition duration-200 hover:border-white/30 hover:bg-[#1d2125] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c4581a] active:scale-[.98]"
-          onClick={() =>
-            setStatus(
-              "GitHub sign-in will open when authentication is connected."
-            )
-          }
         >
           <svg
             className="absolute left-4 h-5 w-5 fill-current"
@@ -65,13 +58,7 @@ export function AuthOAuthButtons() {
           </svg>
           Continue with GitHub
         </button>
-      </div>
-
-      {status ? (
-        <p className="sr-only" role="status" aria-live="polite">
-          {status}
-        </p>
-      ) : null}
+      </form>
     </div>
   );
 }

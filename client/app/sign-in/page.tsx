@@ -188,7 +188,13 @@ function SignInContent() {
         {mode === "password" ? "Email magic link" : "Use password instead"}
       </button>
 
-      <AuthOAuthButtons />
+      {searchParams.get("error") === "oauth" ? (
+        <p role="alert" className="mt-4 text-sm text-[#e6a07a]">
+          We couldn't sign you in with that provider. Please try again.
+        </p>
+      ) : null}
+
+      <AuthOAuthButtons callbackURL={callbackURL} />
 
       <p className="text-center text-sm text-[#a5aaaf]">
         New to ListItUp?{" "}
