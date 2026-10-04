@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
 import { createList } from "./list-creation";
+import { removeListMember } from "./list-membership";
 
 async function run() {
   if (!process.env.DATABASE_URL) {
@@ -151,6 +152,30 @@ async function run() {
       });
 
       assert.deepEqual(result, { status: "creator-lacks-required-role" });
+    }
+
+    // The creator's explicit Lead row is immediately subject to the
+    // never-zero-Leads invariant: a freshly created List's creator can't be
+    // removed from it, since they're its only Lead (#95).
+    {
+      const { workspaceId, memberId: creatorId } = await createWorkspaceWithMember("OWNER");
+
+      const created = await createList(prisma, {
+        workspaceId,
+        creatorUserId: creatorId,
+        name: "Launch Checklist",
+      });
+      assert.equal(created.status, "created");
+      const listId = created.status === "created" ? created.listId : undefined;
+      assert.ok(listId);
+
+      const result = await removeListMember(prisma, { actorUserId: creatorId, listId: listId!, userId: creatorId });
+
+      assert.deepEqual(result, { status: "last-lead" });
+      const membership = await prisma.listMember.findUnique({
+        where: { listId_userId: { listId: listId!, userId: creatorId } },
+      });
+      assert.equal(membership?.role, "LEAD", "the creator must remain the List's Lead");
     }
   } finally {
     const listIds = (

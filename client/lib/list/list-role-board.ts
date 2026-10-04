@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { ListMemberRole, PrismaClient } from "@/generated/prisma/client";
+import { lockAndInspectListMember } from "@/lib/list/list-membership";
 import { resolveListAccess } from "@/lib/permissions/list-access";
 
 export type ListRoleBoardRole = ListMemberRole | "GUEST";
@@ -9,7 +10,8 @@ export type MoveListRoleAssignmentResult =
   | { status: "moved" }
   | { status: "list-not-found" }
   | { status: "forbidden" }
-  | { status: "user-lacks-workspace-membership" };
+  | { status: "user-lacks-workspace-membership" }
+  | { status: "last-lead" };
 
 // The Overview tab's Roles kanban lets a drag move a person straight
 // between List Lead/Member/Viewer and Guest. Scoped to Workspace
@@ -35,13 +37,20 @@ export async function moveListRoleAssignment(
   }
 
   if (toRole === "GUEST") {
-    await database.listMember.deleteMany({ where: { listId, userId } });
-    await database.guest.upsert({
-      where: { listId_userId: { listId, userId } },
-      create: { id: randomUUID(), listId, userId },
-      update: {},
+    return database.$transaction(async (tx) => {
+      const { isLastLead } = await lockAndInspectListMember(tx, { listId, userId });
+      if (isLastLead) {
+        return { status: "last-lead" };
+      }
+
+      await tx.listMember.deleteMany({ where: { listId, userId } });
+      await tx.guest.upsert({
+        where: { listId_userId: { listId, userId } },
+        create: { id: randomUUID(), listId, userId },
+        update: {},
+      });
+      return { status: "moved" };
     });
-    return { status: "moved" };
   }
 
   const workspaceMembership = await database.workspaceMember.findUnique({
@@ -51,12 +60,19 @@ export async function moveListRoleAssignment(
     return { status: "user-lacks-workspace-membership" };
   }
 
-  await database.guest.deleteMany({ where: { listId, userId } });
-  await database.listMember.upsert({
-    where: { listId_userId: { listId, userId } },
-    create: { id: randomUUID(), listId, userId, role: toRole },
-    update: { role: toRole },
-  });
+  return database.$transaction(async (tx) => {
+    const { isLastLead } = await lockAndInspectListMember(tx, { listId, userId });
+    if (isLastLead && toRole !== "LEAD") {
+      return { status: "last-lead" };
+    }
 
-  return { status: "moved" };
+    await tx.guest.deleteMany({ where: { listId, userId } });
+    await tx.listMember.upsert({
+      where: { listId_userId: { listId, userId } },
+      create: { id: randomUUID(), listId, userId, role: toRole },
+      update: { role: toRole },
+    });
+
+    return { status: "moved" };
+  });
 }

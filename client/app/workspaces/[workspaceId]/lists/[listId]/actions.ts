@@ -9,7 +9,7 @@ import { isValidBoardGroupBy, moveItemToColumn, setBoardGroupBy, type BoardGroup
 import { addListAccessByEmail, type ListAccessByEmailRole } from "@/lib/list/list-access-by-email";
 import { revokeGuestAccess } from "@/lib/list/list-guests";
 import { setListStatus, updateListDescription } from "@/lib/list/list-lifecycle";
-import { addListMember, removeListMember } from "@/lib/list/list-membership";
+import { addListMember, changeListMemberRole, removeListMember } from "@/lib/list/list-membership";
 import { moveListRoleAssignment, type ListRoleBoardRole } from "@/lib/list/list-role-board";
 import {
   createSection,
@@ -40,6 +40,15 @@ const EMAIL_ADDABLE_ROLES: readonly ListAccessByEmailRole[] = ["MEMBER", "VIEWER
 // scoped to Workspace Owner/Admin by moveListRoleAssignment itself, so a
 // coarser, full set of destinations is safe to expose.
 const DRAGGABLE_ROLES: readonly ListRoleBoardRole[] = ["LEAD", "MEMBER", "VIEWER", "GUEST"];
+
+// A guarded Roles-panel mutation's outcome for the client: either it went
+// through, or it didn't and the UI has a message to show (most commonly
+// #95's "last-lead" block on removing/demoting/stepping down a List's only
+// Lead).
+export type ListRoleActionResult = { status: "ok" } | { status: "error"; message: string };
+
+const LAST_LEAD_MESSAGE = "This List must always have at least one Lead — promote someone else to Lead first.";
+const LIST_NOT_FOUND_MESSAGE = "This List no longer exists.";
 
 export async function updateListDescriptionAction(
   workspaceId: string,
@@ -87,14 +96,81 @@ export async function addListMemberAction(
   revalidatePath(listPath(workspaceId, listId));
 }
 
+const REMOVE_LIST_MEMBER_ERROR_MESSAGE = {
+  "list-not-found": LIST_NOT_FOUND_MESSAGE,
+  forbidden: "You don't have permission to remove members from this List.",
+  "last-lead": LAST_LEAD_MESSAGE,
+} as const;
+
 export async function removeListMemberAction(
   workspaceId: string,
   listId: string,
   targetUserId: string
-): Promise<void> {
+): Promise<ListRoleActionResult> {
   const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
-  await removeListMember(prisma, { actorUserId: session.user.id, listId, userId: targetUserId });
+  const result = await removeListMember(prisma, { actorUserId: session.user.id, listId, userId: targetUserId });
+
+  if (result.status !== "removed") {
+    return { status: "error", message: REMOVE_LIST_MEMBER_ERROR_MESSAGE[result.status] };
+  }
+
   revalidatePath(listPath(workspaceId, listId));
+  return { status: "ok" };
+}
+
+const CHANGE_LIST_MEMBER_ROLE_ERROR_MESSAGE = {
+  "list-not-found": LIST_NOT_FOUND_MESSAGE,
+  forbidden: "You don't have permission to change roles in this List.",
+  "member-not-found": "That person is no longer part of this List.",
+  "last-lead": LAST_LEAD_MESSAGE,
+} as const;
+
+// The Roles panel's "Make Lead" button — promotes a Member/Viewer to Lead.
+// Promotion never strands a Lead, so changeListMemberRole never blocks it,
+// but it shares the same guarded path as demotion/step-down below (#95).
+export async function promoteListMemberToLeadAction(
+  workspaceId: string,
+  listId: string,
+  targetUserId: string
+): Promise<ListRoleActionResult> {
+  const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
+  const result = await changeListMemberRole(prisma, {
+    actorUserId: session.user.id,
+    listId,
+    userId: targetUserId,
+    role: "LEAD",
+  });
+
+  if (result.status !== "changed") {
+    return { status: "error", message: CHANGE_LIST_MEMBER_ROLE_ERROR_MESSAGE[result.status] };
+  }
+
+  revalidatePath(listPath(workspaceId, listId));
+  return { status: "ok" };
+}
+
+// The Roles panel's "Step down" button, shown only on the viewer's own Lead
+// row — a Lead handover is promote-then-step-down, with no dedicated
+// "transfer Lead" action (#95).
+export async function stepDownFromListLeadAction(
+  workspaceId: string,
+  listId: string,
+  targetUserId: string
+): Promise<ListRoleActionResult> {
+  const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
+  const result = await changeListMemberRole(prisma, {
+    actorUserId: session.user.id,
+    listId,
+    userId: targetUserId,
+    role: "MEMBER",
+  });
+
+  if (result.status !== "changed") {
+    return { status: "error", message: CHANGE_LIST_MEMBER_ROLE_ERROR_MESSAGE[result.status] };
+  }
+
+  revalidatePath(listPath(workspaceId, listId));
+  return { status: "ok" };
 }
 
 export async function addListAccessByEmailAction(
@@ -119,6 +195,13 @@ export async function addListAccessByEmailAction(
   revalidatePath(listPath(workspaceId, listId));
 }
 
+const MOVE_LIST_ROLE_ERROR_MESSAGE = {
+  "list-not-found": LIST_NOT_FOUND_MESSAGE,
+  forbidden: "You don't have permission to do that.",
+  "user-lacks-workspace-membership": "That person must join the Workspace first.",
+  "last-lead": LAST_LEAD_MESSAGE,
+} as const;
+
 // The Roles kanban's drag-and-drop (Workspace Owner/Admin only — enforced
 // in moveListRoleAssignment itself, not just by hiding the drag handle).
 export async function moveListRoleAssignmentAction(
@@ -126,20 +209,26 @@ export async function moveListRoleAssignmentAction(
   listId: string,
   targetUserId: string,
   toRole: string
-): Promise<void> {
+): Promise<ListRoleActionResult> {
   const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
 
   if (!DRAGGABLE_ROLES.includes(toRole as ListRoleBoardRole)) {
-    return;
+    return { status: "ok" };
   }
 
-  await moveListRoleAssignment(prisma, {
+  const result = await moveListRoleAssignment(prisma, {
     actorUserId: session.user.id,
     listId,
     userId: targetUserId,
     toRole: toRole as ListRoleBoardRole,
   });
+
+  if (result.status !== "moved") {
+    return { status: "error", message: MOVE_LIST_ROLE_ERROR_MESSAGE[result.status] };
+  }
+
   revalidatePath(listPath(workspaceId, listId));
+  return { status: "ok" };
 }
 
 export async function revokeGuestAccessAction(

@@ -63,8 +63,9 @@ async function run() {
       assert.equal(membership?.role, "VIEWER");
     }
 
-    // A Workspace Owner can drag a List Lead into the Guest column — the
-    // ListMember row is removed and replaced with a Guest grant.
+    // A Workspace Owner can drag a List Lead into the Guest column when
+    // another Lead remains — the ListMember row is removed and replaced
+    // with a Guest grant.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const ownerId = await createUser();
@@ -72,6 +73,9 @@ async function run() {
       const targetId = await createUser();
       await addWorkspaceMember(workspaceId, targetId, "MEMBER");
       await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: targetId, role: "LEAD" } });
+      const otherLeadId = await createUser();
+      await addWorkspaceMember(workspaceId, otherLeadId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: otherLeadId, role: "LEAD" } });
 
       const result = await moveListRoleAssignment(prisma, { actorUserId: ownerId, listId, userId: targetId, toRole: "GUEST" });
 
@@ -80,6 +84,28 @@ async function run() {
       assert.equal(membership, null);
       const guest = await prisma.guest.findUnique({ where: { listId_userId: { listId, userId: targetId } } });
       assert.ok(guest);
+    }
+
+    // Dragging a List's only Lead into the Guest, Member, or Viewer column
+    // is blocked (#95) — the invariant holds for a Workspace Owner too.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const ownerId = await createUser();
+      await addWorkspaceMember(workspaceId, ownerId, "OWNER");
+      const soleLeadId = await createUser();
+      await addWorkspaceMember(workspaceId, soleLeadId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: soleLeadId, role: "LEAD" } });
+
+      const result = await moveListRoleAssignment(prisma, {
+        actorUserId: ownerId,
+        listId,
+        userId: soleLeadId,
+        toRole: "GUEST",
+      });
+
+      assert.deepEqual(result, { status: "last-lead" });
+      const membership = await prisma.listMember.findUnique({ where: { listId_userId: { listId, userId: soleLeadId } } });
+      assert.equal(membership?.role, "LEAD", "the sole Lead must remain a List Lead");
     }
 
     // Dragging a Guest who already holds Workspace membership into the

@@ -27,15 +27,18 @@ import {
   completeItemAction,
   moveItemToColumnAction,
   moveListRoleAssignmentAction,
+  promoteListMemberToLeadAction,
   removeListMemberAction,
   restoreItemAction,
   revokeGuestAccessAction,
   setBoardGroupByAction,
   setListStatusAction,
+  stepDownFromListLeadAction,
   togglePeerComparisonAction,
   uncompleteItemAction,
   updateListDescriptionAction,
 } from "./actions";
+import type { ListRoleActionResult } from "./actions";
 import { BoardView } from "./BoardView";
 import { CalendarView } from "./CalendarView";
 import { DashboardTab } from "./DashboardTab";
@@ -112,20 +115,26 @@ function calendarMonthHref(workspaceId: string, listId: string, month: string): 
 
 function OverviewTab({
   data,
+  currentUserId,
   boundUpdateDescription,
   boundAddMember,
   boundRemoveMember,
   boundAddByEmail,
   boundRevokeGuest,
   boundMoveRole,
+  boundPromoteToLead,
+  boundStepDown,
 }: {
   data: ListPageData;
+  currentUserId: string;
   boundUpdateDescription: (formData: FormData) => Promise<void>;
   boundAddMember: (formData: FormData) => Promise<void>;
-  boundRemoveMember: (userId: string) => Promise<void>;
+  boundRemoveMember: (userId: string) => Promise<ListRoleActionResult>;
   boundAddByEmail: (formData: FormData) => Promise<void>;
   boundRevokeGuest: (userId: string) => Promise<void>;
-  boundMoveRole: (userId: string, toRole: string) => Promise<void>;
+  boundMoveRole: (userId: string, toRole: string) => Promise<ListRoleActionResult>;
+  boundPromoteToLead: (userId: string) => Promise<ListRoleActionResult>;
+  boundStepDown: (userId: string) => Promise<ListRoleActionResult>;
 }) {
   const canManage = data.canEditDescription;
   // Owner/Admin implicit access (ListAccessLevel "ADMIN") only — a List
@@ -148,11 +157,14 @@ function OverviewTab({
         <div className="mb-3 text-[12px] font-medium uppercase tracking-wide text-ink-muted">Roles</div>
         <OverviewRolesBoard
           roles={data.roles}
-          canRemove={canManage}
+          currentUserId={currentUserId}
+          canManageRoles={canManage}
           canDrag={canDragRoles}
           boundRemoveMember={boundRemoveMember}
           boundRevokeGuest={boundRevokeGuest}
           boundMoveRole={boundMoveRole}
+          boundPromoteToLead={boundPromoteToLead}
+          boundStepDown={boundStepDown}
         />
       </div>
 
@@ -264,6 +276,8 @@ export default async function ListPage({ params, searchParams }: Props) {
   const boundAddByEmail = addListAccessByEmailAction.bind(null, workspaceId, listId);
   const boundRevokeGuest = revokeGuestAccessAction.bind(null, workspaceId, listId);
   const boundMoveRole = moveListRoleAssignmentAction.bind(null, workspaceId, listId);
+  const boundPromoteToLead = promoteListMemberToLeadAction.bind(null, workspaceId, listId);
+  const boundStepDown = stepDownFromListLeadAction.bind(null, workspaceId, listId);
   // Bound only through workspaceId/listId (never further, e.g. per-Item) —
   // SectionList and BoardView are Client Components, and a Server Component
   // can only pass a Client Component an already-bound Server Action
@@ -344,12 +358,15 @@ export default async function ListPage({ params, searchParams }: Props) {
           {activeTab === "overview" ? (
           <OverviewTab
             data={data}
+            currentUserId={session.user.id}
             boundUpdateDescription={boundUpdateDescription}
             boundAddMember={boundAddMember}
             boundRemoveMember={boundRemoveMember}
             boundAddByEmail={boundAddByEmail}
             boundRevokeGuest={boundRevokeGuest}
             boundMoveRole={boundMoveRole}
+            boundPromoteToLead={boundPromoteToLead}
+            boundStepDown={boundStepDown}
           />
         ) : activeTab === "list" ? (
           <SectionList
