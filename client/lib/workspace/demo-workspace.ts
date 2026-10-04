@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
+import { type DemoNotificationFlags, pickDemoNotificationPlan } from "@/lib/workspace/demo-notification-plan";
 
 export const DEMO_WORKSPACE_NAME = "Product Launch";
 const DEMO_MARKETING_LIST_NAME = "Q1 Marketing Plan";
@@ -20,6 +21,22 @@ function daysFromNow(days: number): Date {
   const date = new Date();
   date.setDate(date.getDate() + days);
   return date;
+}
+
+function minutesAgo(minutes: number): Date {
+  return new Date(Date.now() - minutes * 60_000);
+}
+
+// Flags land a minute after the notification's own createdAt (never before
+// it), so "read"/"bookmarked"/"archived" always looks like something the
+// User did after seeing the entry rather than before it existed.
+function demoNotificationTimestamps(flags: DemoNotificationFlags, createdMinutesAgo: number) {
+  const touchedAt = minutesAgo(Math.max(createdMinutesAgo - 1, 0));
+  return {
+    readAt: flags.readAt ? touchedAt : undefined,
+    bookmarkedAt: flags.bookmarkedAt ? touchedAt : undefined,
+    archivedAt: flags.archivedAt ? touchedAt : undefined,
+  };
 }
 
 // A registered User can coincidentally share an email with one of the Demo
@@ -398,7 +415,11 @@ export async function provisionDemoWorkspace(
 
   // Updates surface (#41, #49): one Notification per tab this exercises —
   // an unread entry, a read one, a bookmark, an archived entry, and the
-  // @Mentioned tab driven by the Note+Mention pair above.
+  // @Mentioned tab driven by the Note+Mention pair above. Which slot plays
+  // which role, and how long ago each lands, comes from a plan keyed off
+  // this User's id — so every sign-up's first look at Updates isn't a
+  // byte-identical copy of everyone else's.
+  const plan = pickDemoNotificationPlan(userId);
   await database.notification.createMany({
     data: [
       {
@@ -407,6 +428,8 @@ export async function provisionDemoWorkspace(
         type: "ASSIGNEE_ADDED",
         itemId: navOverlapItem.id,
         actorId: maya.id,
+        createdAt: minutesAgo(plan.minutesAgo.assigneeAdded),
+        ...demoNotificationTimestamps(plan.assigneeAdded, plan.minutesAgo.assigneeAdded),
       },
       {
         id: randomUUID(),
@@ -414,7 +437,8 @@ export async function provisionDemoWorkspace(
         type: "STATE_CHANGED",
         itemId: byTitle("Migrate blog to new CMS").id,
         actorId: owen.id,
-        readAt: daysFromNow(-1),
+        createdAt: minutesAgo(plan.minutesAgo.stateChanged),
+        ...demoNotificationTimestamps(plan.stateChanged, plan.minutesAgo.stateChanged),
       },
       {
         id: randomUUID(),
@@ -423,7 +447,8 @@ export async function provisionDemoWorkspace(
         itemId: byTitle("Migrate blog to new CMS").id,
         actorId: owen.id,
         noteId: blogMigrationNote.id,
-        bookmarkedAt: daysFromNow(-1),
+        createdAt: minutesAgo(plan.minutesAgo.noteAdded),
+        ...demoNotificationTimestamps(plan.noteAdded, plan.minutesAgo.noteAdded),
       },
       {
         id: randomUUID(),
@@ -432,6 +457,8 @@ export async function provisionDemoWorkspace(
         itemId: navOverlapItem.id,
         actorId: maya.id,
         noteId: mentionNote.id,
+        createdAt: minutesAgo(plan.minutesAgo.mentioned),
+        ...demoNotificationTimestamps(plan.mentioned, plan.minutesAgo.mentioned),
       },
       {
         id: randomUUID(),
@@ -439,8 +466,8 @@ export async function provisionDemoWorkspace(
         type: "DUE_DATE_REMINDER",
         itemId: navOverlapItem.id,
         dueDateAt: navOverlapItem.dueDate ?? undefined,
-        readAt: daysFromNow(-2),
-        archivedAt: daysFromNow(-1),
+        createdAt: minutesAgo(plan.minutesAgo.dueDateReminder),
+        ...demoNotificationTimestamps(plan.dueDateReminder, plan.minutesAgo.dueDateReminder),
       },
     ],
   });
