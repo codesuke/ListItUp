@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { updateMemberRoleAction, type UpdateMemberRoleState } from "./actions";
 import type { AssignableWorkspaceRole } from "@/lib/workspace/workspace-member-roles";
@@ -23,14 +23,25 @@ export function MemberRoleSelect({
     boundAction,
     initialUpdateMemberRoleState
   );
+  // Optimistic pick while the action is in flight — a plain `defaultValue`
+  // select gets its uncontrolled value reset by React right after the form
+  // action submits (react-dom's post-action requestFormReset), snapping the
+  // dropdown back to the pre-submit role before the server even responds.
+  // Once the action settles, `role` (refreshed by the action's
+  // revalidatePath) is authoritative again, whether it changed or not.
+  const [optimisticRole, setOptimisticRole] = useState<AssignableWorkspaceRole | null>(null);
+  const selectedRole = isPending ? (optimisticRole ?? role) : role;
 
   return (
     <form action={formAction} className="flex shrink-0 items-center gap-2">
       <select
         name="role"
-        defaultValue={role}
+        value={selectedRole}
         disabled={isPending}
-        onChange={(event) => event.currentTarget.form?.requestSubmit()}
+        onChange={(event) => {
+          setOptimisticRole(event.currentTarget.value as AssignableWorkspaceRole);
+          event.currentTarget.form?.requestSubmit();
+        }}
         className={selectClass}
       >
         <option value="ADMIN">Admin</option>

@@ -145,3 +145,60 @@ test("an Owner invites someone from the members form, the invitee follows the em
   await expect(inviteeRow).toBeVisible();
   await expect(inviteeRow.getByText("Member")).toBeVisible();
 });
+
+test("an Owner changes a member's role and the selection sticks instead of snapping back to Member", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+
+  const owner = uniqueTestUser("role-change-owner");
+  const member = uniqueTestUser("role-change-member");
+
+  await signUpAndVerify(page, owner);
+  await expect(page).toHaveURL(WORKSPACE_HOME_URL);
+  const workspaceId = new URL(page.url()).pathname.split("/").pop();
+  const membersUrl = `/workspaces/${workspaceId}/settings/members`;
+
+  await page.goto(membersUrl);
+  await page.getByLabel("Email").fill(member.email);
+  await page.getByRole("button", { name: "Send invitation" }).click();
+  await expect(
+    page.getByText(`Invitation sent to ${member.email}.`)
+  ).toBeVisible();
+
+  const inviteLink = await waitForMailpitLink(member.email);
+  const knownMessageIds = await knownMailpitMessageIds(member.email);
+
+  await page.context().clearCookies();
+  await page.goto(inviteLink);
+  await signUpFromInvitationLink(page, member);
+  await page.goto(await waitForMailpitLink(member.email, knownMessageIds));
+  await page.getByRole("button", { name: "Accept invitation" }).click();
+  await expect(page).toHaveURL(new RegExp(`/workspaces/${workspaceId}$`));
+
+  // Accepting the invitation signed the member in, replacing the owner's
+  // cookies cleared above — sign back in as the Owner to manage roles.
+  await page.context().clearCookies();
+  await page.goto("/sign-in");
+  await signInWithPassword(page, owner);
+  await expect(page).toHaveURL(WORKSPACE_HOME_URL);
+  await page.goto(membersUrl);
+
+  const memberRow = page.getByRole("listitem").filter({ hasText: member.name });
+  const roleSelect = memberRow.getByRole("combobox");
+  await expect(roleSelect).toHaveValue("MEMBER");
+
+  // This select previously used an uncontrolled `defaultValue`, which React
+  // resets right after the form action submits — before the Server
+  // Component re-renders with the new role — so it snapped back to
+  // whatever the select showed pre-submit (regression: #<role-change-bug>).
+  await roleSelect.selectOption("ADMIN");
+  await expect(roleSelect).toHaveValue("ADMIN");
+  await page.reload();
+  await expect(memberRow.getByRole("combobox")).toHaveValue("ADMIN");
+
+  await memberRow.getByRole("combobox").selectOption("VIEWER");
+  await expect(memberRow.getByRole("combobox")).toHaveValue("VIEWER");
+  await page.reload();
+  await expect(memberRow.getByRole("combobox")).toHaveValue("VIEWER");
+});
