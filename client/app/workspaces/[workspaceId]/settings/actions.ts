@@ -123,7 +123,6 @@ export async function deleteWorkspaceAction(
     return { status: "error", message: "Type the Workspace name exactly to confirm." };
   }
 
-  const deletedAt = new Date();
   const result = await deleteWorkspace(prisma, workspaceId, session.user.id);
 
   if (result.status === "already-deleted") {
@@ -140,12 +139,17 @@ export async function deleteWorkspaceAction(
     ipAddress: requestIpAddress(await headers()),
   });
 
+  const deletedWorkspace = await prisma.workspace.findUniqueOrThrow({
+    where: { id: workspaceId },
+  });
   await notifyMembersOfWorkspaceDeletion(prisma, mailer, {
     workspaceId,
     workspaceName: membership.workspace.name,
     deletedByUserId: session.user.id,
     deletedByName: session.user.name,
-    deletedAt,
+    // Guaranteed non-null: `result.status === "deleted"` above confirms
+    // deleteWorkspace just set it.
+    deletedAt: deletedWorkspace.deletedAt!,
   });
 
   revalidatePath("/workspaces", "layout");
