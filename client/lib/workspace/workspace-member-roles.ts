@@ -1,4 +1,5 @@
 import type { PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
+import { lockAndCountSoleLeadLists } from "@/lib/list/list-membership";
 import { canAccessWorkspaceSettings } from "@/lib/permissions/workspace-access";
 import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
@@ -26,7 +27,8 @@ export type UpdateWorkspaceMemberRoleResult =
   | { status: "forbidden" }
   | { status: "invalid-role" }
   | { status: "not-found" }
-  | { status: "cannot-change-owner" };
+  | { status: "cannot-change-owner" }
+  | { status: "sole-lead-block"; count: number };
 
 // Authorization and role validation happen here, not just on the Members
 // page's controls — a Server Action calling this is not itself a security
@@ -71,6 +73,41 @@ export async function updateWorkspaceMemberRole(
 
   if (!isAssignableWorkspaceRole(input.role)) {
     return { status: "invalid-role" };
+  }
+
+  // Demoting to Viewer must respect the never-zero-Leads invariant: it's
+  // blocked while the target is the sole Lead of any List in this Workspace,
+  // and otherwise converts their List LEAD/MEMBER rows to VIEWER in the same
+  // transaction so stored List roles never outrank the new Viewer ceiling
+  // (List Lead Rules spec, story 25-26).
+  if (input.role === "VIEWER") {
+    const role = input.role;
+    return database.$transaction(async (tx) => {
+      const soleLeadListCount = await lockAndCountSoleLeadLists(tx, {
+        workspaceId: input.workspaceId,
+        userId: input.targetUserId,
+      });
+      if (soleLeadListCount > 0) {
+        return { status: "sole-lead-block", count: soleLeadListCount };
+      }
+
+      await tx.workspaceMember.update({
+        where: {
+          workspaceId_userId: { workspaceId: input.workspaceId, userId: input.targetUserId },
+        },
+        data: { role },
+      });
+      await tx.listMember.updateMany({
+        where: {
+          userId: input.targetUserId,
+          role: { in: ["LEAD", "MEMBER"] },
+          list: { workspaceId: input.workspaceId },
+        },
+        data: { role: "VIEWER" },
+      });
+
+      return { status: "updated" };
+    });
   }
 
   await database.workspaceMember.update({

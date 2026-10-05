@@ -63,6 +63,27 @@ async function run() {
     return membership?.role;
   }
 
+  // Cascades from the Workspace delete in `finally` clean up the List and
+  // its ListMember rows, so callers don't need to track list IDs separately.
+  async function addList(
+    workspaceId: string,
+    members: Array<{ userId: string; role: "LEAD" | "MEMBER" | "VIEWER" }>
+  ): Promise<string> {
+    const listId = randomUUID();
+    await prisma.list.create({ data: { id: listId, workspaceId, name: "Checklist" } });
+    for (const { userId, role } of members) {
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId, role } });
+    }
+    return listId;
+  }
+
+  async function listRoleOf(listId: string, userId: string): Promise<string | undefined> {
+    const membership = await prisma.listMember.findUnique({
+      where: { listId_userId: { listId, userId } },
+    });
+    return membership?.role;
+  }
+
   try {
     // An Owner can promote an existing Member to Admin.
     {
@@ -168,6 +189,74 @@ async function run() {
       });
 
       assert.deepEqual(result, { status: "not-found" });
+    }
+
+    // Demoting a Member to Viewer is blocked while they are the sole Lead of
+    // any List, and the block reports the blocking count (#99).
+    {
+      const { workspaceId, ownerId } = await createWorkspaceWithOwner();
+      const memberId = await addMember(workspaceId, "MEMBER");
+      const soleLeadListId = await addList(workspaceId, [{ userId: memberId, role: "LEAD" }]);
+      const coLeadListId = await addList(workspaceId, [
+        { userId: memberId, role: "LEAD" },
+        { userId: ownerId, role: "LEAD" },
+      ]);
+
+      const result = await updateWorkspaceMemberRole(prisma, {
+        workspaceId,
+        actingUserId: ownerId,
+        targetUserId: memberId,
+        role: "VIEWER",
+      });
+
+      assert.deepEqual(result, { status: "sole-lead-block", count: 1 });
+      assert.equal(await roleOf(workspaceId, memberId), "MEMBER");
+      assert.equal(await listRoleOf(soleLeadListId, memberId), "LEAD");
+      assert.equal(await listRoleOf(coLeadListId, memberId), "LEAD");
+    }
+
+    // A non-blocking demotion to Viewer converts the Member's List LEAD and
+    // MEMBER rows to VIEWER in the same operation, atomically (#99).
+    {
+      const { workspaceId, ownerId } = await createWorkspaceWithOwner();
+      const memberId = await addMember(workspaceId, "MEMBER");
+      const coLeadListId = await addList(workspaceId, [
+        { userId: memberId, role: "LEAD" },
+        { userId: ownerId, role: "LEAD" },
+      ]);
+      const plainMemberListId = await addList(workspaceId, [{ userId: memberId, role: "MEMBER" }]);
+      const alreadyViewerListId = await addList(workspaceId, [{ userId: memberId, role: "VIEWER" }]);
+
+      const result = await updateWorkspaceMemberRole(prisma, {
+        workspaceId,
+        actingUserId: ownerId,
+        targetUserId: memberId,
+        role: "VIEWER",
+      });
+
+      assert.deepEqual(result, { status: "updated" });
+      assert.equal(await roleOf(workspaceId, memberId), "VIEWER");
+      assert.equal(await listRoleOf(coLeadListId, memberId), "VIEWER");
+      assert.equal(await listRoleOf(plainMemberListId, memberId), "VIEWER");
+      assert.equal(await listRoleOf(alreadyViewerListId, memberId), "VIEWER");
+    }
+
+    // Sole-Lead status is counted per List: being the sole Lead of two Lists
+    // reports a count of two.
+    {
+      const { workspaceId, ownerId } = await createWorkspaceWithOwner();
+      const memberId = await addMember(workspaceId, "MEMBER");
+      await addList(workspaceId, [{ userId: memberId, role: "LEAD" }]);
+      await addList(workspaceId, [{ userId: memberId, role: "LEAD" }]);
+
+      const result = await updateWorkspaceMemberRole(prisma, {
+        workspaceId,
+        actingUserId: ownerId,
+        targetUserId: memberId,
+        role: "VIEWER",
+      });
+
+      assert.deepEqual(result, { status: "sole-lead-block", count: 2 });
     }
   } finally {
     await prisma.workspaceMember.deleteMany({

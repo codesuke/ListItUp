@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import type { ListMemberRole, Prisma, PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
+import type { ListMemberRole, PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
 import { meetsListAccessLevel, resolveListAccess } from "@/lib/permissions/list-access";
 
 export type AddListMemberResult =
@@ -63,6 +64,40 @@ export async function lockAndInspectListMember(
   });
 
   return { currentRole, isLastLead: remainingLeads === 0 };
+}
+
+// Locks every List in the Workspace where the User holds an explicit Lead
+// row, then counts how many of those Lists have no other Lead — the
+// invariant shared by Workspace removal, leaving, demotion to Viewer and
+// account deletion (#98, #99): none of those may strand a List. Must run
+// inside the transaction that performs the guarded write, before any other
+// read in that transaction, for the same race-serialization reason as
+// lockAndInspectListMember. Only the count is ever surfaced to the UI, never
+// List names or identities (per the List Lead Rules spec).
+export async function lockAndCountSoleLeadLists(
+  tx: Prisma.TransactionClient,
+  input: { workspaceId: string; userId: string }
+): Promise<number> {
+  const { workspaceId, userId } = input;
+
+  const ledLists = await tx.listMember.findMany({
+    where: { userId, role: "LEAD", list: { workspaceId } },
+    select: { listId: true },
+  });
+  if (ledLists.length === 0) {
+    return 0;
+  }
+
+  const listIds = ledLists.map((row) => row.listId).sort();
+  await tx.$queryRaw`SELECT id FROM "list" WHERE id IN (${Prisma.join(listIds)}) FOR UPDATE`;
+
+  const otherLeads = await tx.listMember.groupBy({
+    by: ["listId"],
+    where: { listId: { in: listIds }, role: "LEAD", userId: { not: userId } },
+  });
+  const listsWithOtherLead = new Set(otherLeads.map((row) => row.listId));
+
+  return listIds.filter((listId) => !listsWithOtherLead.has(listId)).length;
 }
 
 // A ListMember row may only reference a User who already holds a

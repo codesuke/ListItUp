@@ -121,6 +121,11 @@ const UPDATE_MEMBER_ROLE_ERROR_MESSAGE = {
   "cannot-change-owner": "The Workspace Owner's role can only change via ownership transfer.",
 } as const;
 
+function soleLeadBlockMessage(count: number): string {
+  const lists = count === 1 ? "List" : "Lists";
+  return `This person is the sole Lead of ${count} ${lists} — promote another Lead on each one first.`;
+}
+
 export async function updateMemberRoleAction(
   workspaceId: string,
   targetUserId: string,
@@ -136,6 +141,10 @@ export async function updateMemberRoleAction(
     targetUserId,
     role,
   });
+
+  if (result.status === "sole-lead-block") {
+    return { status: "error", message: soleLeadBlockMessage(result.count) };
+  }
 
   if (result.status !== "updated") {
     return { status: "error", message: UPDATE_MEMBER_ROLE_ERROR_MESSAGE[result.status] };
