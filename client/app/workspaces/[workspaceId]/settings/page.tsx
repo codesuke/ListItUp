@@ -96,7 +96,9 @@ export default async function WorkspaceSettingsPage({ params }: Props) {
           <div className="border border-destructive/40 p-4">
             <h3 className="mb-1 text-sm font-medium text-ink">Transfer ownership</h3>
             <p className="mb-4 text-sm text-ink-muted">
-              Hand this Workspace&apos;s Owner role to another member. You&apos;ll become an Admin.
+              Hand this Workspace&apos;s Owner role to another member. You&apos;ll become an Admin,
+              keeping Lead on Lists you created and losing access to private Lists you never
+              joined.
             </p>
             {viewerRole === "OWNER" ? (
               <TransferOwnershipForm

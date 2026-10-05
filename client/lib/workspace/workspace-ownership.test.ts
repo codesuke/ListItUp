@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
+import { createList } from "@/lib/list/list-creation";
+import { resolveListAccess } from "@/lib/permissions/list-access";
+
 import { transferWorkspaceOwnership } from "./workspace-ownership";
 
 async function run() {
@@ -127,6 +130,48 @@ async function run() {
         where: { workspaceId, role: "OWNER" },
       });
       assert.equal(ownerCount, 1, "exactly one Owner must remain after a failed transfer");
+    }
+
+    // After a transfer, the former Owner (now Admin) keeps Lead-level
+    // access on Lists they created — via the explicit Lead row
+    // createList() wrote for them — and loses access to a List they never
+    // joined, since an Admin has no implicit List access (#94, #97).
+    {
+      const { workspaceId, ownerId } = await createWorkspaceWithOwner();
+      const newOwnerId = await addMember(workspaceId, "ADMIN");
+
+      const ownedListResult = await createList(prisma, {
+        workspaceId,
+        creatorUserId: ownerId,
+        name: "Owner's List",
+      });
+      assert.equal(ownedListResult.status, "created");
+      const ownedListId =
+        ownedListResult.status === "created" ? ownedListResult.listId : "";
+
+      const unjoinedListResult = await createList(prisma, {
+        workspaceId,
+        creatorUserId: newOwnerId,
+        name: "New Owner's List",
+      });
+      assert.equal(unjoinedListResult.status, "created");
+      const unjoinedListId =
+        unjoinedListResult.status === "created" ? unjoinedListResult.listId : "";
+
+      const result = await transferWorkspaceOwnership(prisma, workspaceId, newOwnerId);
+      assert.deepEqual(result, { status: "transferred" });
+      assert.equal(await roleOf(workspaceId, ownerId), "ADMIN");
+
+      assert.equal(
+        await resolveListAccess(prisma, { userId: ownerId, listId: ownedListId }),
+        "LEAD",
+        "the former Owner keeps Lead on a List they created"
+      );
+      assert.equal(
+        await resolveListAccess(prisma, { userId: ownerId, listId: unjoinedListId }),
+        "NONE",
+        "the former Owner has no access to a List they never joined"
+      );
     }
 
     // No Owner on the Workspace at all is reported rather than throwing.
