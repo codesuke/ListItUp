@@ -209,20 +209,60 @@ async function run() {
       assert.ok(membership, "target must remain a List Member");
     }
 
-    // A Workspace Viewer granted a higher List-level role (e.g. List Lead)
-    // still resolves to read-only effective access — the Viewer ceiling
-    // holds even after this ticket's own mutation grants it.
+    // Assigning LEAD or MEMBER to a Workspace Viewer is rejected at write
+    // time — a Viewer can only ever hold the List Viewer role (#96).
+    for (const role of ["LEAD", "MEMBER"] as const) {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createListLead(workspaceId, listId);
+      const viewerId = await createUser();
+      await addWorkspaceMember(workspaceId, viewerId, "VIEWER");
+
+      const result = await addListMember(prisma, { actorUserId: leadId, listId, userId: viewerId, role });
+
+      assert.deepEqual(result, { status: "viewer-ceiling" }, `granting ${role} to a Workspace Viewer must be rejected`);
+      const membership = await prisma.listMember.findUnique({
+        where: { listId_userId: { listId, userId: viewerId } },
+      });
+      assert.equal(membership, null, "no List-level row should be created for a rejected grant");
+    }
+
+    // Adding a Workspace Viewer as a List Viewer still works (#96) — the
+    // rejection is specific to LEAD/MEMBER, not to the Viewer as a target.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const leadId = await createListLead(workspaceId, listId);
       const viewerId = await createUser();
       await addWorkspaceMember(workspaceId, viewerId, "VIEWER");
 
-      const result = await addListMember(prisma, { actorUserId: leadId, listId, userId: viewerId, role: "LEAD" });
+      const result = await addListMember(prisma, { actorUserId: leadId, listId, userId: viewerId, role: "VIEWER" });
+
       assert.deepEqual(result, { status: "added" });
+      const membership = await prisma.listMember.findUnique({
+        where: { listId_userId: { listId, userId: viewerId } },
+      });
+      assert.equal(membership?.role, "VIEWER");
 
       const access = await resolveListAccess(prisma, { userId: viewerId, listId });
       assert.equal(access, "READ", "the Workspace Viewer ceiling must still hold");
+    }
+
+    // The same rejection applies to promoting an existing List Viewer who
+    // is a Workspace Viewer to Lead via changeListMemberRole — the Roles
+    // panel's "Make Lead" control (#96).
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createListLead(workspaceId, listId);
+      const viewerId = await createUser();
+      await addWorkspaceMember(workspaceId, viewerId, "VIEWER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: viewerId, role: "VIEWER" } });
+
+      const result = await changeListMemberRole(prisma, { actorUserId: leadId, listId, userId: viewerId, role: "LEAD" });
+
+      assert.deepEqual(result, { status: "viewer-ceiling" });
+      const membership = await prisma.listMember.findUnique({
+        where: { listId_userId: { listId, userId: viewerId } },
+      });
+      assert.equal(membership?.role, "VIEWER", "a Workspace Viewer must not be promoted to List Lead");
     }
 
     // Adding an existing Lead via the add-member path never demotes them,

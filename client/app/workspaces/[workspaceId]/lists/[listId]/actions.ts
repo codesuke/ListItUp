@@ -49,6 +49,7 @@ export type ListRoleActionResult = { status: "ok" } | { status: "error"; message
 
 const LAST_LEAD_MESSAGE = "This List must always have at least one Lead — promote someone else to Lead first.";
 const LIST_NOT_FOUND_MESSAGE = "This List no longer exists.";
+const VIEWER_CEILING_MESSAGE = "A Workspace Viewer can only be a List Viewer — change their Workspace role first.";
 
 export async function updateListDescriptionAction(
   workspaceId: string,
@@ -74,26 +75,40 @@ export async function setListStatusAction(
   revalidatePath(listPath(workspaceId, listId));
 }
 
+const ADD_LIST_MEMBER_ERROR_MESSAGE = {
+  "list-not-found": LIST_NOT_FOUND_MESSAGE,
+  forbidden: "You don't have permission to add members to this List.",
+  "user-lacks-workspace-membership": "That person must join the Workspace first.",
+  "viewer-ceiling": VIEWER_CEILING_MESSAGE,
+} as const;
+
 export async function addListMemberAction(
   workspaceId: string,
   listId: string,
+  _prevState: ListRoleActionResult,
   formData: FormData
-): Promise<void> {
+): Promise<ListRoleActionResult> {
   const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
   const targetUserId = String(formData.get("userId") ?? "");
   const role = String(formData.get("role") ?? "");
 
   if (!targetUserId || !ADDABLE_ROLES.includes(role as ListMemberRole)) {
-    return;
+    return { status: "ok" };
   }
 
-  await addListMember(prisma, {
+  const result = await addListMember(prisma, {
     actorUserId: session.user.id,
     listId,
     userId: targetUserId,
     role: role as ListMemberRole,
   });
+
+  if (result.status !== "added") {
+    return { status: "error", message: ADD_LIST_MEMBER_ERROR_MESSAGE[result.status] };
+  }
+
   revalidatePath(listPath(workspaceId, listId));
+  return { status: "ok" };
 }
 
 const REMOVE_LIST_MEMBER_ERROR_MESSAGE = {
@@ -123,6 +138,7 @@ const CHANGE_LIST_MEMBER_ROLE_ERROR_MESSAGE = {
   forbidden: "You don't have permission to change roles in this List.",
   "member-not-found": "That person is no longer part of this List.",
   "last-lead": LAST_LEAD_MESSAGE,
+  "viewer-ceiling": VIEWER_CEILING_MESSAGE,
 } as const;
 
 // The Roles panel's "Make Lead" button — promotes a Member/Viewer to Lead.
@@ -173,26 +189,41 @@ export async function stepDownFromListLeadAction(
   return { status: "ok" };
 }
 
+const ADD_LIST_ACCESS_BY_EMAIL_ERROR_MESSAGE = {
+  "list-not-found": LIST_NOT_FOUND_MESSAGE,
+  forbidden: "You don't have permission to add members to this List.",
+  "user-not-found": "No account exists for that email.",
+  "user-lacks-workspace-membership": "That person must join the Workspace first.",
+  "viewer-ceiling": VIEWER_CEILING_MESSAGE,
+} as const;
+
 export async function addListAccessByEmailAction(
   workspaceId: string,
   listId: string,
+  _prevState: ListRoleActionResult,
   formData: FormData
-): Promise<void> {
+): Promise<ListRoleActionResult> {
   const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
   const email = String(formData.get("email") ?? "").trim();
   const role = String(formData.get("role") ?? "");
 
   if (!email || !EMAIL_ADDABLE_ROLES.includes(role as ListAccessByEmailRole)) {
-    return;
+    return { status: "ok" };
   }
 
-  await addListAccessByEmail(prisma, {
+  const result = await addListAccessByEmail(prisma, {
     actorUserId: session.user.id,
     listId,
     email,
     role: role as ListAccessByEmailRole,
   });
+
+  if (result.status !== "added") {
+    return { status: "error", message: ADD_LIST_ACCESS_BY_EMAIL_ERROR_MESSAGE[result.status] };
+  }
+
   revalidatePath(listPath(workspaceId, listId));
+  return { status: "ok" };
 }
 
 const MOVE_LIST_ROLE_ERROR_MESSAGE = {

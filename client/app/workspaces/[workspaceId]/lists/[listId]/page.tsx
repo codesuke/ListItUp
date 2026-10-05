@@ -39,6 +39,8 @@ import {
   updateListDescriptionAction,
 } from "./actions";
 import type { ListRoleActionResult } from "./actions";
+import { AddListAccessByEmailForm } from "./AddListAccessByEmailForm";
+import { AddListMemberForm } from "./AddListMemberForm";
 import { BoardView } from "./BoardView";
 import { CalendarView } from "./CalendarView";
 import { DashboardTab } from "./DashboardTab";
@@ -128,9 +130,9 @@ function OverviewTab({
   data: ListPageData;
   currentUserId: string;
   boundUpdateDescription: (formData: FormData) => Promise<void>;
-  boundAddMember: (formData: FormData) => Promise<void>;
+  boundAddMember: (prevState: ListRoleActionResult, formData: FormData) => Promise<ListRoleActionResult>;
   boundRemoveMember: (userId: string) => Promise<ListRoleActionResult>;
-  boundAddByEmail: (formData: FormData) => Promise<void>;
+  boundAddByEmail: (prevState: ListRoleActionResult, formData: FormData) => Promise<ListRoleActionResult>;
   boundRevokeGuest: (userId: string) => Promise<void>;
   boundMoveRole: (userId: string, toRole: string) => Promise<ListRoleActionResult>;
   boundPromoteToLead: (userId: string) => Promise<ListRoleActionResult>;
@@ -173,57 +175,10 @@ function OverviewTab({
           <div className="mb-3 text-[12px] font-medium uppercase tracking-wide text-ink-muted">Manage Access</div>
           <div className="flex flex-wrap items-center gap-6">
             {data.eligibleMembers.length > 0 && (
-              <form action={boundAddMember} className="flex items-center gap-2">
-                <select
-                  name="userId"
-                  required
-                  defaultValue=""
-                  className="h-9 w-44 truncate rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink"
-                >
-                  <option value="" disabled>
-                    Add member
-                  </option>
-                  {data.eligibleMembers.map((member) => (
-                    <option key={member.userId} value={member.userId}>
-                      {member.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  name="role"
-                  defaultValue="MEMBER"
-                  className="h-9 w-28 rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink"
-                >
-                  <option value="MEMBER">Member</option>
-                  <option value="VIEWER">Viewer</option>
-                </select>
-                <button type="submit" className={`h-9 shrink-0 ${ADD_BUTTON_SECONDARY}`}>
-                  Add
-                </button>
-              </form>
+              <AddListMemberForm eligibleMembers={data.eligibleMembers} boundAddMember={boundAddMember} />
             )}
 
-            <form action={boundAddByEmail} className="flex items-center gap-2">
-              <input
-                type="email"
-                name="email"
-                required
-                placeholder="Add by email"
-                className="h-9 w-56 rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b4a]"
-              />
-              <select
-                name="role"
-                defaultValue="GUEST"
-                className="h-9 w-28 rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink"
-              >
-                <option value="MEMBER">Member</option>
-                <option value="VIEWER">Viewer</option>
-                <option value="GUEST">Guest</option>
-              </select>
-              <button type="submit" className={`h-9 shrink-0 ${ADD_BUTTON_SECONDARY}`}>
-                Add
-              </button>
-            </form>
+            <AddListAccessByEmailForm boundAddByEmail={boundAddByEmail} />
           </div>
         </div>
       )}

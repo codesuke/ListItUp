@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
 
-import type { ListMemberRole, Prisma, PrismaClient } from "@/generated/prisma/client";
+import type { ListMemberRole, Prisma, PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
 import { meetsListAccessLevel, resolveListAccess } from "@/lib/permissions/list-access";
 
 export type AddListMemberResult =
   | { status: "added" }
   | { status: "list-not-found" }
   | { status: "forbidden" }
-  | { status: "user-lacks-workspace-membership" };
+  | { status: "user-lacks-workspace-membership" }
+  | { status: "viewer-ceiling" };
 
 export type RemoveListMemberResult =
   | { status: "removed" }
@@ -20,7 +21,8 @@ export type ChangeListMemberRoleResult =
   | { status: "list-not-found" }
   | { status: "forbidden" }
   | { status: "member-not-found" }
-  | { status: "last-lead" };
+  | { status: "last-lead" }
+  | { status: "viewer-ceiling" };
 
 // A List Lead or the Workspace Owner (implicit Lead-equivalent access) can
 // add/remove a List-level Member or Viewer (#28), or change an existing
@@ -28,6 +30,12 @@ export type ChangeListMemberRoleResult =
 // implicit access (ADR 0016) and can only act once given an explicit List
 // role of their own.
 const REQUIRED_ACCESS_LEVEL = "LEAD";
+
+// A Workspace Viewer is a permission ceiling: they can only ever hold the
+// List Viewer role, never Lead or Member (#96).
+function exceedsViewerCeiling(workspaceRole: WorkspaceRole | undefined, role: ListMemberRole): boolean {
+  return workspaceRole === "VIEWER" && role !== "VIEWER";
+}
 
 // Locks the List row so a check-then-write against its Lead count
 // serializes against any other concurrent change to the same List's Leads
@@ -82,6 +90,10 @@ export async function addListMember(
 
   if (!workspaceMembership) {
     return { status: "user-lacks-workspace-membership" };
+  }
+
+  if (exceedsViewerCeiling(workspaceMembership.role, role)) {
+    return { status: "viewer-ceiling" };
   }
 
   const existingMembership = await database.listMember.findUnique({
@@ -151,6 +163,13 @@ export async function changeListMemberRole(
   const access = await resolveListAccess(database, { userId: actorUserId, listId });
   if (!meetsListAccessLevel(access, REQUIRED_ACCESS_LEVEL)) {
     return { status: "forbidden" };
+  }
+
+  const workspaceMembership = await database.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId: list.workspaceId, userId } },
+  });
+  if (exceedsViewerCeiling(workspaceMembership?.role, role)) {
+    return { status: "viewer-ceiling" };
   }
 
   return database.$transaction(async (tx) => {
