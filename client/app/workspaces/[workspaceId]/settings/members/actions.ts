@@ -1,16 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { normalizeEmail } from "@/lib/auth/normalize-email";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 import { mailer } from "@/lib/mailer/mailer";
+import { resolveDefaultWorkspaceId } from "@/lib/workspace/default-workspace";
 import {
   createInvitation,
   resendInvitation,
   revokeInvitation,
 } from "@/lib/workspace/workspace-invitations";
+import { leaveWorkspace, removeWorkspaceMember } from "@/lib/workspace/workspace-membership";
 import { updateWorkspaceMemberRole } from "@/lib/workspace/workspace-member-roles";
 import {
   createRedisWorkspaceInvitationRateLimiter,
@@ -153,6 +156,85 @@ export async function updateMemberRoleAction(
   revalidatePath(membersPath(workspaceId));
 
   return { status: "idle" };
+}
+
+export type RemoveMemberState =
+  | { status: "idle" }
+  | { status: "error"; message: string };
+
+const REMOVE_MEMBER_ERROR_MESSAGE = {
+  forbidden: "Only the Workspace Owner or an Admin can remove members.",
+  "not-found": "That person is no longer a member of this Workspace.",
+  "cannot-remove-owner": "The Workspace Owner can't be removed.",
+} as const;
+
+// prevState/formData are unused: the Remove control is a bare button with
+// no form fields, but useActionState requires this exact signature shape
+// (see resendInvitationAction above).
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export async function removeMemberAction(
+  workspaceId: string,
+  targetUserId: string,
+  _prevState: RemoveMemberState,
+  _formData: FormData
+): Promise<RemoveMemberState> {
+  /* eslint-enable @typescript-eslint/no-unused-vars */
+  const session = await requireAuthenticatedSession(membersPath(workspaceId));
+
+  const result = await removeWorkspaceMember(prisma, {
+    actingUserId: session.user.id,
+    workspaceId,
+    targetUserId,
+  });
+
+  if (result.status === "sole-lead-block") {
+    return { status: "error", message: soleLeadBlockMessage(result.count) };
+  }
+
+  if (result.status !== "removed") {
+    return { status: "error", message: REMOVE_MEMBER_ERROR_MESSAGE[result.status] };
+  }
+
+  revalidatePath(membersPath(workspaceId));
+
+  return { status: "idle" };
+}
+
+export type LeaveWorkspaceState =
+  | { status: "idle" }
+  | { status: "error"; message: string };
+
+const LEAVE_WORKSPACE_ERROR_MESSAGE = {
+  "not-found": "You're not a member of this Workspace.",
+  "owner-must-transfer-first": "Transfer ownership before leaving this Workspace.",
+} as const;
+
+// prevState/formData are unused: the Leave control is a bare button with no
+// form fields, but useActionState requires this exact signature shape (see
+// resendInvitationAction above).
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export async function leaveWorkspaceAction(
+  workspaceId: string,
+  _prevState: LeaveWorkspaceState,
+  _formData: FormData
+): Promise<LeaveWorkspaceState> {
+  /* eslint-enable @typescript-eslint/no-unused-vars */
+  const session = await requireAuthenticatedSession(membersPath(workspaceId));
+
+  const result = await leaveWorkspace(prisma, { workspaceId, userId: session.user.id });
+
+  if (result.status === "sole-lead-block") {
+    return { status: "error", message: soleLeadBlockMessage(result.count) };
+  }
+
+  if (result.status !== "left") {
+    return { status: "error", message: LEAVE_WORKSPACE_ERROR_MESSAGE[result.status] };
+  }
+
+  revalidatePath("/workspaces", "layout");
+
+  const defaultWorkspaceId = await resolveDefaultWorkspaceId(prisma, session.user.id);
+  redirect(defaultWorkspaceId ? `/workspaces/${defaultWorkspaceId}` : "/");
 }
 
 export type RevokeInvitationState =
