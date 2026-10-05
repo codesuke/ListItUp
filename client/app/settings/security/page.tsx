@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth/auth";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
+import { DeleteAccountSettings } from "./DeleteAccountSettings";
 import { EmailSettings } from "./EmailSettings";
 import { PasswordSettings } from "./PasswordSettings";
 import { SessionsList, type SessionSummary } from "./SessionsList";
@@ -62,6 +63,13 @@ export default async function SecuritySettingsPage() {
           <TwoFactorSettings
             twoFactorEnabled={Boolean(session.user.twoFactorEnabled)}
           />
+        </section>
+
+        <section className="mt-10 border-t border-surface-3 pt-10">
+          <h2 className="mb-4 text-lg font-light text-destructive">
+            Danger zone
+          </h2>
+          <DeleteAccountSettings currentEmail={session.user.email} />
         </section>
       </div>
     </main>

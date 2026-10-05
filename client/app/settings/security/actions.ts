@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { APIError } from "better-auth";
 import QRCode from "qrcode";
 
+import { deleteAccount } from "@/lib/auth/account-deletion";
 import { auth, securityAlertService } from "@/lib/auth/auth";
 import { VERIFICATION_TOKEN_EXPIRES_IN_HOURS } from "@/lib/auth/auth-config";
 import { getAuthSecret } from "@/lib/auth/auth-secret";
@@ -438,4 +439,41 @@ export async function regenerateBackupCodesAction(
 
     throw error;
   }
+}
+
+export type DeleteAccountState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "sole-lead-block"; count: number };
+
+// A typed-confirmation safeguard (retyping the account's own email) guards
+// against an accidental submit; the authenticated session is the actual
+// authorization boundary, the same as the as-yet-unbuilt leave/remove-member
+// flows this reuses the sole-Lead block from (#98). Deletion must not rely
+// on the cascade that deletes the User's List rows — deleteAccount checks
+// and deletes in one locked transaction (List Lead Rules spec, #100).
+export async function deleteAccountAction(
+  _prevState: DeleteAccountState,
+  formData: FormData
+): Promise<DeleteAccountState> {
+  const confirmationEmail = normalizeEmail(formData.get("confirmationEmail"));
+
+  const requestHeaders = await headers();
+  const session = await auth.api.getSession({ headers: requestHeaders });
+  if (!session) {
+    return { status: "error", message: "Your session has expired. Sign in again." };
+  }
+
+  if (confirmationEmail !== normalizeEmail(session.user.email)) {
+    return { status: "error", message: "Type your account email to confirm." };
+  }
+
+  const result = await deleteAccount(prisma, { userId: session.user.id });
+
+  if (result.status === "sole-lead-block") {
+    return { status: "sole-lead-block", count: result.count };
+  }
+
+  await auth.api.signOut({ headers: requestHeaders });
+  redirect("/sign-in");
 }

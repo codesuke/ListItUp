@@ -66,22 +66,28 @@ export async function lockAndInspectListMember(
   return { currentRole, isLastLead: remainingLeads === 0 };
 }
 
-// Locks every List in the Workspace where the User holds an explicit Lead
-// row, then counts how many of those Lists have no other Lead — the
-// invariant shared by Workspace removal, leaving, demotion to Viewer and
-// account deletion (#98, #99): none of those may strand a List. Must run
-// inside the transaction that performs the guarded write, before any other
-// read in that transaction, for the same race-serialization reason as
+// Locks every List where the User holds an explicit Lead row — one
+// Workspace's worth when `workspaceId` is given, every Workspace the User
+// belongs to when it's omitted (account deletion, #100) — then counts how
+// many of those Lists have no other Lead. The invariant shared by Workspace
+// removal, leaving, demotion to Viewer and account deletion (#98, #99,
+// #100): none of those may strand a List. Must run inside the transaction
+// that performs the guarded write, before any other read in that
+// transaction, for the same race-serialization reason as
 // lockAndInspectListMember. Only the count is ever surfaced to the UI, never
 // List names or identities (per the List Lead Rules spec).
 export async function lockAndCountSoleLeadLists(
   tx: Prisma.TransactionClient,
-  input: { workspaceId: string; userId: string }
+  input: { userId: string; workspaceId?: string }
 ): Promise<number> {
   const { workspaceId, userId } = input;
 
   const ledLists = await tx.listMember.findMany({
-    where: { userId, role: "LEAD", list: { workspaceId } },
+    where: {
+      userId,
+      role: "LEAD",
+      ...(workspaceId ? { list: { workspaceId } } : {}),
+    },
     select: { listId: true },
   });
   if (ledLists.length === 0) {
