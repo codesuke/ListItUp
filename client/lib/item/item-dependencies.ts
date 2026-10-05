@@ -17,7 +17,7 @@ export type RemoveDependencyResult =
   | { status: "dependency-not-found" }
   | { status: "forbidden" };
 
-// A List Member, Lead, or Workspace Admin/Owner with access to BOTH Items
+// A List Member, Lead, or the Workspace Owner, with access to BOTH Items
 // can create/remove a Dependency between them, including across different
 // Lists (#35). Purely informational: neither function ever touches
 // either Item's state.

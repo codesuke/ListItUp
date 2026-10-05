@@ -16,7 +16,7 @@ export type RemoveLabelResult =
   | { status: "item-not-found" }
   | { status: "forbidden" };
 
-// Any List Member, Lead, or Workspace Admin/Owner with Item access can
+// Any List Member, Lead, or the Workspace Owner, with Item access can
 // apply/remove a Label — not gated by Label-creation rights (#34).
 const REQUIRED_ACCESS_LEVEL = "WRITE";
 

@@ -14,7 +14,7 @@ export type TransitionItemStateResult =
   | { status: "forbidden" }
   | { status: "blocker-reason-required" };
 
-// A List Member, Lead, or Workspace Admin/Owner can update/transition an
+// A List Member, Lead, or the Workspace Owner can update/transition an
 // Item; a List Viewer or Guest cannot (#30). Any single Assignee who is
 // also at least a List Member can transition to COMPLETE on their own —
 // there is no multi-Assignee consensus mechanism to bypass, so this is the

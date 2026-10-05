@@ -4,7 +4,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import { resolveItemAccess } from "@/lib/permissions/item-access";
 import { meetsListAccessLevel } from "@/lib/permissions/list-access";
 
-// A List Member, Lead, or Workspace Admin/Owner with write access to the
+// A List Member, Lead, or the Workspace Owner, with write access to the
 // Item can attach a file to it (#39). This module only ever handles
 // metadata + storageKey — the actual upload transport lives in the Route
 // Handler that calls createAttachment once the bytes are already in

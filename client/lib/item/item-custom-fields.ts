@@ -12,8 +12,8 @@ export type SetCustomFieldValueResult =
   | { status: "definition-not-in-list" }
   | { status: "invalid-value" };
 
-// Any List Member, Lead, or Workspace Admin/Owner with Item access can set
-// a Custom Field's value — defining the field itself is Lead/Admin-only
+// Any List Member, Lead, or the Workspace Owner, with Item access can set
+// a Custom Field's value — defining the field itself is Lead-only
 // (lib/list/list-custom-fields.ts), but setting a value is not (#34).
 const REQUIRED_ACCESS_LEVEL = "WRITE";
 

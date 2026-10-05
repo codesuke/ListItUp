@@ -17,8 +17,9 @@ export type UpdateCustomFieldDefinitionResult =
   | { status: "forbidden" }
   | { status: "dropdown-requires-options" };
 
-// A List Lead or Workspace Admin/Owner can define/update Custom Fields on
-// a List (#34).
+// A List Lead or the Workspace Owner (implicit Lead-equivalent access) can
+// define/update Custom Fields on a List (#34). A Workspace Admin has no
+// implicit access (ADR 0016) unless explicitly given a List role.
 const REQUIRED_ACCESS_LEVEL = "LEAD";
 
 const VALID_TYPES: readonly CustomFieldType[] = ["TEXT", "NUMBER", "DROPDOWN", "DATE"];

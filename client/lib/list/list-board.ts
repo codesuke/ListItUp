@@ -140,7 +140,7 @@ export type SetBoardGroupByResult =
   | { status: "forbidden" }
   | { status: "invalid-group-by" };
 
-// A List Lead, List Member, or Workspace Admin/Owner can change the
+// A List Lead, List Member, or the Workspace Owner can change the
 // Board's grouping — same threshold as Section management and the List
 // view's own "Add Rule" (#29).
 const REQUIRED_ACCESS_LEVEL = "WRITE";

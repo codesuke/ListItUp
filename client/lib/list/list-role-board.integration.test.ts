@@ -47,11 +47,49 @@ async function run() {
   }
 
   try {
-    // A Workspace Admin can drag a List Member into the Viewer column.
+    // A Workspace Admin with no List row cannot drag at all (ADR 0016: no
+    // implicit List access for Admins).
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const adminId = await createUser();
       await addWorkspaceMember(workspaceId, adminId, "ADMIN");
+      const targetId = await createUser();
+      await addWorkspaceMember(workspaceId, targetId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: targetId, role: "MEMBER" } });
+
+      const result = await moveListRoleAssignment(prisma, { actorUserId: adminId, listId, userId: targetId, toRole: "VIEWER" });
+
+      assert.deepEqual(result, { status: "forbidden" });
+      const membership = await prisma.listMember.findUnique({ where: { listId_userId: { listId, userId: targetId } } });
+      assert.equal(membership?.role, "MEMBER", "the target's role must remain unchanged");
+    }
+
+    // A List Lead can drag a List Member into the Viewer column — the
+    // drag board is gated at the same LEAD threshold as the Roles panel's
+    // other controls.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createUser();
+      await addWorkspaceMember(workspaceId, leadId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: leadId, role: "LEAD" } });
+      const targetId = await createUser();
+      await addWorkspaceMember(workspaceId, targetId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: targetId, role: "MEMBER" } });
+
+      const result = await moveListRoleAssignment(prisma, { actorUserId: leadId, listId, userId: targetId, toRole: "VIEWER" });
+
+      assert.deepEqual(result, { status: "moved" });
+      const membership = await prisma.listMember.findUnique({ where: { listId_userId: { listId, userId: targetId } } });
+      assert.equal(membership?.role, "VIEWER");
+    }
+
+    // An Admin explicitly added to the List as a Lead can drag like any
+    // other Lead.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const adminId = await createUser();
+      await addWorkspaceMember(workspaceId, adminId, "ADMIN");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: adminId, role: "LEAD" } });
       const targetId = await createUser();
       await addWorkspaceMember(workspaceId, targetId, "MEMBER");
       await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: targetId, role: "MEMBER" } });
@@ -112,13 +150,14 @@ async function run() {
     // Member column removes the Guest grant and adds a List Member row.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
-      const adminId = await createUser();
-      await addWorkspaceMember(workspaceId, adminId, "ADMIN");
+      const leadId = await createUser();
+      await addWorkspaceMember(workspaceId, leadId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: leadId, role: "LEAD" } });
       const targetId = await createUser();
       await addWorkspaceMember(workspaceId, targetId, "MEMBER");
       await prisma.guest.create({ data: { id: randomUUID(), listId, userId: targetId } });
 
-      const result = await moveListRoleAssignment(prisma, { actorUserId: adminId, listId, userId: targetId, toRole: "MEMBER" });
+      const result = await moveListRoleAssignment(prisma, { actorUserId: leadId, listId, userId: targetId, toRole: "MEMBER" });
 
       assert.deepEqual(result, { status: "moved" });
       const guest = await prisma.guest.findUnique({ where: { listId_userId: { listId, userId: targetId } } });
@@ -131,30 +170,30 @@ async function run() {
     // is rejected, and the existing Guest grant is left untouched.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
-      const adminId = await createUser();
-      await addWorkspaceMember(workspaceId, adminId, "ADMIN");
+      const leadId = await createUser();
+      await addWorkspaceMember(workspaceId, leadId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: leadId, role: "LEAD" } });
       const outsiderId = await createUser();
       await prisma.guest.create({ data: { id: randomUUID(), listId, userId: outsiderId } });
 
-      const result = await moveListRoleAssignment(prisma, { actorUserId: adminId, listId, userId: outsiderId, toRole: "MEMBER" });
+      const result = await moveListRoleAssignment(prisma, { actorUserId: leadId, listId, userId: outsiderId, toRole: "MEMBER" });
 
       assert.deepEqual(result, { status: "user-lacks-workspace-membership" });
       const guest = await prisma.guest.findUnique({ where: { listId_userId: { listId, userId: outsiderId } } });
       assert.ok(guest, "the existing Guest grant must remain untouched");
     }
 
-    // A List Lead (not a Workspace Owner/Admin) cannot drag — this board
-    // is scoped tighter than the panel's other Lead-level controls.
+    // A List Member (below the LEAD threshold) cannot drag.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
-      const leadId = await createUser();
-      await addWorkspaceMember(workspaceId, leadId, "MEMBER");
-      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: leadId, role: "LEAD" } });
+      const memberId = await createUser();
+      await addWorkspaceMember(workspaceId, memberId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: memberId, role: "MEMBER" } });
       const targetId = await createUser();
       await addWorkspaceMember(workspaceId, targetId, "MEMBER");
       await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: targetId, role: "MEMBER" } });
 
-      const result = await moveListRoleAssignment(prisma, { actorUserId: leadId, listId, userId: targetId, toRole: "VIEWER" });
+      const result = await moveListRoleAssignment(prisma, { actorUserId: memberId, listId, userId: targetId, toRole: "VIEWER" });
 
       assert.deepEqual(result, { status: "forbidden" });
       const membership = await prisma.listMember.findUnique({ where: { listId_userId: { listId, userId: targetId } } });

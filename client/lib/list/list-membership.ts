@@ -22,9 +22,11 @@ export type ChangeListMemberRoleResult =
   | { status: "member-not-found" }
   | { status: "last-lead" };
 
-// A List Lead or Workspace Admin/Owner can add/remove a List-level Member
-// or Viewer (#28), or change an existing member's role between Lead/Member/
-// Viewer (#95).
+// A List Lead or the Workspace Owner (implicit Lead-equivalent access) can
+// add/remove a List-level Member or Viewer (#28), or change an existing
+// member's role between Lead/Member/Viewer (#95). A Workspace Admin has no
+// implicit access (ADR 0016) and can only act once given an explicit List
+// role of their own.
 const REQUIRED_ACCESS_LEVEL = "LEAD";
 
 // Locks the List row so a check-then-write against its Lead count

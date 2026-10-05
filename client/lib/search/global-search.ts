@@ -37,9 +37,9 @@ const RESULTS_PER_CATEGORY = 5;
 const EMPTY_RESULT: GlobalSearchResult = { lists: [], items: [], members: [] };
 
 // Mirrors lib/list/list-browsing.ts#browseLists' visibility rule exactly
-// (settled in the same QnA session, question 10): Workspace Owner/Admin
-// see every List; everyone else only Lists they're an explicit Member or
-// Guest of.
+// (ADR 0016, which updated the original QnA session's question 10): the
+// Workspace Owner sees every List; everyone else, including an Admin,
+// only Lists they're an explicit Member or Guest of.
 function buildListVisibilityFilter(canSeeEveryList: boolean, userId: string): Prisma.ListWhereInput {
   return canSeeEveryList ? {} : { OR: [{ members: { some: { userId } } }, { guests: { some: { userId } } }] };
 }
@@ -70,7 +70,7 @@ export async function globalSearch(
     return EMPTY_RESULT;
   }
 
-  const canSeeEveryList = workspaceMembership.role === "OWNER" || workspaceMembership.role === "ADMIN";
+  const canSeeEveryList = workspaceMembership.role === "OWNER";
   const listVisibilityFilter = buildListVisibilityFilter(canSeeEveryList, userId);
 
   const [lists, items, members] = await Promise.all([

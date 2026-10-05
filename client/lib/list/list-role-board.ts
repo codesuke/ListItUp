@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { ListMemberRole, PrismaClient } from "@/generated/prisma/client";
 import { lockAndInspectListMember } from "@/lib/list/list-membership";
-import { resolveListAccess } from "@/lib/permissions/list-access";
+import { meetsListAccessLevel, resolveListAccess } from "@/lib/permissions/list-access";
 
 export type ListRoleBoardRole = ListMemberRole | "GUEST";
 
@@ -14,11 +14,11 @@ export type MoveListRoleAssignmentResult =
   | { status: "last-lead" };
 
 // The Overview tab's Roles kanban lets a drag move a person straight
-// between List Lead/Member/Viewer and Guest. Scoped to Workspace
-// Owner/Admin (ListAccessLevel "ADMIN") rather than the "LEAD" threshold
-// the rest of the Roles panel uses — dragging is a coarser, faster-to-fat-
-// finger action than the panel's per-row Add/Remove controls.
-const REQUIRED_ACCESS_LEVEL = "ADMIN";
+// between List Lead/Member/Viewer and Guest. Gated at the same "LEAD"
+// threshold as the rest of the Roles panel's per-row Add/Remove controls
+// (ADR 0016 removed the separate, stricter Owner/Admin-only "ADMIN" access
+// level this used to be scoped to).
+const REQUIRED_ACCESS_LEVEL = "LEAD";
 
 export async function moveListRoleAssignment(
   database: PrismaClient,
@@ -32,7 +32,7 @@ export async function moveListRoleAssignment(
   }
 
   const access = await resolveListAccess(database, { userId: actorUserId, listId });
-  if (access !== REQUIRED_ACCESS_LEVEL) {
+  if (!meetsListAccessLevel(access, REQUIRED_ACCESS_LEVEL)) {
     return { status: "forbidden" };
   }
 

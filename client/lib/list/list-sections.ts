@@ -35,7 +35,7 @@ export type SetListGroupByResult =
   | { status: "forbidden" }
   | { status: "invalid-group-by" };
 
-// A List Lead, List Member, or Workspace Admin/Owner can manage Sections
+// A List Lead, List Member, or the Workspace Owner can manage Sections
 // and the List view's grouping (#29) — a List Viewer or Guest cannot.
 const REQUIRED_ACCESS_LEVEL = "WRITE";
 

@@ -65,24 +65,38 @@ async function run() {
   }
 
   try {
-    // Workspace Owner: implicit ADMIN access, no explicit List role needed.
+    // Workspace Owner: implicit Lead-equivalent access, no explicit List
+    // role needed (ADR 0016).
     {
       const workspaceId = await createWorkspace();
       const userId = await createUser();
       await addWorkspaceMember(workspaceId, userId, "OWNER");
       const listId = await createListIn(workspaceId);
 
-      assert.equal(await resolveListAccess(prisma, { userId, listId }), "ADMIN");
+      assert.equal(await resolveListAccess(prisma, { userId, listId }), "LEAD");
     }
 
-    // Workspace Admin: implicit ADMIN access, no explicit List role needed.
+    // Workspace Admin with no List row: NONE — no implicit List access
+    // (ADR 0016; supersedes the Admin half of ADR 0009).
     {
       const workspaceId = await createWorkspace();
       const userId = await createUser();
       await addWorkspaceMember(workspaceId, userId, "ADMIN");
       const listId = await createListIn(workspaceId);
 
-      assert.equal(await resolveListAccess(prisma, { userId, listId }), "ADMIN");
+      assert.equal(await resolveListAccess(prisma, { userId, listId }), "NONE");
+    }
+
+    // Workspace Admin explicitly added to the List: their List-level role
+    // applies normally, same as any other Member.
+    {
+      const workspaceId = await createWorkspace();
+      const userId = await createUser();
+      await addWorkspaceMember(workspaceId, userId, "ADMIN");
+      const listId = await createListIn(workspaceId);
+      await addListMember(listId, userId, "LEAD");
+
+      assert.equal(await resolveListAccess(prisma, { userId, listId }), "LEAD");
     }
 
     // Workspace Member with no List role: NONE — Lists are private by default.
@@ -201,6 +215,7 @@ async function run() {
       await addWorkspaceMember(workspaceId, owner, "OWNER");
       const admin = await createUser();
       await addWorkspaceMember(workspaceId, admin, "ADMIN");
+      await addListMember(listId, admin, "MEMBER");
       const lead = await createUser();
       await addWorkspaceMember(workspaceId, lead, "MEMBER");
       await addListMember(listId, lead, "LEAD");
@@ -221,8 +236,10 @@ async function run() {
       await addGuest(listId, guest);
       const unassignedMember = await createUser();
       await addWorkspaceMember(workspaceId, unassignedMember, "MEMBER");
+      const unassignedAdmin = await createUser();
+      await addWorkspaceMember(workspaceId, unassignedAdmin, "ADMIN");
       const stranger = await createUser();
-      for (const userId of [guest, unassignedMember, stranger]) {
+      for (const userId of [guest, unassignedMember, unassignedAdmin, stranger]) {
         assert.equal(await canExportList(prisma, { userId, listId }), false, `expected ${userId} to be refused`);
       }
       assert.equal(await canExportList(prisma, { userId: owner, listId: randomUUID() }), false);
@@ -238,7 +255,7 @@ async function run() {
       const listAId = await createListIn(workspaceAId);
       const listBId = await createListIn(workspaceBId);
 
-      assert.equal(await resolveListAccess(prisma, { userId, listId: listAId }), "ADMIN");
+      assert.equal(await resolveListAccess(prisma, { userId, listId: listAId }), "LEAD");
       assert.equal(await resolveListAccess(prisma, { userId, listId: listBId }), "NONE");
     }
 

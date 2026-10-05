@@ -37,7 +37,7 @@ const EMAIL_ADDABLE_ROLES: readonly ListAccessByEmailRole[] = ["MEMBER", "VIEWER
 
 // The Roles kanban can drag a person into any of the four columns, Lead
 // included — unlike the two role selectors above, this interaction is
-// scoped to Workspace Owner/Admin by moveListRoleAssignment itself, so a
+// gated at the LEAD threshold by moveListRoleAssignment itself, so a
 // coarser, full set of destinations is safe to expose.
 const DRAGGABLE_ROLES: readonly ListRoleBoardRole[] = ["LEAD", "MEMBER", "VIEWER", "GUEST"];
 
@@ -202,8 +202,9 @@ const MOVE_LIST_ROLE_ERROR_MESSAGE = {
   "last-lead": LAST_LEAD_MESSAGE,
 } as const;
 
-// The Roles kanban's drag-and-drop (Workspace Owner/Admin only — enforced
-// in moveListRoleAssignment itself, not just by hiding the drag handle).
+// The Roles kanban's drag-and-drop (LEAD threshold, same as the panel's
+// other controls — enforced in moveListRoleAssignment itself, not just by
+// hiding the drag handle).
 export async function moveListRoleAssignmentAction(
   workspaceId: string,
   listId: string,

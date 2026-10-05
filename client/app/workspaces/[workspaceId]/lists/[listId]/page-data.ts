@@ -123,9 +123,11 @@ export type ListPageData = {
     completionHeatmap: HeatmapCell[][];
     contributionMap: ContributionEntry[];
     attentionImbalance: AttentionImbalanceEntry[];
-    // Off by default; only a Workspace Owner/Admin (canTogglePeerComparison)
-    // can flip it, and it governs whether Contribution Map/Attention
-    // Imbalance above show every List Member or just the viewer (#58).
+    // Off by default; only a Workspace Owner/Admin (canTogglePeerComparison,
+    // a Workspace-level permission — see lib/workspace/workspace-peer-
+    // comparison.ts — independent of the viewer's List-level access) can
+    // flip it, and it governs whether Contribution Map/Attention Imbalance
+    // above show every List Member or just the viewer (#58).
     peerComparisonEnabled: boolean;
     canTogglePeerComparison: boolean;
   };
@@ -183,6 +185,8 @@ export async function loadListPageData(
   const archivedItems = allItems
     .filter((item) => item.state === "ARCHIVED")
     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+  const actorWorkspaceRole = workspaceMembers.find((member) => member.userId === userId)?.role;
 
   const existingListRoleUserIds = new Set(
     [...roles.leads, ...roles.members, ...roles.viewers].map((entry) => entry.userId)
@@ -288,7 +292,7 @@ export async function loadListPageData(
       ATTENTION_IMBALANCE_LIMIT
     ),
     peerComparisonEnabled: workspace.peerComparisonEnabled,
-    canTogglePeerComparison: access === "ADMIN",
+    canTogglePeerComparison: actorWorkspaceRole === "OWNER" || actorWorkspaceRole === "ADMIN",
   };
 
   const calendarMonthStart = parseCalendarMonth(calendarMonth, now);

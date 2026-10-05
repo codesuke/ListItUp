@@ -63,14 +63,44 @@ async function run() {
       assert.ok(guest);
     }
 
-    // A Workspace Admin can also grant Guest access.
+    // A Workspace Admin with no explicit List role cannot grant Guest
+    // access — Admins have no implicit List access (ADR 0016).
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const { userId: adminId } = await createUser();
       await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId, userId: adminId, role: "ADMIN" } });
+      const { email } = await createUser();
+
+      const result = await grantGuestAccess(prisma, { actorUserId: adminId, listId, email });
+      assert.deepEqual(result, { status: "forbidden" });
+    }
+
+    // A Workspace Admin explicitly added as List Lead can grant Guest
+    // access like any other Lead.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const { userId: adminId } = await createUser();
+      await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId, userId: adminId, role: "ADMIN" } });
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: adminId, role: "LEAD" } });
       const { userId: guestUserId, email } = await createUser();
 
       const result = await grantGuestAccess(prisma, { actorUserId: adminId, listId, email });
+      assert.deepEqual(result, { status: "granted" });
+      const guest = await prisma.guest.findUnique({
+        where: { listId_userId: { listId, userId: guestUserId } },
+      });
+      assert.ok(guest);
+    }
+
+    // The Workspace Owner can grant Guest access without an explicit List
+    // role (implicit Lead-equivalent access).
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const { userId: ownerId } = await createUser();
+      await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId, userId: ownerId, role: "OWNER" } });
+      const { userId: guestUserId, email } = await createUser();
+
+      const result = await grantGuestAccess(prisma, { actorUserId: ownerId, listId, email });
       assert.deepEqual(result, { status: "granted" });
       const guest = await prisma.guest.findUnique({
         where: { listId_userId: { listId, userId: guestUserId } },

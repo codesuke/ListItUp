@@ -71,8 +71,8 @@ async function run() {
       assert.equal(result.status, "created");
     }
 
-    // A Workspace Admin can also define a Custom Field, without an
-    // explicit List role.
+    // A Workspace Admin with no explicit List role is forbidden — Admins
+    // have no implicit List access (ADR 0016).
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const adminId = await createUser();
@@ -82,6 +82,39 @@ async function run() {
         actorUserId: adminId,
         listId,
         name: "Clearance (mm)",
+        type: "NUMBER",
+      });
+      assert.equal(result.status, "forbidden");
+    }
+
+    // A Workspace Admin explicitly added as List Lead can define a Custom
+    // Field like any other Lead.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const adminId = await createUser();
+      await addWorkspaceMember(workspaceId, adminId, "ADMIN");
+      await addListMember(listId, adminId, "LEAD");
+
+      const result = await createCustomFieldDefinition(prisma, {
+        actorUserId: adminId,
+        listId,
+        name: "Clearance (mm)",
+        type: "NUMBER",
+      });
+      assert.equal(result.status, "created");
+    }
+
+    // The Workspace Owner can define a Custom Field without an explicit
+    // List role (implicit Lead-equivalent access).
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const ownerId = await createUser();
+      await addWorkspaceMember(workspaceId, ownerId, "OWNER");
+
+      const result = await createCustomFieldDefinition(prisma, {
+        actorUserId: ownerId,
+        listId,
+        name: "Torque spec",
         type: "NUMBER",
       });
       assert.equal(result.status, "created");

@@ -15,7 +15,7 @@ export type RemoveAssigneeResult =
   | { status: "item-not-found" }
   | { status: "forbidden" };
 
-// A List Member, Lead, or Workspace Admin/Owner can change an Item's
+// A List Member, Lead, or the Workspace Owner can change an Item's
 // Assignees; a List Viewer or Guest cannot (#30). This never touches
 // creatorId — Creator attribution stays fixed as Assignees change.
 const REQUIRED_ACCESS_LEVEL = "WRITE";

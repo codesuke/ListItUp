@@ -10,7 +10,7 @@ export type CreateItemResult =
   | { status: "parent-not-found" }
   | { status: "parent-not-in-list" };
 
-// A List Member, Lead, or Workspace Admin/Owner can create an Item; a List
+// A List Member, Lead, or the Workspace Owner can create an Item; a List
 // Viewer or Guest cannot (#30).
 const REQUIRED_ACCESS_LEVEL = "WRITE";
 

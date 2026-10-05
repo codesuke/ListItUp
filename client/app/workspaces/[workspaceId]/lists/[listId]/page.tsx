@@ -137,10 +137,10 @@ function OverviewTab({
   boundStepDown: (userId: string) => Promise<ListRoleActionResult>;
 }) {
   const canManage = data.canEditDescription;
-  // Owner/Admin implicit access (ListAccessLevel "ADMIN") only — a List
-  // Lead can still add/remove roles via the controls below, just not drag
-  // them between columns.
-  const canDragRoles = data.access === "ADMIN";
+  // Same LEAD threshold as the Roles panel's other controls (ADR 0016
+  // removed the separate, stricter "ADMIN" access level this used to be
+  // scoped to).
+  const canDragRoles = canManage;
 
   return (
     <div className="mt-6 flex flex-col gap-10">

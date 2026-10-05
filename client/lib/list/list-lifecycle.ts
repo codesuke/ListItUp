@@ -28,8 +28,10 @@ export type UpdateListDescriptionResult =
   | { status: "list-not-found" }
   | { status: "forbidden" };
 
-// A List Lead or Workspace Admin/Owner can Archive/Restore/set Status/edit
-// Description (#26, #27).
+// A List Lead or the Workspace Owner (implicit Lead-equivalent access) can
+// Archive/Restore/set Status/edit Description (#26, #27). A Workspace
+// Admin has no implicit access (ADR 0016) unless explicitly given a List
+// role.
 const REQUIRED_ACCESS_LEVEL = "LEAD";
 
 export async function archiveList(

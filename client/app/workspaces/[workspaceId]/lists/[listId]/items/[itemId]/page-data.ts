@@ -26,7 +26,7 @@ export type ItemDetailData = {
   assignees: { userId: string; name: string }[];
   parent: { id: string; title: string } | null;
   children: { id: string; title: string; state: ItemState }[];
-  // >=WRITE: a List Member, Lead, or Workspace Admin/Owner can edit; a
+  // >=WRITE: a List Member, Lead, or the Workspace Owner can edit; a
   // List Viewer or Guest gets a read-only surface (#30).
   canEdit: boolean;
   sections: { id: string; name: string }[];

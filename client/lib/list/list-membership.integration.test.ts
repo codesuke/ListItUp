@@ -99,7 +99,8 @@ async function run() {
       assert.equal(membership, null);
     }
 
-    // A Workspace Admin (no explicit List role) can also add a Member.
+    // A Workspace Admin with no explicit List role is forbidden — Admins
+    // have no implicit List access (ADR 0016).
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const adminId = await createUser();
@@ -108,6 +109,33 @@ async function run() {
       await addWorkspaceMember(workspaceId, targetId, "MEMBER");
 
       const result = await addListMember(prisma, { actorUserId: adminId, listId, userId: targetId, role: "MEMBER" });
+      assert.deepEqual(result, { status: "forbidden" });
+    }
+
+    // A Workspace Admin explicitly added to the List as a Lead can add a
+    // Member like any other Lead.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const adminId = await createUser();
+      await addWorkspaceMember(workspaceId, adminId, "ADMIN");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: adminId, role: "LEAD" } });
+      const targetId = await createUser();
+      await addWorkspaceMember(workspaceId, targetId, "MEMBER");
+
+      const result = await addListMember(prisma, { actorUserId: adminId, listId, userId: targetId, role: "MEMBER" });
+      assert.deepEqual(result, { status: "added" });
+    }
+
+    // The Workspace Owner (implicit Lead-equivalent access, no List row)
+    // can add a Member too.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const ownerId = await createUser();
+      await addWorkspaceMember(workspaceId, ownerId, "OWNER");
+      const targetId = await createUser();
+      await addWorkspaceMember(workspaceId, targetId, "MEMBER");
+
+      const result = await addListMember(prisma, { actorUserId: ownerId, listId, userId: targetId, role: "MEMBER" });
       assert.deepEqual(result, { status: "added" });
     }
 
@@ -213,9 +241,12 @@ async function run() {
       assert.equal(membership?.role, "LEAD", "an existing Lead must never be silently demoted by an add");
     }
 
-    // Removing a List's only Lead is blocked, for a Lead, an Admin, and the
-    // Workspace Owner alike (#95).
-    for (const actorRole of ["LEAD", "ADMIN", "OWNER"] as const) {
+    // Removing a List's only Lead is blocked, for a Lead and the Workspace
+    // Owner alike (#95). A bare Admin isn't included here — with no
+    // implicit List access (ADR 0016) they're forbidden outright rather
+    // than reaching the last-Lead check; an Admin explicitly added as a
+    // Lead is already covered by the "LEAD" case below.
+    for (const actorRole of ["LEAD", "OWNER"] as const) {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const soleLeadId = await createListLead(workspaceId, listId);
 
@@ -230,6 +261,24 @@ async function run() {
       const result = await removeListMember(prisma, { actorUserId: actorId, listId, userId: soleLeadId });
 
       assert.deepEqual(result, { status: "last-lead" }, `a ${actorRole} actor must not remove the sole Lead`);
+      const membership = await prisma.listMember.findUnique({
+        where: { listId_userId: { listId, userId: soleLeadId } },
+      });
+      assert.equal(membership?.role, "LEAD", "the sole Lead must remain a List Lead");
+    }
+
+    // A bare Workspace Admin (no explicit List row) is forbidden outright
+    // when trying to remove a List's only Lead — not told "last-lead",
+    // since they have no access to the List at all (ADR 0016).
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const soleLeadId = await createListLead(workspaceId, listId);
+      const adminId = await createUser();
+      await addWorkspaceMember(workspaceId, adminId, "ADMIN");
+
+      const result = await removeListMember(prisma, { actorUserId: adminId, listId, userId: soleLeadId });
+
+      assert.deepEqual(result, { status: "forbidden" });
       const membership = await prisma.listMember.findUnique({
         where: { listId_userId: { listId, userId: soleLeadId } },
       });

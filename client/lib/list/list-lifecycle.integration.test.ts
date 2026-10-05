@@ -73,13 +73,37 @@ async function run() {
       assert.equal(list.archivedAt, null, "List must be restored");
     }
 
-    // A Workspace Admin can archive a List without an explicit List role.
+    // A Workspace Admin with no explicit List role cannot archive a List —
+    // Admins have no implicit List access (ADR 0016).
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const adminId = await createUser();
       await addWorkspaceMember(workspaceId, adminId, "ADMIN");
 
       const result = await archiveList(prisma, { userId: adminId, listId });
+      assert.deepEqual(result, { status: "forbidden" });
+    }
+
+    // A Workspace Admin explicitly added as List Lead can archive it like
+    // any other Lead.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const adminId = await createUser();
+      await addWorkspaceMember(workspaceId, adminId, "ADMIN");
+      await addListMember(listId, adminId, "LEAD");
+
+      const result = await archiveList(prisma, { userId: adminId, listId });
+      assert.deepEqual(result, { status: "archived" });
+    }
+
+    // The Workspace Owner can archive a List without an explicit List role
+    // (implicit Lead-equivalent access).
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const ownerId = await createUser();
+      await addWorkspaceMember(workspaceId, ownerId, "OWNER");
+
+      const result = await archiveList(prisma, { userId: ownerId, listId });
       assert.deepEqual(result, { status: "archived" });
     }
 
@@ -96,7 +120,8 @@ async function run() {
       assert.equal(list.archivedAt, null, "List must remain active");
     }
 
-    // A List Lead or Workspace Admin can set a List's Status.
+    // A List Lead (or the Workspace Owner's implicit access) can set a
+    // List's Status.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const leadId = await createUser();
@@ -133,7 +158,8 @@ async function run() {
       assert.deepEqual(result, { status: "forbidden" });
     }
 
-    // A List Lead or Workspace Admin can edit Description (#27).
+    // A List Lead (or the Workspace Owner's implicit access) can edit
+    // Description (#27).
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const leadId = await createUser();

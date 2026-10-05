@@ -25,10 +25,11 @@ export type BrowseListsInput = {
 };
 
 // Visibility here mirrors lib/permissions/'s resolveListAccess resolution
-// order (Workspace Owner/Admin see every List; everyone else only Lists
-// they're an explicit Member or Guest of) but as one set-based query rather
-// than one resolveListAccess() call per List, since the browsing page needs
-// to filter/search across a Workspace's full List set efficiently.
+// order (ADR 0016: the Workspace Owner sees every List; everyone else,
+// including an Admin, only Lists they're an explicit Member or Guest of)
+// but as one set-based query rather than one resolveListAccess() call per
+// List, since the browsing page needs to filter/search across a
+// Workspace's full List set efficiently.
 export async function browseLists(
   database: PrismaClient,
   input: BrowseListsInput
@@ -50,8 +51,7 @@ export async function browseLists(
     where: { workspaceId_userId: { workspaceId, userId } },
   });
 
-  const canSeeEveryList =
-    workspaceMembership?.role === "OWNER" || workspaceMembership?.role === "ADMIN";
+  const canSeeEveryList = workspaceMembership?.role === "OWNER";
 
   const visibilityFilter = canSeeEveryList
     ? {}

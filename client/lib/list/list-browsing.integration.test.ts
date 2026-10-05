@@ -78,6 +78,18 @@ async function run() {
       assert.deepEqual(ids, [listA, listB].sort());
     }
 
+    // A Workspace Admin with no explicit List row sees nothing — Admins
+    // have no implicit List access (ADR 0016).
+    {
+      const workspaceId = await createWorkspace();
+      const adminId = await createUser();
+      await addWorkspaceMember(workspaceId, adminId, "ADMIN");
+      await createList(workspaceId, { name: "Not Admin's" });
+
+      const results = await browseLists(prisma, { userId: adminId, workspaceId });
+      assert.deepEqual(results, []);
+    }
+
     // A Workspace Member only sees Lists they're explicitly a Member of.
     {
       const workspaceId = await createWorkspace();

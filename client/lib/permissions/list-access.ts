@@ -1,14 +1,16 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
-// The single resolution order settled by ADR 0009: Workspace Owner/Admin
-// implicit access -> Workspace Viewer ceiling -> explicit List-level role ->
-// Guest access -> no access. Every List-scoped authorization check in the
+// The single resolution order settled by ADR 0016 (superseding ADR 0009's
+// Admin half): Workspace Owner implicit Lead-equivalent access -> Workspace
+// Viewer ceiling -> explicit List-level role -> Guest access -> no access.
+// A Workspace Admin has no implicit access and falls through to their
+// explicit List role, if any. Every List-scoped authorization check in the
 // app should call resolveListAccess() rather than querying
 // WorkspaceMember/ListMember/Guest directly.
-export type ListAccessLevel = "NONE" | "READ" | "WRITE" | "LEAD" | "ADMIN";
+export type ListAccessLevel = "NONE" | "READ" | "WRITE" | "LEAD";
 
-const LEVEL_ORDER: ListAccessLevel[] = ["NONE", "READ", "WRITE", "LEAD", "ADMIN"];
+const LEVEL_ORDER: ListAccessLevel[] = ["NONE", "READ", "WRITE", "LEAD"];
 
 export function meetsListAccessLevel(
   level: ListAccessLevel,
@@ -35,7 +37,7 @@ export async function resolveListAccess(
   });
 
   // A Deleted Workspace is treated as nonexistent for every List-scoped
-  // check (#76) — Owner/Admin implicit access, explicit List roles, and
+  // check (#76) — the Owner's implicit access, explicit List roles, and
   // Guest grants all resolve to NONE rather than resolving normally.
   if (!list || isDeletedWorkspace(list.workspace)) {
     return "NONE";
@@ -49,10 +51,12 @@ export async function resolveListAccess(
     database.guest.findUnique({ where: { listId_userId: { listId, userId } } }),
   ]);
 
-  // Workspace Owner/Admin see every List in their Workspace, including
-  // private ones, regardless of any explicit List-level row.
-  if (workspaceMembership?.role === "OWNER" || workspaceMembership?.role === "ADMIN") {
-    return "ADMIN";
+  // The Workspace Owner sees every List in their Workspace, including
+  // private ones, with Lead-equivalent access regardless of any explicit
+  // List-level row (ADR 0016). A Workspace Admin has no such implicit
+  // access and falls through to their explicit List role below.
+  if (workspaceMembership?.role === "OWNER") {
+    return "LEAD";
   }
 
   let level: ListAccessLevel = listMembership

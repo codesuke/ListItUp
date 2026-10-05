@@ -41,10 +41,11 @@ function findEntry(roles: ListRoles, userId: string): { entry: ListRoleEntry; co
   return null;
 }
 
-// The Roles panel's kanban (Workspace Owner/Admin only): dragging a person
-// card between the Lead/Member/Viewer/Guest columns changes their List
-// access, reusing the same DraggableCard/DroppableColumn pick-up-and-drop
-// motion as the List Board (components/board/).
+// The Roles panel's kanban (List Lead threshold, same as the panel's other
+// controls): dragging a person card between the Lead/Member/Viewer/Guest
+// columns changes their List access, reusing the same DraggableCard/
+// DroppableColumn pick-up-and-drop motion as the List Board
+// (components/board/).
 export function OverviewRolesBoard({
   roles,
   currentUserId,

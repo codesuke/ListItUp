@@ -5,7 +5,7 @@ import { notifyNoteCreated } from "@/lib/notification/notification-triggers";
 import { resolveItemAccess } from "@/lib/permissions/item-access";
 import { meetsListAccessLevel } from "@/lib/permissions/list-access";
 
-// A List Member, Lead, or Workspace Admin/Owner with write access to the
+// A List Member, Lead, or the Workspace Owner, with write access to the
 // Item can add a Note to it (#37).
 const REQUIRED_ACCESS_LEVEL = "WRITE";
 

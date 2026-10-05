@@ -14,7 +14,9 @@ export type RevokeGuestAccessResult =
   | { status: "list-not-found" }
   | { status: "forbidden" };
 
-// A List Lead or Workspace Admin/Owner can grant/revoke Guest access (#28).
+// A List Lead or the Workspace Owner (implicit Lead-equivalent access) can
+// grant/revoke Guest access (#28). A Workspace Admin has no implicit
+// access (ADR 0016) unless explicitly given a List role.
 const REQUIRED_ACCESS_LEVEL = "LEAD";
 
 // Guest access is granted by email rather than userId: a Guest is, by
