@@ -18,6 +18,7 @@ const TEST_FILES = [
   "lib/list/list-starring.integration.test.ts",
   "lib/list/list-membership.integration.test.ts",
   "lib/list/list-roles.integration.test.ts",
+  "lib/list/list-role-migration.integration.test.ts",
   "lib/list/list-guests.integration.test.ts",
   "lib/list/list-access-by-email.integration.test.ts",
   "lib/list/list-role-board.integration.test.ts",
