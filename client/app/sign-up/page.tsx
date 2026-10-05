@@ -60,7 +60,7 @@ function SignUpContent() {
           label="Password"
           autoComplete="new-password"
           minLength={MIN_PASSWORD_LENGTH}
-          placeholder="At least 12 characters"
+          placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
           required
         />
 

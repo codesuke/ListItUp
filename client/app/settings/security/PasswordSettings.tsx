@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 import { LockKeyhole } from "lucide-react";
 
+import { MIN_PASSWORD_LENGTH } from "@/lib/auth/auth-config";
+
 import { changePasswordAction, type ChangePasswordState } from "./actions";
 
 const inputWrapperClass =
@@ -63,7 +65,7 @@ export function PasswordSettings() {
             name="newPassword"
             type="password"
             autoComplete="new-password"
-            minLength={12}
+            minLength={MIN_PASSWORD_LENGTH}
             required
             className={inputClass}
           />

@@ -30,7 +30,7 @@ SMTP support should be provider-neutral: Google SMTP can support low-volume deve
 12. As a User who forgot my password, I want to request a password reset email, so that I can recover access.
 13. As a User resetting my password, I want the reset link to be single-use and short-lived, so that recovery does not create a long-lived security risk.
 14. As a User with two-factor authentication enabled, I want password reset to keep my second-factor requirement, so that email access alone cannot bypass 2FA.
-15. As a User, I want to set a password with at least 12 characters and no arbitrary composition rules, so that passphrases and password managers work well.
+15. As a User, I want to set a password with at least 8 characters and no arbitrary composition rules, so that passphrases and password managers work well.
 16. As a User, I want to change my password from security settings, so that I can maintain account security.
 17. As a User, I want password or email changes to revoke active sessions, so that stale sessions cannot keep access after a sensitive change.
 18. As a User, I want to enable authenticator-app 2FA by scanning a QR code or entering a manual secret, so that I can secure my account.
@@ -67,7 +67,7 @@ SMTP support should be provider-neutral: Google SMTP can support low-volume deve
 - A successfully used magic link verifies the User's email automatically.
 - OAuth, when added later, must use provider-verified email identities, must not bypass enabled 2FA, and may link to an existing User only after that User is already authenticated.
 - Sign-up collects Display Name, Email, and Password only. Display Name is non-unique and editable later.
-- Passwords require at least 12 characters, with no composition rules, no forced rotation, and no breached-password check in the first release.
+- Passwords require at least 8 characters, with no composition rules, no forced rotation, and no breached-password check in the first release.
 - Unverified sign-ups remain available for 7 days. After that, ListItUp may expire or remove the pending identity when no product data exists.
 - Duplicate sign-up attempts do not reveal whether an email exists. Verified Users receive a useful sign-in or recovery path; unverified Users inside the retention window receive verification resend behavior subject to cooldown.
 - After first verified sign-in, ListItUp provisions the User's personal Workspace and Inbox List, then lands them in My Tasks.

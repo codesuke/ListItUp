@@ -23,7 +23,7 @@ function ResetPasswordContent() {
     <AuthPageShell
       kicker="Reset password"
       heroTitle="Choose a new password."
-      heroCopy="Use at least 12 characters. Any passphrase you'll remember works."
+      heroCopy={`Use at least ${MIN_PASSWORD_LENGTH} characters. Any passphrase you'll remember works.`}
     >
       <form action={formAction} className="grid gap-5">
         <input type="hidden" name="token" value={token} />
@@ -34,7 +34,7 @@ function ResetPasswordContent() {
           label="New password"
           autoComplete="new-password"
           minLength={MIN_PASSWORD_LENGTH}
-          placeholder="At least 12 characters"
+          placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
           required
         />
 
