@@ -189,7 +189,7 @@ The state of an Item that no longer needs attention. Any single Assignee can mar
 _Avoid_: Done, closed, resolved
 
 **Archive** / **Archived**:
-The act (and resulting state) of removing a List or Item from active use while preserving it for later reference.
+The act (and resulting state) of removing a List or Item from active use while preserving it for later reference. An Archived List is read-only to everyone except for Restoring it and starring/unstarring it (ADR 0018) — its role-based access level is otherwise unchanged.
 _Avoid_: Delete, hide, retire
 
 **Restore**:
