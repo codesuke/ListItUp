@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
-import { isAssignableWorkspaceRole } from "@/lib/workspace/workspace-member-roles";
+import { isAssignableWorkspaceRole, WORKSPACE_ROLE_LABEL as ROLE_LABEL } from "@/lib/workspace/workspace-member-roles";
 
 import { InviteMemberForm } from "./InviteMemberForm";
 import { LeaveWorkspaceButton } from "./LeaveWorkspaceButton";
@@ -11,13 +11,6 @@ import { loadWorkspaceMembersPageData } from "./page-data";
 import { RemoveMemberButton } from "./RemoveMemberButton";
 import { ResendInvitationButton } from "./ResendInvitationButton";
 import { RevokeInvitationButton } from "./RevokeInvitationButton";
-
-const ROLE_LABEL = {
-  OWNER: "Owner",
-  ADMIN: "Admin",
-  MEMBER: "Member",
-  VIEWER: "Viewer",
-} as const;
 
 function formatExpiry(expiresAt: Date): string {
   return expiresAt.toLocaleDateString(undefined, { month: "short", day: "numeric" });

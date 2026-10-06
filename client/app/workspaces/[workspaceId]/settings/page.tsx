@@ -3,18 +3,12 @@ import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
+import { WORKSPACE_ROLE_LABEL as ROLE_LABEL } from "@/lib/workspace/workspace-member-roles";
 
 import { DeleteWorkspaceForm } from "./DeleteWorkspaceForm";
 import { loadWorkspaceSettingsPageData } from "./page-data";
 import { TransferOwnershipForm } from "./TransferOwnershipForm";
 import { WorkspaceNameForm } from "./WorkspaceNameForm";
-
-const ROLE_LABEL = {
-  OWNER: "Owner",
-  ADMIN: "Admin",
-  MEMBER: "Member",
-  VIEWER: "Viewer",
-} as const;
 
 type Props = {
   params: Promise<{ workspaceId: string }>;

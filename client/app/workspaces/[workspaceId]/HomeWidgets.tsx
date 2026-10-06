@@ -277,9 +277,9 @@ export function RecentActivityWidget({
         <ul className="mt-3 flex flex-col gap-4">
           {activity.map((notification) => (
             <li key={notification.id} className="text-sm">
-              <a href={notification.itemHref} className="transition-colors duration-150 hover:underline">
+              <a href={notification.subjectHref} className="transition-colors duration-150 hover:underline">
                 <span className="text-ink-muted">{describeNotification(notification)} </span>
-                <span className="font-medium text-ink">{notification.itemTitle}</span>
+                <span className="font-medium text-ink">{notification.subjectTitle}</span>
               </a>
               <p className="mt-0.5 text-xs text-ink-muted">{formatRelativeTime(notification.createdAt, now)}</p>
             </li>

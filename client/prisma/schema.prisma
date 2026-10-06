@@ -135,6 +135,9 @@ model Workspace {
   members               WorkspaceMember[]
   invitations           WorkspaceInvitation[]
   labels                Label[]
+  // Membership-change notices (#89) only — Item-scoped Notifications join
+  // through List instead.
+  notifications         Notification[]
   deletedBy             User?                 @relation("WorkspaceDeletedBy", fields: [deletedByUserId], references: [id], onDelete: SetNull)
 
   @@map("workspace")
@@ -531,6 +534,12 @@ enum NotificationType {
   MENTIONED
   STATE_CHANGED
   DUE_DATE_REMINDER
+  // A Workspace Owner/Admin removed the recipient from a shared Workspace
+  // (#89) — carries no Item, only workspaceId below.
+  WORKSPACE_MEMBER_REMOVED
+  // A Workspace Owner/Admin changed the recipient's Workspace role (#89) —
+  // carries no Item; newRole below snapshots the role granted.
+  WORKSPACE_ROLE_CHANGED
 }
 
 // Delivery record for the Updates surface (CONTEXT.md) — always scoped to
@@ -538,13 +547,17 @@ enum NotificationType {
 // lives directly on this row rather than a separate shared-state table
 // (#41). Created by lib/notification/'s trigger functions on Assignee-list
 // change, Note creation (including @Mention resolution), Item lifecycle
-// state change, and a due-date-approaching schedule; never edited by any
-// other lib/ module.
+// state change, and a due-date-approaching schedule, and by
+// lib/workspace/workspace-membership-notifications.ts on Workspace member
+// removal/role change (#89); never edited by any other lib/ module. Every
+// row is anchored to exactly one of itemId or workspaceId depending on
+// type — WORKSPACE_MEMBER_REMOVED/WORKSPACE_ROLE_CHANGED have no Item to
+// join through, so they carry workspaceId instead.
 model Notification {
   id           String           @id
   recipientId  String
   type         NotificationType
-  itemId       String
+  itemId       String?
   // The User whose action produced this notification; null for the
   // system-triggered DUE_DATE_REMINDER type, which has no actor.
   actorId      String?
@@ -555,15 +568,23 @@ model Notification {
   // deadline rather than once per scheduler run (#41) — null for every
   // other type.
   dueDateAt    DateTime?
+  // Set only for WORKSPACE_MEMBER_REMOVED/WORKSPACE_ROLE_CHANGED, anchoring
+  // the notice to its Workspace in place of an Item (#89).
+  workspaceId  String?
+  // Snapshot of the role granted by a WORKSPACE_ROLE_CHANGED notice — null
+  // for every other type. A snapshot rather than a live lookup because the
+  // Workspace role may change again before the recipient reads this (#89).
+  newRole      WorkspaceRole?
   readAt       DateTime?
   bookmarkedAt DateTime?
   archivedAt   DateTime?
   createdAt    DateTime         @default(now())
 
-  recipient User  @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
-  actor     User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
-  item      Item  @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  note      Note? @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  recipient User       @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     User?      @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  item      Item?      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  note      Note?      @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([recipientId, itemId, type, dueDateAt])
   @@index([recipientId, createdAt])

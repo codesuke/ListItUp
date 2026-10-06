@@ -19,6 +19,8 @@ import {
   workspaceRestoredNoticeEmail,
 } from "./workspace-deletion-notice";
 import { workspacePurgeWarningEmail } from "./workspace-purge-warning-notice";
+import { workspaceMemberRemovedNoticeEmail } from "./workspace-member-removed-notice";
+import { workspaceRoleChangedNoticeEmail } from "./workspace-role-changed-notice";
 import type { EmailTemplate } from "./render";
 
 function assertWellFormed(template: EmailTemplate, label: string) {
@@ -201,6 +203,31 @@ function run() {
   assertWellFormed(purgeWarning, "workspace-purge-warning-notice");
   assert.equal(purgeWarning.subject, "Launch Team will be permanently deleted soon");
   assert.ok(purgeWarning.html.includes("April 1, 2026"));
+
+  const memberRemoved = workspaceMemberRemovedNoticeEmail({
+    workspaceName: "Launch Team",
+    actorName: "Priya",
+  });
+  assertWellFormed(memberRemoved, "workspace-member-removed-notice");
+  assert.equal(memberRemoved.subject, "You were removed from Launch Team");
+  assert.ok(memberRemoved.html.includes("Priya"));
+
+  const roleChangedToAdmin = workspaceRoleChangedNoticeEmail({
+    workspaceName: "Launch Team",
+    actorName: "Priya",
+    newRole: "ADMIN",
+  });
+  assertWellFormed(roleChangedToAdmin, "workspace-role-changed-notice (admin)");
+  assert.equal(roleChangedToAdmin.subject, "Your role in Launch Team changed to Admin");
+  assert.ok(roleChangedToAdmin.html.includes("Priya"));
+
+  const roleChangedToViewer = workspaceRoleChangedNoticeEmail({
+    workspaceName: "Launch Team",
+    actorName: "Priya",
+    newRole: "VIEWER",
+  });
+  assertWellFormed(roleChangedToViewer, "workspace-role-changed-notice (viewer)");
+  assert.equal(roleChangedToViewer.subject, "Your role in Launch Team changed to Viewer");
 
   console.log("email templates test passed");
 }

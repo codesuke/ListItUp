@@ -15,7 +15,9 @@ export type EmailMessageType =
   | "workspace-ownership-transfer"
   | "workspace-deleted-notice"
   | "workspace-restored-notice"
-  | "workspace-purge-warning-notice";
+  | "workspace-purge-warning-notice"
+  | "workspace-member-removed-notice"
+  | "workspace-role-changed-notice";
 
 export interface TransportMessage {
   from: string;

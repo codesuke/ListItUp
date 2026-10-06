@@ -19,6 +19,7 @@ const CATEGORY_LABEL: Record<ActivityCategory, string> = {
   notes: "Notes",
   mentions: "Mentions",
   state: "State",
+  membership: "Membership",
 };
 
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as ActivityCategory[];
@@ -105,8 +106,8 @@ export default async function UpdatesPage({ searchParams }: Props) {
 
   const data = await loadUpdatesPageData(prisma, { userId: session.user.id, tab, category });
 
-  const boundOpen = (notificationId: string, itemHref: string) =>
-    openNotificationAction.bind(null, notificationId, itemHref);
+  const boundOpen = (notificationId: string, subjectHref: string) =>
+    openNotificationAction.bind(null, notificationId, subjectHref);
   const boundToggleBookmark = (notificationId: string) => toggleBookmarkAction.bind(null, notificationId);
   const boundArchive = (notificationId: string) => archiveNotificationAction.bind(null, notificationId);
 

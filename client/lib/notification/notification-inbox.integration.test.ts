@@ -100,9 +100,9 @@ async function run() {
         "expected newest-first order, own notifications only, reminders and archived excluded"
       );
       assert.equal(notifications[0]?.actorName, "Actor");
-      assert.equal(notifications[0]?.itemTitle, "Ship the release");
+      assert.equal(notifications[0]?.subjectTitle, "Ship the release");
       assert.equal(notifications[0]?.isUnread, true);
-      assert.equal(notifications[0]?.itemHref.includes(itemId), true);
+      assert.equal(notifications[0]?.subjectHref.includes(itemId), true);
     }
 
     // Filtering by category narrows to that category's NotificationTypes.
@@ -276,6 +276,53 @@ async function run() {
       ]);
     }
 
+    // A membership-change notification (#89) carries no Item, only a
+    // Workspace — it still shows up in Activity (both "All" and its own
+    // "membership" category) and counts toward the unread badge, same as
+    // an Item-based notification. The role-changed notice's subject title
+    // shows the snapshotted newRole, and the two types route open to
+    // different places since a removed recipient has nowhere left to go
+    // inside the Workspace.
+    {
+      const workspaceId = randomUUID();
+      createdWorkspaceIds.push(workspaceId);
+      await prisma.workspace.create({ data: { id: workspaceId, name: "Launch Team" } });
+      const recipientId = await createUser("Recipient");
+      const actorId = await createUser("Priya");
+
+      const removedId = randomUUID();
+      await prisma.notification.create({
+        data: { id: removedId, recipientId, actorId, workspaceId, type: "WORKSPACE_MEMBER_REMOVED" },
+      });
+      const roleChangedId = randomUUID();
+      await prisma.notification.create({
+        data: {
+          id: roleChangedId,
+          recipientId,
+          actorId,
+          workspaceId,
+          type: "WORKSPACE_ROLE_CHANGED",
+          newRole: "ADMIN",
+        },
+      });
+
+      const activity = await loadActivityNotifications(prisma, { recipientId });
+      const removed = activity.find((n) => n.id === removedId);
+      assert.ok(removed, "WORKSPACE_MEMBER_REMOVED appears in the Activity tab");
+      assert.equal(removed?.subjectTitle, "Launch Team");
+      assert.equal(removed?.subjectHref, "/");
+
+      const roleChanged = activity.find((n) => n.id === roleChangedId);
+      assert.ok(roleChanged, "WORKSPACE_ROLE_CHANGED appears in the Activity tab");
+      assert.equal(roleChanged?.subjectTitle, "Admin in Launch Team");
+      assert.equal(roleChanged?.subjectHref, `/workspaces/${workspaceId}`);
+
+      const membershipOnly = await loadActivityNotifications(prisma, { recipientId, category: "membership" });
+      assert.deepEqual(membershipOnly.map((n) => n.id).sort(), [removedId, roleChangedId].sort());
+
+      assert.equal(await countUnreadNotifications(prisma, recipientId), 2);
+    }
+
     // A Notification whose Item lives in a Deleted Workspace drops out of
     // every tab and the unread badge count, while a sibling notification
     // from a live Workspace still shows (#76).
@@ -313,6 +360,19 @@ async function run() {
 
       const deletedItem = await prisma.item.findUniqueOrThrow({ where: { id: deleted.itemId } });
       const deletedList = await prisma.list.findUniqueOrThrow({ where: { id: deletedItem.listId } });
+
+      // A membership notice anchored directly to the Deleted Workspace
+      // (no Item to join through) must drop out the same way (#89).
+      await prisma.notification.create({
+        data: {
+          id: randomUUID(),
+          recipientId,
+          actorId: deleted.creatorId,
+          workspaceId: deletedList.workspaceId,
+          type: "WORKSPACE_MEMBER_REMOVED",
+        },
+      });
+
       await prisma.workspace.update({ where: { id: deletedList.workspaceId }, data: { deletedAt: new Date() } });
 
       assert.deepEqual(
@@ -336,7 +396,9 @@ async function run() {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })
     ).map((list) => list.id);
-    await prisma.notification.deleteMany({ where: { item: { listId: { in: listIds } } } });
+    await prisma.notification.deleteMany({
+      where: { OR: [{ item: { listId: { in: listIds } } }, { workspaceId: { in: createdWorkspaceIds } }] },
+    });
     await prisma.item.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.list.deleteMany({ where: { id: { in: listIds } } });
     await prisma.workspace.deleteMany({ where: { id: { in: createdWorkspaceIds } } });

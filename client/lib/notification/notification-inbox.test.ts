@@ -9,8 +9,9 @@ assert.deepEqual(ACTIVITY_CATEGORY_TYPES.assignee, ["ASSIGNEE_ADDED", "ASSIGNEE_
 assert.deepEqual(ACTIVITY_CATEGORY_TYPES.notes, ["NOTE_ADDED"]);
 assert.deepEqual(ACTIVITY_CATEGORY_TYPES.mentions, ["MENTIONED"]);
 assert.deepEqual(ACTIVITY_CATEGORY_TYPES.state, ["STATE_CHANGED"]);
+assert.deepEqual(ACTIVITY_CATEGORY_TYPES.membership, ["WORKSPACE_MEMBER_REMOVED", "WORKSPACE_ROLE_CHANGED"]);
 assert.equal(ACTIVITY_TYPES.includes("DUE_DATE_REMINDER"), false);
-assert.equal(ACTIVITY_TYPES.length, 5);
+assert.equal(ACTIVITY_TYPES.length, 7);
 
 // describeNotification: one line per type, falling back to "Someone" for a
 // null actorName (defensive — every Activity-tab type always has an actor).
@@ -30,5 +31,10 @@ assert.equal(
 );
 assert.equal(describeNotification({ type: "ASSIGNEE_ADDED", actorName: null }), "Someone assigned you to");
 assert.equal(describeNotification({ type: "DUE_DATE_REMINDER", actorName: null }), "Due date approaching for");
+assert.equal(
+  describeNotification({ type: "WORKSPACE_MEMBER_REMOVED", actorName: "Priya" }),
+  "Priya removed you from"
+);
+assert.equal(describeNotification({ type: "WORKSPACE_ROLE_CHANGED", actorName: "Priya" }), "Priya made you");
 
 console.log("notification-inbox unit tests passed");

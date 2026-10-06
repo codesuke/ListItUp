@@ -49,7 +49,7 @@ A User's cross-Workspace personal identity page (avatar, Display Name, About Me)
 _Avoid_: Account settings, Dashboard
 
 **Updates**:
-A top-level page listing notifications relevant to the current User (Assignee changes, Notes, Item state changes, Mentions), organized into tabs (Activity, Bookmarks, Archive, @Mentioned). Distinct from the Inbox List.
+A top-level page listing notifications relevant to the current User (Assignee changes, Notes, Item state changes, Mentions, Workspace membership changes), organized into tabs (Activity, Bookmarks, Archive, @Mentioned). Distinct from the Inbox List.
 _Avoid_: Inbox, notification center, activity hub
 
 **Note**:

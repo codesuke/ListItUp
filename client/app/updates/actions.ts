@@ -13,13 +13,13 @@ import { requireAuthenticatedSession } from "@/lib/session/require-authenticated
 
 const UPDATES_PATH = "/updates";
 
-// Opening a notification marks it read, then sends the User to the Item it
+// Opening a notification marks it read, then sends the User to what it
 // refers to — the badge's unread count is derived fresh on next render, so
 // no separate revalidation call is needed once redirect() navigates away.
-export async function openNotificationAction(notificationId: string, itemHref: string): Promise<void> {
+export async function openNotificationAction(notificationId: string, subjectHref: string): Promise<void> {
   const session = await requireAuthenticatedSession(UPDATES_PATH);
   await markNotificationRead(prisma, { notificationId, recipientId: session.user.id });
-  redirect(itemHref);
+  redirect(subjectHref);
 }
 
 // Toggling a bookmark stays on the current tab (no redirect), so the UI

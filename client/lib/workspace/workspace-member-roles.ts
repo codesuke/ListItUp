@@ -15,6 +15,16 @@ export function isAssignableWorkspaceRole(role: string): role is AssignableWorks
   return role === "ADMIN" || role === "MEMBER" || role === "VIEWER";
 }
 
+// The one copy of the Owner/Admin/Member/Viewer display labels, shared by
+// the Workspace settings pages and membership-change notices (#89) rather
+// than redefined at each call site.
+export const WORKSPACE_ROLE_LABEL: Record<WorkspaceRole, string> = {
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MEMBER: "Member",
+  VIEWER: "Viewer",
+};
+
 export interface UpdateWorkspaceMemberRoleInput {
   workspaceId: string;
   actingUserId: string;

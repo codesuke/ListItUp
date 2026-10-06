@@ -40,7 +40,7 @@ function NotificationRow({
               {describeNotification(notification)}{" "}
             </span>
             <span className={notification.isUnread ? "font-medium text-ink" : "font-medium text-ink-muted"}>
-              {notification.itemTitle}
+              {notification.subjectTitle}
             </span>
           </span>
           <span className="mt-0.5 flex-shrink-0 font-[family-name:var(--font-mono-label)] text-[10px] text-ink-faint">
@@ -91,7 +91,7 @@ export function NotificationList({
 }: {
   notifications: ActivityNotification[];
   emptyMessage: string;
-  boundOpen: (notificationId: string, itemHref: string) => () => Promise<void>;
+  boundOpen: (notificationId: string, subjectHref: string) => () => Promise<void>;
   boundToggleBookmark: (notificationId: string) => () => Promise<void>;
   boundArchive: (notificationId: string) => () => Promise<void>;
 }) {
@@ -109,7 +109,7 @@ export function NotificationList({
         <NotificationRow
           key={notification.id}
           notification={notification}
-          boundOpen={boundOpen(notification.id, notification.itemHref)}
+          boundOpen={boundOpen(notification.id, notification.subjectHref)}
           boundToggleBookmark={boundToggleBookmark(notification.id)}
           boundArchive={boundArchive(notification.id)}
         />
