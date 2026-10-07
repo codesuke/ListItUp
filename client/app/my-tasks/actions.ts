@@ -46,6 +46,7 @@ const QUICK_ADD_ERROR_MESSAGES: Record<
   "no-writable-list": "This workspace has no list you can add tasks to yet.",
   "list-not-found": "That list doesn't exist anymore.",
   forbidden: "You don't have permission to add tasks there.",
+  "list-archived": "That list is archived — restore it first to add tasks there.",
 };
 
 // Quick-Add's capture box (#45) — parses shorthand out of the typed text

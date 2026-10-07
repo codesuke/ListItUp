@@ -85,7 +85,8 @@ export type MoveMyTaskItemResult =
   | { status: "item-not-found" }
   | { status: "forbidden" }
   | { status: "blocker-reason-required" }
-  | { status: "invalid-column" };
+  | { status: "invalid-column" }
+  | { status: "list-archived" };
 
 // Moving a card updates the Item via the same lib/item/ mutation functions
 // used everywhere else (#43, matching #17's Board — see moveItemToColumn

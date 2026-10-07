@@ -166,6 +166,39 @@ async function run() {
       const result = await upsertPersonalNote(prisma, { actorUserId: userId, itemId, body: "Not assigned." });
       assert.deepEqual(result, { status: "not-assignee" });
     }
+
+    // #104 story 8: creating a shared Note is refused with list-archived
+    // once the Item's parent List is archived.
+    {
+      const { listId, userId } = await createWorkspaceListAndMember();
+      const itemId = await createTestItem(listId, userId);
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await createNote(prisma, { actorUserId: userId, itemId, body: "Should not be saved." });
+      assert.deepEqual(result, { status: "list-archived" });
+      const noteCount = await prisma.note.count({ where: { itemId } });
+      assert.equal(noteCount, 0);
+    }
+
+    // #104 story 12: a Personal Note is explicitly exempt from the
+    // archived-List mutation block — an Assignee can still upsert their own
+    // Personal Note on an archived List's Item.
+    {
+      const { listId, userId: creatorId } = await createWorkspaceListAndMember();
+      const assigneeId = await createUser();
+      const itemId = await createTestItem(listId, creatorId);
+      await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId, userId: assigneeId } });
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await upsertPersonalNote(prisma, {
+        actorUserId: assigneeId,
+        itemId,
+        body: "Still allowed on an archived List.",
+      });
+      assert.deepEqual(result, { status: "ok" });
+      const note = await getPersonalNote(prisma, { actorUserId: assigneeId, itemId });
+      assert.deepEqual(note, { body: "Still allowed on an archived List." });
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

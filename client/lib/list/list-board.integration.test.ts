@@ -173,6 +173,37 @@ async function run() {
       const forbidden = await setBoardGroupBy(prisma, { actorUserId: viewerId, listId, groupBy: "STATE" });
       assert.deepEqual(forbidden, { status: "forbidden" });
     }
+
+    // #104 story 10: dragging an Item on the Board is refused with
+    // list-archived once the List is archived — STATE, SECTION, and
+    // ASSIGNEE columns alike, since all three dispatch through the same
+    // guarded lib/item/ mutations.
+    {
+      const { listId, userId } = await createWorkspaceWithListAndMember();
+      const itemId = await createTestItem(listId, userId);
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      assert.deepEqual(
+        await moveItemToColumn(prisma, { actorUserId: userId, itemId, groupBy: "STATE", columnKey: "COMPLETE" }),
+        { status: "list-archived" }
+      );
+      assert.deepEqual(
+        await moveItemToColumn(prisma, {
+          actorUserId: userId,
+          itemId,
+          groupBy: "SECTION",
+          columnKey: UNSECTIONED_COLUMN_KEY,
+        }),
+        { status: "list-archived" }
+      );
+      assert.deepEqual(
+        await moveItemToColumn(prisma, { actorUserId: userId, itemId, groupBy: "ASSIGNEE", columnKey: userId }),
+        { status: "list-archived" }
+      );
+
+      const item = await prisma.item.findUniqueOrThrow({ where: { id: itemId } });
+      assert.equal(item.state, "TO_DO", "Item must be untouched");
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

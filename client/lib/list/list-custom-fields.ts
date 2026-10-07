@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { CustomFieldType, PrismaClient } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { meetsListAccessLevel, resolveListAccess } from "@/lib/permissions/list-access";
 
 export type CreateCustomFieldDefinitionResult =
@@ -9,13 +10,15 @@ export type CreateCustomFieldDefinitionResult =
   | { status: "forbidden" }
   | { status: "duplicate-name" }
   | { status: "invalid-type" }
-  | { status: "dropdown-requires-options" };
+  | { status: "dropdown-requires-options" }
+  | { status: "list-archived" };
 
 export type UpdateCustomFieldDefinitionResult =
   | { status: "updated" }
   | { status: "definition-not-found" }
   | { status: "forbidden" }
-  | { status: "dropdown-requires-options" };
+  | { status: "dropdown-requires-options" }
+  | { status: "list-archived" };
 
 // A List Lead or the Workspace Owner (implicit Lead-equivalent access) can
 // define/update Custom Fields on a List (#34). A Workspace Admin has no
@@ -57,6 +60,10 @@ export async function createCustomFieldDefinition(
     return { status: "list-not-found" };
   }
 
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
+  }
+
   const access = await resolveListAccess(database, { userId: actorUserId, listId });
   if (!meetsListAccessLevel(access, REQUIRED_ACCESS_LEVEL)) {
     return { status: "forbidden" };
@@ -84,9 +91,16 @@ export async function updateCustomFieldDefinition(
 ): Promise<UpdateCustomFieldDefinitionResult> {
   const { actorUserId, definitionId, name, options } = input;
 
-  const definition = await database.customFieldDefinition.findUnique({ where: { id: definitionId } });
+  const definition = await database.customFieldDefinition.findUnique({
+    where: { id: definitionId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!definition) {
     return { status: "definition-not-found" };
+  }
+
+  if (isListArchived(definition.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, { userId: actorUserId, listId: definition.listId });

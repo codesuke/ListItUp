@@ -4,6 +4,7 @@ import { groupItemsForBoard, isValidBoardGroupBy, type BoardColumn, type BoardIt
 import { buildFilesViewEntries, type FilesViewEntry } from "@/lib/list/list-files";
 import { getListRoles, type ListRoles } from "@/lib/list/list-roles";
 import { buildTimelineItems, type TimelineItem } from "@/lib/list/list-timeline";
+import { isListArchived } from "@/lib/list/list-visibility";
 import {
   canExportList,
   meetsListAccessLevel,
@@ -71,10 +72,13 @@ export type ListPageData = {
   access: ListAccessLevel;
   // >=LEAD governs editing Description, managing the Roles panel, and
   // setting Status (#27, #28, #59) — one flag for all three since they
-  // share the same threshold.
+  // share the same threshold. Also false once the List is archived (#104):
+  // archived status is a second, independent gate on top of the role
+  // check, so a Lead can't bypass the freeze.
   canEditDescription: boolean;
   // Anyone who can read the List except a Guest — gates the Export CSV
-  // button (#72); the export route re-checks it.
+  // button (#72); the export route re-checks it. Export stays allowed on
+  // an archived List (#104) — only reads are exempt, not this flag.
   canExport: boolean;
   roles: ListRoles;
   // Workspace Members not yet holding any List-level role — the candidate
@@ -84,7 +88,8 @@ export type ListPageData = {
   eligibleMembers: EligibleWorkspaceMember[];
   // >=WRITE governs Section management, the "Add Rule" grouping control,
   // and Item creation (#29, #30) — a List Member manages these, unlike
-  // Description/Roles which are Lead-only.
+  // Description/Roles which are Lead-only. Also false once the List is
+  // archived (#104), same reasoning as canEditDescription above.
   canManageSections: boolean;
   sections: SectionWithItems[];
   // Items with no Section, grouped separately since the List view still
@@ -312,6 +317,8 @@ export async function loadListPageData(
     }))
   );
 
+  const archived = isListArchived(list);
+
   return {
     listId: list.id,
     workspaceId: list.workspaceId,
@@ -321,11 +328,11 @@ export async function loadListPageData(
     status: list.status,
     archivedAt: list.archivedAt,
     access,
-    canEditDescription: meetsListAccessLevel(access, "LEAD"),
+    canEditDescription: meetsListAccessLevel(access, "LEAD") && !archived,
     canExport,
     roles,
     eligibleMembers,
-    canManageSections: meetsListAccessLevel(access, "WRITE"),
+    canManageSections: meetsListAccessLevel(access, "WRITE") && !archived,
     sections: sections.map((section) => ({
       id: section.id,
       name: section.name,

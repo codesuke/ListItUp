@@ -1,33 +1,39 @@
 import { randomUUID } from "node:crypto";
 
 import type { PrismaClient } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { meetsListAccessLevel, resolveListAccess } from "@/lib/permissions/list-access";
 
 export type CreateSectionResult =
   | { status: "created"; sectionId: string }
   | { status: "list-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "list-archived" };
 
 export type RenameSectionResult =
   | { status: "renamed" }
   | { status: "section-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "list-archived" };
 
 export type DuplicateSectionResult =
   | { status: "duplicated"; sectionId: string }
   | { status: "section-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "list-archived" };
 
 export type DeleteSectionResult =
   | { status: "deleted" }
   | { status: "section-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "list-archived" };
 
 export type ReorderSectionsResult =
   | { status: "reordered" }
   | { status: "list-not-found" }
   | { status: "forbidden" }
-  | { status: "invalid-order" };
+  | { status: "invalid-order" }
+  | { status: "list-archived" };
 
 export type SetListGroupByResult =
   | { status: "updated" }
@@ -89,6 +95,10 @@ export async function createSection(
     return { status: "list-not-found" };
   }
 
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
+  }
+
   const access = await resolveListAccess(database, { userId: actorUserId, listId });
   if (!meetsListAccessLevel(access, REQUIRED_ACCESS_LEVEL)) {
     return { status: "forbidden" };
@@ -108,9 +118,16 @@ export async function renameSection(
 ): Promise<RenameSectionResult> {
   const { actorUserId, sectionId, name } = input;
 
-  const section = await database.section.findUnique({ where: { id: sectionId } });
+  const section = await database.section.findUnique({
+    where: { id: sectionId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!section) {
     return { status: "section-not-found" };
+  }
+
+  if (isListArchived(section.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, { userId: actorUserId, listId: section.listId });
@@ -128,9 +145,16 @@ export async function duplicateSection(
 ): Promise<DuplicateSectionResult> {
   const { actorUserId, sectionId } = input;
 
-  const section = await database.section.findUnique({ where: { id: sectionId } });
+  const section = await database.section.findUnique({
+    where: { id: sectionId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!section) {
     return { status: "section-not-found" };
+  }
+
+  if (isListArchived(section.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, { userId: actorUserId, listId: section.listId });
@@ -152,9 +176,16 @@ export async function deleteSection(
 ): Promise<DeleteSectionResult> {
   const { actorUserId, sectionId } = input;
 
-  const section = await database.section.findUnique({ where: { id: sectionId } });
+  const section = await database.section.findUnique({
+    where: { id: sectionId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!section) {
     return { status: "section-not-found" };
+  }
+
+  if (isListArchived(section.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, { userId: actorUserId, listId: section.listId });
@@ -175,6 +206,10 @@ export async function reorderSections(
   const list = await database.list.findUnique({ where: { id: listId } });
   if (!list) {
     return { status: "list-not-found" };
+  }
+
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, { userId: actorUserId, listId });

@@ -1,18 +1,21 @@
 import { randomUUID } from "node:crypto";
 
 import type { PrismaClient } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { meetsListAccessLevel, resolveListAccess } from "@/lib/permissions/list-access";
 
 export type GrantGuestAccessResult =
   | { status: "granted" }
   | { status: "list-not-found" }
   | { status: "forbidden" }
-  | { status: "user-not-found" };
+  | { status: "user-not-found" }
+  | { status: "list-archived" };
 
 export type RevokeGuestAccessResult =
   | { status: "revoked" }
   | { status: "list-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "list-archived" };
 
 // A List Lead or the Workspace Owner (implicit Lead-equivalent access) can
 // grant/revoke Guest access (#28). A Workspace Admin has no implicit
@@ -32,6 +35,10 @@ export async function grantGuestAccess(
   const list = await database.list.findUnique({ where: { id: listId } });
   if (!list) {
     return { status: "list-not-found" };
+  }
+
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, { userId: actorUserId, listId });
@@ -62,6 +69,10 @@ export async function revokeGuestAccess(
   const list = await database.list.findUnique({ where: { id: listId } });
   if (!list) {
     return { status: "list-not-found" };
+  }
+
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, { userId: actorUserId, listId });

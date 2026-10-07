@@ -167,6 +167,39 @@ async function run() {
       });
       assert.ok(guest, "Guest access must remain granted");
     }
+
+    // #104 story 3: a Lead is refused with list-archived when granting
+    // Guest access on an archived List.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createListLead(workspaceId, listId);
+      const { userId: guestUserId, email } = await createUser();
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await grantGuestAccess(prisma, { actorUserId: leadId, listId, email });
+      assert.deepEqual(result, { status: "list-archived" });
+      const guest = await prisma.guest.findUnique({
+        where: { listId_userId: { listId, userId: guestUserId } },
+      });
+      assert.equal(guest, null);
+    }
+
+    // #104 story 3: revoking Guest access on an archived List is refused
+    // too.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createListLead(workspaceId, listId);
+      const { userId: guestUserId } = await createUser();
+      await prisma.guest.create({ data: { id: randomUUID(), listId, userId: guestUserId } });
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await revokeGuestAccess(prisma, { actorUserId: leadId, listId, userId: guestUserId });
+      assert.deepEqual(result, { status: "list-archived" });
+      const guest = await prisma.guest.findUnique({
+        where: { listId_userId: { listId, userId: guestUserId } },
+      });
+      assert.ok(guest, "Guest access must remain granted");
+    }
   } finally {
     await prisma.guest.deleteMany({ where: { listId: { in: createdListIds } } });
     await prisma.listMember.deleteMany({ where: { listId: { in: createdListIds } } });

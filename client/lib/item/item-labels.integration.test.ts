@@ -113,6 +113,30 @@ async function run() {
       const result = await applyLabel(prisma, { actorUserId: memberId, itemId: item.id, labelId: foreignLabel.id });
       assert.deepEqual(result, { status: "label-not-in-workspace" });
     }
+
+    // #104 story 8: applying or removing a Label is refused with
+    // list-archived once the Item's parent List is archived.
+    {
+      const { workspaceId, listId, labelId } = await createWorkspaceListAndLabel();
+      const memberId = await createUser();
+      await addWorkspaceMember(workspaceId, memberId, "MEMBER");
+      await addListMember(listId, memberId, "MEMBER");
+      const item = await prisma.item.create({
+        data: { id: randomUUID(), listId, title: "Test Item", creatorId: memberId },
+      });
+      await prisma.itemLabel.create({ data: { id: randomUUID(), itemId: item.id, labelId } });
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const otherLabel = await prisma.label.create({ data: { id: randomUUID(), workspaceId, name: "Other" } });
+      const applied = await applyLabel(prisma, { actorUserId: memberId, itemId: item.id, labelId: otherLabel.id });
+      assert.deepEqual(applied, { status: "list-archived" });
+
+      const removed = await removeLabel(prisma, { actorUserId: memberId, itemId: item.id, labelId });
+      assert.deepEqual(removed, { status: "list-archived" });
+
+      const current = await prisma.itemLabel.findMany({ where: { itemId: item.id } });
+      assert.deepEqual(current.map((a) => a.labelId), [labelId], "labels must be untouched");
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

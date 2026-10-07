@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { PrismaClient } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { resolveItemAccess } from "@/lib/permissions/item-access";
 import { meetsListAccessLevel } from "@/lib/permissions/list-access";
 
@@ -9,12 +10,14 @@ export type ApplyLabelResult =
   | { status: "item-not-found" }
   | { status: "forbidden" }
   | { status: "label-not-found" }
-  | { status: "label-not-in-workspace" };
+  | { status: "label-not-in-workspace" }
+  | { status: "list-archived" };
 
 export type RemoveLabelResult =
   | { status: "removed" }
   | { status: "item-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "list-archived" };
 
 // Any List Member, Lead, or the Workspace Owner, with Item access can
 // apply/remove a Label — not gated by Label-creation rights (#34).
@@ -29,6 +32,10 @@ export async function applyLabel(
   const item = await database.item.findUnique({ where: { id: itemId }, include: { list: true } });
   if (!item) {
     return { status: "item-not-found" };
+  }
+
+  if (isListArchived(item.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveItemAccess(database, { userId: actorUserId, itemId });
@@ -59,9 +66,16 @@ export async function removeLabel(
 ): Promise<RemoveLabelResult> {
   const { actorUserId, itemId, labelId } = input;
 
-  const item = await database.item.findUnique({ where: { id: itemId } });
+  const item = await database.item.findUnique({
+    where: { id: itemId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!item) {
     return { status: "item-not-found" };
+  }
+
+  if (isListArchived(item.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveItemAccess(database, { userId: actorUserId, itemId });

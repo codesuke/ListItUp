@@ -145,6 +145,34 @@ async function run() {
       const reloaded = await prisma.item.findUniqueOrThrow({ where: { id: item.id } });
       assert.equal(reloaded.state, "COMPLETE");
     }
+
+    // #104 story 8: adding or removing an Assignee is refused with
+    // list-archived once the Item's parent List is archived.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const memberId = await createUser();
+      await addWorkspaceMember(workspaceId, memberId, "MEMBER");
+      await addListMember(listId, memberId, "MEMBER");
+      const item = await prisma.item.create({
+        data: { id: randomUUID(), listId, title: "Test Item", creatorId: memberId },
+      });
+      const assigneeId = await createUser();
+      await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId: item.id, userId: assigneeId } });
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const added = await addAssignee(prisma, {
+        actorUserId: memberId,
+        itemId: item.id,
+        userId: await createUser(),
+      });
+      assert.deepEqual(added, { status: "list-archived" });
+
+      const removed = await removeAssignee(prisma, { actorUserId: memberId, itemId: item.id, userId: assigneeId });
+      assert.deepEqual(removed, { status: "list-archived" });
+
+      const assignees = await prisma.itemAssignee.findMany({ where: { itemId: item.id } });
+      assert.deepEqual(assignees.map((a) => a.userId), [assigneeId], "assignees must be untouched");
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

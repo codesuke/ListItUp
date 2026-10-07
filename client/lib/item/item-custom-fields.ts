@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { CustomFieldType, PrismaClient } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { resolveItemAccess } from "@/lib/permissions/item-access";
 import { meetsListAccessLevel } from "@/lib/permissions/list-access";
 
@@ -10,7 +11,8 @@ export type SetCustomFieldValueResult =
   | { status: "forbidden" }
   | { status: "definition-not-found" }
   | { status: "definition-not-in-list" }
-  | { status: "invalid-value" };
+  | { status: "invalid-value" }
+  | { status: "list-archived" };
 
 // Any List Member, Lead, or the Workspace Owner, with Item access can set
 // a Custom Field's value — defining the field itself is Lead-only
@@ -37,9 +39,16 @@ export async function setCustomFieldValue(
 ): Promise<SetCustomFieldValueResult> {
   const { actorUserId, itemId, definitionId, value } = input;
 
-  const item = await database.item.findUnique({ where: { id: itemId } });
+  const item = await database.item.findUnique({
+    where: { id: itemId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!item) {
     return { status: "item-not-found" };
+  }
+
+  if (isListArchived(item.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveItemAccess(database, { userId: actorUserId, itemId });

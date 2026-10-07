@@ -185,6 +185,21 @@ async function run() {
       });
       assert.deepEqual(result, { status: "parent-not-found" });
     }
+
+    // #104 story 6: a Member is refused with list-archived when creating
+    // an Item on an archived List, and no Item is created.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const memberId = await createUser();
+      await addWorkspaceMember(workspaceId, memberId, "MEMBER");
+      await addListMember(listId, memberId, "MEMBER");
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await createItem(prisma, { actorUserId: memberId, listId, title: "Should not exist" });
+      assert.deepEqual(result, { status: "list-archived" });
+      const itemCount = await prisma.item.count({ where: { listId } });
+      assert.equal(itemCount, 0);
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

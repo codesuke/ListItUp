@@ -205,6 +205,33 @@ async function run() {
       const item = await prisma.item.findUniqueOrThrow({ where: { id: itemId } });
       assert.equal(item.state, "TO_DO");
     }
+
+    // #104 story 7: every Item mutation in this module is refused with
+    // list-archived once the Item's parent List is archived, even for a
+    // Member who'd otherwise be allowed, with no observable side effect.
+    {
+      const { listId, userId } = await createWorkspaceWithListAndMember();
+      const itemId = await createTestItem(listId, userId);
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      assert.deepEqual(await updateItem(prisma, { actorUserId: userId, itemId, title: "Nope" }), {
+        status: "list-archived",
+      });
+      assert.deepEqual(
+        await transitionItemState(prisma, { actorUserId: userId, itemId, state: "COMPLETE" }),
+        { status: "list-archived" }
+      );
+      assert.deepEqual(await archiveItem(prisma, { actorUserId: userId, itemId }), {
+        status: "list-archived",
+      });
+      assert.deepEqual(await restoreItem(prisma, { actorUserId: userId, itemId }), {
+        status: "list-archived",
+      });
+
+      const item = await prisma.item.findUniqueOrThrow({ where: { id: itemId } });
+      assert.equal(item.title, "Test Item");
+      assert.equal(item.state, "TO_DO");
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

@@ -307,6 +307,89 @@ async function run() {
       assert.equal(await resolveListAccess(prisma, { userId: guest, listId }), "NONE");
       assert.equal(await canExportList(prisma, { userId: owner, listId }), false);
     }
+
+    // #104 story 15: a List under a soft-deleted Workspace resolves to NONE
+    // for every role — including the former Owner and Lead, whose access
+    // would otherwise be the strongest — not just the two shapes above. This
+    // is a distinct "no access" reason from never having had a role at all
+    // (ADR 0009/0017), so it gets its own dedicated coverage.
+    {
+      const workspaceId = await createWorkspace();
+      const listId = await createListIn(workspaceId);
+
+      const owner = await createUser();
+      await addWorkspaceMember(workspaceId, owner, "OWNER");
+      const admin = await createUser();
+      await addWorkspaceMember(workspaceId, admin, "ADMIN");
+      await addListMember(listId, admin, "LEAD");
+      const lead = await createUser();
+      await addWorkspaceMember(workspaceId, lead, "MEMBER");
+      await addListMember(listId, lead, "LEAD");
+      const member = await createUser();
+      await addWorkspaceMember(workspaceId, member, "MEMBER");
+      await addListMember(listId, member, "MEMBER");
+      const listViewer = await createUser();
+      await addWorkspaceMember(workspaceId, listViewer, "MEMBER");
+      await addListMember(listId, listViewer, "VIEWER");
+      const workspaceViewer = await createUser();
+      await addWorkspaceMember(workspaceId, workspaceViewer, "VIEWER");
+      const guest = await createUser();
+      await addGuest(listId, guest);
+
+      await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+
+      for (const userId of [owner, admin, lead, member, listViewer, workspaceViewer, guest]) {
+        assert.equal(
+          await resolveListAccess(prisma, { userId, listId }),
+          "NONE",
+          `expected ${userId} to resolve to NONE under a deleted Workspace`
+        );
+      }
+    }
+
+    // #104 story 16: an archived List's resolveListAccess level is
+    // unchanged from its active-List value for every role — archived status
+    // and role-based access are independent axes (ADR 0018). Mutation guards
+    // are what actually block an archived List; access resolution itself
+    // must not change.
+    {
+      const workspaceId = await createWorkspace();
+      const listId = await createListIn(workspaceId);
+
+      const owner = await createUser();
+      await addWorkspaceMember(workspaceId, owner, "OWNER");
+      const admin = await createUser();
+      await addWorkspaceMember(workspaceId, admin, "ADMIN");
+      const lead = await createUser();
+      await addWorkspaceMember(workspaceId, lead, "MEMBER");
+      await addListMember(listId, lead, "LEAD");
+      const member = await createUser();
+      await addWorkspaceMember(workspaceId, member, "MEMBER");
+      await addListMember(listId, member, "MEMBER");
+      const listViewer = await createUser();
+      await addWorkspaceMember(workspaceId, listViewer, "MEMBER");
+      await addListMember(listId, listViewer, "VIEWER");
+      const workspaceViewer = await createUser();
+      await addWorkspaceMember(workspaceId, workspaceViewer, "VIEWER");
+      await addListMember(listId, workspaceViewer, "LEAD");
+      const guest = await createUser();
+      await addGuest(listId, guest);
+
+      const levelsBeforeArchiving = new Map<string, string>();
+      for (const userId of [owner, admin, lead, member, listViewer, workspaceViewer, guest]) {
+        levelsBeforeArchiving.set(userId, await resolveListAccess(prisma, { userId, listId }));
+      }
+
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      for (const [userId, levelBefore] of levelsBeforeArchiving) {
+        assert.equal(
+          await resolveListAccess(prisma, { userId, listId }),
+          levelBefore,
+          `expected ${userId}'s access level to stay ${levelBefore} after archiving`
+        );
+      }
+    }
   } finally {
     await prisma.guest.deleteMany({ where: { userId: { in: createdUserIds } } });
     await prisma.listMember.deleteMany({ where: { userId: { in: createdUserIds } } });

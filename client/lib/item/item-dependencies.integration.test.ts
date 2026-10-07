@@ -174,6 +174,41 @@ async function run() {
       const result = await removeDependency(prisma, { actorUserId: userId, blockerId, blockedId });
       assert.deepEqual(result, { status: "dependency-not-found" });
     }
+
+    // #104 story 8: creating a Dependency is refused with list-archived
+    // when either Item's List is archived, even across two different
+    // Lists.
+    {
+      const { listId, userId } = await createWorkspaceListAndMember();
+      const blockerId = await createTestItem(listId, userId);
+      const { listId: otherListId } = await createWorkspaceListAndMember();
+      const blockedId = await createTestItem(otherListId, userId);
+      await prisma.list.update({ where: { id: otherListId }, data: { archivedAt: new Date() } });
+
+      const result = await createDependency(prisma, { actorUserId: userId, blockerId, blockedId });
+      assert.deepEqual(result, { status: "list-archived" });
+      const dependency = await prisma.itemDependency.findUnique({
+        where: { blockerId_blockedId: { blockerId, blockedId } },
+      });
+      assert.equal(dependency, null);
+    }
+
+    // #104 story 8: removing an existing Dependency is refused with
+    // list-archived too.
+    {
+      const { listId, userId } = await createWorkspaceListAndMember();
+      const blockerId = await createTestItem(listId, userId);
+      const blockedId = await createTestItem(listId, userId);
+      await prisma.itemDependency.create({ data: { id: randomUUID(), blockerId, blockedId } });
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await removeDependency(prisma, { actorUserId: userId, blockerId, blockedId });
+      assert.deepEqual(result, { status: "list-archived" });
+      const dependency = await prisma.itemDependency.findUnique({
+        where: { blockerId_blockedId: { blockerId, blockedId } },
+      });
+      assert.ok(dependency, "the Dependency must remain");
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

@@ -1,4 +1,5 @@
 import type { ListStatus, PrismaClient } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { meetsListAccessLevel, resolveListAccess } from "@/lib/permissions/list-access";
 
 const LIST_STATUSES: readonly ListStatus[] = ["ON_TRACK", "ON_HOLD", "COMPLETED", "DROPPED"];
@@ -10,23 +11,27 @@ export function isValidListStatus(value: string): value is ListStatus {
 export type ArchiveListResult =
   | { status: "archived" }
   | { status: "list-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "already-archived" };
 
 export type RestoreListResult =
   | { status: "restored" }
   | { status: "list-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "not-archived" };
 
 export type SetListStatusResult =
   | { status: "updated" }
   | { status: "list-not-found" }
   | { status: "forbidden" }
-  | { status: "invalid-status" };
+  | { status: "invalid-status" }
+  | { status: "list-archived" };
 
 export type UpdateListDescriptionResult =
   | { status: "updated" }
   | { status: "list-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "list-archived" };
 
 // A List Lead or the Workspace Owner (implicit Lead-equivalent access) can
 // Archive/Restore/set Status/edit Description (#26, #27). A Workspace
@@ -48,6 +53,10 @@ export async function archiveList(
     return { status: "forbidden" };
   }
 
+  if (isListArchived(list)) {
+    return { status: "already-archived" };
+  }
+
   await database.list.update({ where: { id: input.listId }, data: { archivedAt: new Date() } });
   return { status: "archived" };
 }
@@ -66,6 +75,10 @@ export async function restoreList(
     return { status: "forbidden" };
   }
 
+  if (!isListArchived(list)) {
+    return { status: "not-archived" };
+  }
+
   await database.list.update({ where: { id: input.listId }, data: { archivedAt: null } });
   return { status: "restored" };
 }
@@ -81,6 +94,10 @@ export async function setListStatus(
   const list = await database.list.findUnique({ where: { id: input.listId } });
   if (!list) {
     return { status: "list-not-found" };
+  }
+
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, {
@@ -102,6 +119,10 @@ export async function updateListDescription(
   const list = await database.list.findUnique({ where: { id: input.listId } });
   if (!list) {
     return { status: "list-not-found" };
+  }
+
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, {

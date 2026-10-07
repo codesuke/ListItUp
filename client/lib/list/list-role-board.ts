@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { ListMemberRole, PrismaClient } from "@/generated/prisma/client";
 import { lockAndInspectListMember } from "@/lib/list/list-membership";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { meetsListAccessLevel, resolveListAccess } from "@/lib/permissions/list-access";
 
 export type ListRoleBoardRole = ListMemberRole | "GUEST";
@@ -11,7 +12,8 @@ export type MoveListRoleAssignmentResult =
   | { status: "list-not-found" }
   | { status: "forbidden" }
   | { status: "user-lacks-workspace-membership" }
-  | { status: "last-lead" };
+  | { status: "last-lead" }
+  | { status: "list-archived" };
 
 // The Overview tab's Roles kanban lets a drag move a person straight
 // between List Lead/Member/Viewer and Guest. Gated at the same "LEAD"
@@ -29,6 +31,10 @@ export async function moveListRoleAssignment(
   const list = await database.list.findUnique({ where: { id: listId } });
   if (!list) {
     return { status: "list-not-found" };
+  }
+
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, { userId: actorUserId, listId });

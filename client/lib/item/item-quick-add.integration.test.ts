@@ -356,6 +356,22 @@ async function run() {
       });
       assert.deepEqual(result, { status: "no-writable-list" });
     }
+
+    // #104 story 6: naming an archived List explicitly via `~list` is
+    // refused with list-archived, not silently captured there anyway.
+    {
+      const userId = await createUser();
+      const { listId } = await createSharedList("RetiredProject", userId, "MEMBER");
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await createItemFromQuickAdd(prisma, {
+        actorUserId: userId,
+        text: "Buy milk ~RetiredProject",
+      });
+      assert.deepEqual(result, { status: "list-archived" });
+      const itemCount = await prisma.item.count({ where: { listId } });
+      assert.equal(itemCount, 0);
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

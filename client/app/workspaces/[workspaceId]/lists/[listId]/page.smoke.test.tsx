@@ -668,6 +668,28 @@ async function run() {
       assert.equal(summary!.noteCount, 1);
       assert.equal(summary!.attachmentCount, 0);
     }
+
+    // #104 story 17: an archived List still reports its normal access
+    // level, but canEditDescription/canManageSections — which the page
+    // uses to disable (not hide) Description/Status/Roles/Sections/Item
+    // creation/Board controls — both flip to false, even for a Lead.
+    // Reads (archivedAt itself, canExport) stay unaffected.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createUser();
+      await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId, userId: leadId, role: "MEMBER" } });
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: leadId, role: "LEAD" } });
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const data = await loadListPageData(prisma, { userId: leadId, workspaceId, listId });
+
+      assert.ok(data, "an archived List still opens");
+      assert.ok(data!.archivedAt, "archivedAt is surfaced for the page's Archived indicator");
+      assert.equal(data!.access, "LEAD", "role-based access is unchanged by archiving (ADR 0018)");
+      assert.equal(data!.canEditDescription, false);
+      assert.equal(data!.canManageSections, false);
+      assert.equal(data!.canExport, true, "export stays allowed on an archived List");
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

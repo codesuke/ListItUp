@@ -214,6 +214,30 @@ async function run() {
 
       assert.deepEqual(result, { status: "list-not-found" });
     }
+
+    // #104 story 2: dragging a person on the Roles kanban is refused with
+    // list-archived once the List is archived, even for a Lead.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createUser();
+      await addWorkspaceMember(workspaceId, leadId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: leadId, role: "LEAD" } });
+      const targetId = await createUser();
+      await addWorkspaceMember(workspaceId, targetId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: targetId, role: "MEMBER" } });
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await moveListRoleAssignment(prisma, {
+        actorUserId: leadId,
+        listId,
+        userId: targetId,
+        toRole: "VIEWER",
+      });
+
+      assert.deepEqual(result, { status: "list-archived" });
+      const membership = await prisma.listMember.findUnique({ where: { listId_userId: { listId, userId: targetId } } });
+      assert.equal(membership?.role, "MEMBER", "the target's role must remain unchanged");
+    }
   } finally {
     await prisma.guest.deleteMany({ where: { listId: { in: createdListIds } } });
     await prisma.listMember.deleteMany({ where: { listId: { in: createdListIds } } });

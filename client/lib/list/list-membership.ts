@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { Prisma } from "@/generated/prisma/client";
 import type { ListMemberRole, PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { meetsListAccessLevel, resolveListAccess } from "@/lib/permissions/list-access";
 
 export type AddListMemberResult =
@@ -9,13 +10,15 @@ export type AddListMemberResult =
   | { status: "list-not-found" }
   | { status: "forbidden" }
   | { status: "user-lacks-workspace-membership" }
-  | { status: "viewer-ceiling" };
+  | { status: "viewer-ceiling" }
+  | { status: "list-archived" };
 
 export type RemoveListMemberResult =
   | { status: "removed" }
   | { status: "list-not-found" }
   | { status: "forbidden" }
-  | { status: "last-lead" };
+  | { status: "last-lead" }
+  | { status: "list-archived" };
 
 export type ChangeListMemberRoleResult =
   | { status: "changed" }
@@ -23,7 +26,8 @@ export type ChangeListMemberRoleResult =
   | { status: "forbidden" }
   | { status: "member-not-found" }
   | { status: "last-lead" }
-  | { status: "viewer-ceiling" };
+  | { status: "viewer-ceiling" }
+  | { status: "list-archived" };
 
 // A List Lead or the Workspace Owner (implicit Lead-equivalent access) can
 // add/remove a List-level Member or Viewer (#28), or change an existing
@@ -154,6 +158,10 @@ export async function addListMember(
     return { status: "list-not-found" };
   }
 
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
+  }
+
   const access = await resolveListAccess(database, { userId: actorUserId, listId });
   if (!meetsListAccessLevel(access, REQUIRED_ACCESS_LEVEL)) {
     return { status: "forbidden" };
@@ -202,6 +210,10 @@ export async function removeListMember(
     return { status: "list-not-found" };
   }
 
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
+  }
+
   const access = await resolveListAccess(database, { userId: actorUserId, listId });
   if (!meetsListAccessLevel(access, REQUIRED_ACCESS_LEVEL)) {
     return { status: "forbidden" };
@@ -233,6 +245,10 @@ export async function changeListMemberRole(
   const list = await database.list.findUnique({ where: { id: listId } });
   if (!list) {
     return { status: "list-not-found" };
+  }
+
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, { userId: actorUserId, listId });

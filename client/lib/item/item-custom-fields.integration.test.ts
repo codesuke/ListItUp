@@ -160,6 +160,34 @@ async function run() {
       });
       assert.deepEqual(result, { status: "definition-not-in-list" });
     }
+
+    // #104 story 8: setting a Custom Field's value is refused with
+    // list-archived once the Item's parent List is archived.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const memberId = await createUser();
+      await addWorkspaceMember(workspaceId, memberId, "MEMBER");
+      await addListMember(listId, memberId, "MEMBER");
+      const definition = await prisma.customFieldDefinition.create({
+        data: { id: randomUUID(), listId, name: "Notes", type: "TEXT" },
+      });
+      const item = await prisma.item.create({
+        data: { id: randomUUID(), listId, title: "Test Item", creatorId: memberId },
+      });
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await setCustomFieldValue(prisma, {
+        actorUserId: memberId,
+        itemId: item.id,
+        definitionId: definition.id,
+        value: "Should not be saved",
+      });
+      assert.deepEqual(result, { status: "list-archived" });
+      const stored = await prisma.customFieldValue.findUnique({
+        where: { itemId_definitionId: { itemId: item.id, definitionId: definition.id } },
+      });
+      assert.equal(stored, null);
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

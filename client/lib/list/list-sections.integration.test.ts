@@ -188,6 +188,42 @@ async function run() {
       const forbidden = await setListGroupBy(prisma, { actorUserId: viewerId, listId, groupBy: "SECTION" });
       assert.deepEqual(forbidden, { status: "forbidden" });
     }
+
+    // #104 story 4: every Section mutation is refused with list-archived on
+    // an archived List, even for a Lead, with no observable side effect.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createUser();
+      await addWorkspaceMember(workspaceId, leadId, "MEMBER");
+      await addListMember(listId, leadId, "LEAD");
+
+      const created = await createSection(prisma, { actorUserId: leadId, listId, name: "Before archiving" });
+      assert.equal(created.status, "created");
+      const sectionId = created.status === "created" ? created.sectionId : "";
+
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      assert.deepEqual(await createSection(prisma, { actorUserId: leadId, listId, name: "New section" }), {
+        status: "list-archived",
+      });
+      assert.deepEqual(await renameSection(prisma, { actorUserId: leadId, sectionId, name: "Renamed" }), {
+        status: "list-archived",
+      });
+      assert.deepEqual(await duplicateSection(prisma, { actorUserId: leadId, sectionId }), {
+        status: "list-archived",
+      });
+      assert.deepEqual(await reorderSections(prisma, { actorUserId: leadId, listId, orderedSectionIds: [sectionId] }), {
+        status: "list-archived",
+      });
+      assert.deepEqual(await deleteSection(prisma, { actorUserId: leadId, sectionId }), {
+        status: "list-archived",
+      });
+
+      const section = await prisma.section.findUniqueOrThrow({ where: { id: sectionId } });
+      assert.equal(section.name, "Before archiving", "Section must be untouched");
+      const sectionCount = await prisma.section.count({ where: { listId } });
+      assert.equal(sectionCount, 1, "no Section may be added or removed");
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

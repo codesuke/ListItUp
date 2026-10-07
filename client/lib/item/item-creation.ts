@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { ItemPriority, PrismaClient } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { meetsListAccessLevel, resolveListAccess } from "@/lib/permissions/list-access";
 
 export type CreateItemResult =
@@ -8,7 +9,8 @@ export type CreateItemResult =
   | { status: "list-not-found" }
   | { status: "forbidden" }
   | { status: "parent-not-found" }
-  | { status: "parent-not-in-list" };
+  | { status: "parent-not-in-list" }
+  | { status: "list-archived" };
 
 // A List Member, Lead, or the Workspace Owner can create an Item; a List
 // Viewer or Guest cannot (#30).
@@ -32,6 +34,10 @@ export async function createItem(
   const list = await database.list.findUnique({ where: { id: listId } });
   if (!list) {
     return { status: "list-not-found" };
+  }
+
+  if (isListArchived(list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveListAccess(database, { userId: actorUserId, listId });

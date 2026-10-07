@@ -50,6 +50,7 @@ export type ListRoleActionResult = { status: "ok" } | { status: "error"; message
 const LAST_LEAD_MESSAGE = "This List must always have at least one Lead — promote someone else to Lead first.";
 const LIST_NOT_FOUND_MESSAGE = "This List no longer exists.";
 const VIEWER_CEILING_MESSAGE = "A Workspace Viewer can only be a List Viewer — change their Workspace role first.";
+const LIST_ARCHIVED_MESSAGE = "This List is archived and read-only — restore it first.";
 
 export async function updateListDescriptionAction(
   workspaceId: string,
@@ -80,6 +81,7 @@ const ADD_LIST_MEMBER_ERROR_MESSAGE = {
   forbidden: "You don't have permission to add members to this List.",
   "user-lacks-workspace-membership": "That person must join the Workspace first.",
   "viewer-ceiling": VIEWER_CEILING_MESSAGE,
+  "list-archived": LIST_ARCHIVED_MESSAGE,
 } as const;
 
 export async function addListMemberAction(
@@ -115,6 +117,7 @@ const REMOVE_LIST_MEMBER_ERROR_MESSAGE = {
   "list-not-found": LIST_NOT_FOUND_MESSAGE,
   forbidden: "You don't have permission to remove members from this List.",
   "last-lead": LAST_LEAD_MESSAGE,
+  "list-archived": LIST_ARCHIVED_MESSAGE,
 } as const;
 
 export async function removeListMemberAction(
@@ -139,6 +142,7 @@ const CHANGE_LIST_MEMBER_ROLE_ERROR_MESSAGE = {
   "member-not-found": "That person is no longer part of this List.",
   "last-lead": LAST_LEAD_MESSAGE,
   "viewer-ceiling": VIEWER_CEILING_MESSAGE,
+  "list-archived": LIST_ARCHIVED_MESSAGE,
 } as const;
 
 // The Roles panel's "Make Lead" button — promotes a Member/Viewer to Lead.
@@ -195,6 +199,7 @@ const ADD_LIST_ACCESS_BY_EMAIL_ERROR_MESSAGE = {
   "user-not-found": "No account exists for that email.",
   "user-lacks-workspace-membership": "That person must join the Workspace first.",
   "viewer-ceiling": VIEWER_CEILING_MESSAGE,
+  "list-archived": LIST_ARCHIVED_MESSAGE,
 } as const;
 
 export async function addListAccessByEmailAction(
@@ -231,6 +236,7 @@ const MOVE_LIST_ROLE_ERROR_MESSAGE = {
   forbidden: "You don't have permission to do that.",
   "user-lacks-workspace-membership": "That person must join the Workspace first.",
   "last-lead": LAST_LEAD_MESSAGE,
+  "list-archived": LIST_ARCHIVED_MESSAGE,
 } as const;
 
 // The Roles kanban's drag-and-drop (LEAD threshold, same as the panel's

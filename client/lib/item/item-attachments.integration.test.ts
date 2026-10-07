@@ -203,6 +203,27 @@ async function run() {
       const result = await getAttachmentForDownload(prisma, { actorUserId: memberId, attachmentId });
       assert.deepEqual(result, { status: "forbidden" });
     }
+
+    // #104 story 9: uploading a new Attachment is refused with
+    // list-archived once the Item's parent List is archived, and no row is
+    // written.
+    {
+      const { listId, userId } = await createWorkspaceListAndMember();
+      const itemId = await createTestItem(listId, userId);
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await createAttachment(prisma, {
+        actorUserId: userId,
+        itemId,
+        fileName: "notes.txt",
+        contentType: "text/plain",
+        sizeBytes: 10,
+        storageKey: `items/${itemId}/${randomUUID()}-notes.txt`,
+      });
+      assert.deepEqual(result, { status: "list-archived" });
+      const attachmentCount = await prisma.attachment.count({ where: { itemId } });
+      assert.equal(attachmentCount, 0);
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

@@ -232,6 +232,40 @@ async function run() {
       const definition = await prisma.customFieldDefinition.findUniqueOrThrow({ where: { id: definitionId } });
       assert.deepEqual(definition.options, ["Low", "High"], "the rejected update leaves existing options untouched");
     }
+
+    // #104 story 5: a Lead is refused with list-archived when creating or
+    // updating a Custom Field definition on an archived List.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createUser();
+      await addWorkspaceMember(workspaceId, leadId, "MEMBER");
+      await addListMember(listId, leadId, "LEAD");
+
+      const created = await createCustomFieldDefinition(prisma, {
+        actorUserId: leadId,
+        listId,
+        name: "Priority",
+        type: "TEXT",
+      });
+      assert.ok(created.status === "created");
+      const definitionId = created.status === "created" ? created.definitionId : "";
+
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      assert.deepEqual(
+        await createCustomFieldDefinition(prisma, { actorUserId: leadId, listId, name: "New Field", type: "TEXT" }),
+        { status: "list-archived" }
+      );
+      assert.deepEqual(
+        await updateCustomFieldDefinition(prisma, { actorUserId: leadId, definitionId, name: "Renamed" }),
+        { status: "list-archived" }
+      );
+
+      const definition = await prisma.customFieldDefinition.findUniqueOrThrow({ where: { id: definitionId } });
+      assert.equal(definition.name, "Priority", "definition must be untouched");
+      const definitionCount = await prisma.customFieldDefinition.count({ where: { listId } });
+      assert.equal(definitionCount, 1, "no definition may be added");
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

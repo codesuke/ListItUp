@@ -204,6 +204,64 @@ async function run() {
       const list = await prisma.list.findUniqueOrThrow({ where: { id: listId } });
       assert.equal(list.description, null);
     }
+
+    // #104 story 13: re-archiving an already-archived List is a harmless
+    // no-op refusal, not an error, mirroring an already-deleted Workspace
+    // (#75) — a double click or stale UI state shouldn't surface a
+    // confusing failure.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createUser();
+      await addWorkspaceMember(workspaceId, leadId, "MEMBER");
+      await addListMember(listId, leadId, "LEAD");
+
+      assert.deepEqual(await archiveList(prisma, { userId: leadId, listId }), { status: "archived" });
+      assert.deepEqual(await archiveList(prisma, { userId: leadId, listId }), { status: "already-archived" });
+    }
+
+    // #104 story 13: restoring a List that isn't archived is the symmetric
+    // no-op refusal.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createUser();
+      await addWorkspaceMember(workspaceId, leadId, "MEMBER");
+      await addListMember(listId, leadId, "LEAD");
+
+      assert.deepEqual(await restoreList(prisma, { userId: leadId, listId }), { status: "not-archived" });
+    }
+
+    // #104 story 1: a Lead is refused with list-archived when trying to set
+    // Status on an archived List, and nothing changes.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createUser();
+      await addWorkspaceMember(workspaceId, leadId, "MEMBER");
+      await addListMember(listId, leadId, "LEAD");
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await setListStatus(prisma, { userId: leadId, listId, status: "COMPLETED" });
+      assert.deepEqual(result, { status: "list-archived" });
+      const list = await prisma.list.findUniqueOrThrow({ where: { id: listId } });
+      assert.equal(list.status, "ON_TRACK");
+    }
+
+    // #104 story 1: same for Description — even the Workspace Owner's
+    // implicit Lead-equivalent access doesn't bypass the archived guard.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const ownerId = await createUser();
+      await addWorkspaceMember(workspaceId, ownerId, "OWNER");
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await updateListDescription(prisma, {
+        userId: ownerId,
+        listId,
+        description: "Should not be saved.",
+      });
+      assert.deepEqual(result, { status: "list-archived" });
+      const list = await prisma.list.findUniqueOrThrow({ where: { id: listId } });
+      assert.equal(list.description, null);
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

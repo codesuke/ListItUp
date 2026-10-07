@@ -1,4 +1,5 @@
 import type { ItemPriority, ItemState, PrismaClient } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { notifyItemStateChanged } from "@/lib/notification/notification-triggers";
 import { resolveItemAccess } from "@/lib/permissions/item-access";
 import { meetsListAccessLevel } from "@/lib/permissions/list-access";
@@ -6,13 +7,15 @@ import { meetsListAccessLevel } from "@/lib/permissions/list-access";
 export type UpdateItemResult =
   | { status: "updated" }
   | { status: "item-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "list-archived" };
 
 export type TransitionItemStateResult =
   | { status: "transitioned" }
   | { status: "item-not-found" }
   | { status: "forbidden" }
-  | { status: "blocker-reason-required" };
+  | { status: "blocker-reason-required" }
+  | { status: "list-archived" };
 
 // A List Member, Lead, or the Workspace Owner can update/transition an
 // Item; a List Viewer or Guest cannot (#30). Any single Assignee who is
@@ -50,9 +53,16 @@ export async function updateItem(
 ): Promise<UpdateItemResult> {
   const { actorUserId, itemId, title, sectionId, priority, dueDate } = input;
 
-  const item = await database.item.findUnique({ where: { id: itemId } });
+  const item = await database.item.findUnique({
+    where: { id: itemId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!item) {
     return { status: "item-not-found" };
+  }
+
+  if (isListArchived(item.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveItemAccess(database, { userId: actorUserId, itemId });
@@ -79,9 +89,16 @@ export async function transitionItemState(
 ): Promise<TransitionItemStateResult> {
   const { actorUserId, itemId, state, blockerReason } = input;
 
-  const item = await database.item.findUnique({ where: { id: itemId } });
+  const item = await database.item.findUnique({
+    where: { id: itemId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!item) {
     return { status: "item-not-found" };
+  }
+
+  if (isListArchived(item.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveItemAccess(database, { userId: actorUserId, itemId });
@@ -114,9 +131,16 @@ export async function archiveItem(
 ): Promise<TransitionItemStateResult> {
   const { actorUserId, itemId } = input;
 
-  const item = await database.item.findUnique({ where: { id: itemId } });
+  const item = await database.item.findUnique({
+    where: { id: itemId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!item) {
     return { status: "item-not-found" };
+  }
+
+  if (isListArchived(item.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveItemAccess(database, { userId: actorUserId, itemId });
@@ -138,9 +162,16 @@ export async function restoreItem(
 ): Promise<TransitionItemStateResult> {
   const { actorUserId, itemId } = input;
 
-  const item = await database.item.findUnique({ where: { id: itemId } });
+  const item = await database.item.findUnique({
+    where: { id: itemId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!item) {
     return { status: "item-not-found" };
+  }
+
+  if (isListArchived(item.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveItemAccess(database, { userId: actorUserId, itemId });

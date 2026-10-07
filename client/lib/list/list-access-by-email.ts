@@ -10,7 +10,8 @@ export type AddListAccessByEmailResult =
   | { status: "forbidden" }
   | { status: "user-not-found" }
   | { status: "user-lacks-workspace-membership" }
-  | { status: "viewer-ceiling" };
+  | { status: "viewer-ceiling" }
+  | { status: "list-archived" };
 
 // The Manage Access panel's email field (#28) grants List Member/Viewer or
 // Guest access from one input with an explicit role choice, instead of

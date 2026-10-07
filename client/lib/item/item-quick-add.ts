@@ -11,7 +11,8 @@ export type CreateItemFromQuickAddResult =
   | { status: "no-inbox-list" }
   | { status: "no-writable-list" }
   | { status: "list-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "list-archived" };
 
 export type QuickAddMentionCandidate = { id: string; name: string };
 
@@ -226,6 +227,8 @@ export async function createItemFromQuickAdd(
         return { status: "list-not-found" };
       case "forbidden":
         return { status: "forbidden" };
+      case "list-archived":
+        return { status: "list-archived" };
       case "parent-not-found":
       case "parent-not-in-list":
         // Unreachable: parentId is never passed to createItem above.

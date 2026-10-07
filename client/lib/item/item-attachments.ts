@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { PrismaClient } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { resolveItemAccess } from "@/lib/permissions/item-access";
 import { meetsListAccessLevel } from "@/lib/permissions/list-access";
 
@@ -69,7 +70,8 @@ export function validateAttachmentUpload(input: {
 export type AuthorizeAttachmentUploadResult =
   | { status: "ok" }
   | { status: "item-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "list-archived" };
 
 // Checked by the Route Handler before it uploads any bytes to storage —
 // uploading first and authorizing second would let an unauthorized caller
@@ -81,9 +83,16 @@ export async function authorizeAttachmentUpload(
   database: PrismaClient,
   input: { actorUserId: string; itemId: string }
 ): Promise<AuthorizeAttachmentUploadResult> {
-  const item = await database.item.findUnique({ where: { id: input.itemId } });
+  const item = await database.item.findUnique({
+    where: { id: input.itemId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!item) {
     return { status: "item-not-found" };
+  }
+
+  if (isListArchived(item.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveItemAccess(database, { userId: input.actorUserId, itemId: input.itemId });
@@ -99,7 +108,8 @@ export type CreateAttachmentResult =
   | { status: "item-not-found" }
   | { status: "forbidden" }
   | { status: "type-not-allowed" }
-  | { status: "too-large" };
+  | { status: "too-large" }
+  | { status: "list-archived" };
 
 export async function createAttachment(
   database: PrismaClient,

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { PrismaClient } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { notifyNoteCreated } from "@/lib/notification/notification-triggers";
 import { resolveItemAccess } from "@/lib/permissions/item-access";
 import { meetsListAccessLevel } from "@/lib/permissions/list-access";
@@ -13,7 +14,8 @@ export type CreateNoteResult =
   | { status: "created"; noteId: string }
   | { status: "item-not-found" }
   | { status: "forbidden" }
-  | { status: "mention-not-allowed"; userId: string };
+  | { status: "mention-not-allowed"; userId: string }
+  | { status: "list-archived" };
 
 // Mentioning cannot be used to leak visibility: every mentioned User must
 // already have (at least read) access to the Note's Item, checked through
@@ -26,9 +28,16 @@ export async function createNote(
   const { actorUserId, itemId, body } = input;
   const mentionedUserIds = [...new Set(input.mentionedUserIds ?? [])];
 
-  const item = await database.item.findUnique({ where: { id: itemId } });
+  const item = await database.item.findUnique({
+    where: { id: itemId },
+    include: { list: { select: { archivedAt: true } } },
+  });
   if (!item) {
     return { status: "item-not-found" };
+  }
+
+  if (isListArchived(item.list)) {
+    return { status: "list-archived" };
   }
 
   const access = await resolveItemAccess(database, { userId: actorUserId, itemId });

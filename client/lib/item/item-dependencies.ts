@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { PrismaClient } from "@/generated/prisma/client";
+import { isListArchived } from "@/lib/list/list-visibility";
 import { resolveItemAccess } from "@/lib/permissions/item-access";
 import { meetsListAccessLevel } from "@/lib/permissions/list-access";
 
@@ -10,12 +11,14 @@ export type CreateDependencyResult =
   | { status: "blocker-not-found" }
   | { status: "blocked-not-found" }
   | { status: "forbidden" }
-  | { status: "duplicate" };
+  | { status: "duplicate" }
+  | { status: "list-archived" };
 
 export type RemoveDependencyResult =
   | { status: "removed" }
   | { status: "dependency-not-found" }
-  | { status: "forbidden" };
+  | { status: "forbidden" }
+  | { status: "list-archived" };
 
 // A List Member, Lead, or the Workspace Owner, with access to BOTH Items
 // can create/remove a Dependency between them, including across different
@@ -58,14 +61,18 @@ export async function createDependency(
   }
 
   const [blocker, blocked] = await Promise.all([
-    database.item.findUnique({ where: { id: blockerId } }),
-    database.item.findUnique({ where: { id: blockedId } }),
+    database.item.findUnique({ where: { id: blockerId }, include: { list: { select: { archivedAt: true } } } }),
+    database.item.findUnique({ where: { id: blockedId }, include: { list: { select: { archivedAt: true } } } }),
   ]);
   if (!blocker) {
     return { status: "blocker-not-found" };
   }
   if (!blocked) {
     return { status: "blocked-not-found" };
+  }
+
+  if (isListArchived(blocker.list) || isListArchived(blocked.list)) {
+    return { status: "list-archived" };
   }
 
   if (!(await hasWriteAccessToBoth(database, actorUserId, blockerId, blockedId))) {
@@ -91,9 +98,17 @@ export async function removeDependency(
 
   const dependency = await database.itemDependency.findUnique({
     where: { blockerId_blockedId: { blockerId, blockedId } },
+    include: {
+      blocker: { select: { list: { select: { archivedAt: true } } } },
+      blocked: { select: { list: { select: { archivedAt: true } } } },
+    },
   });
   if (!dependency) {
     return { status: "dependency-not-found" };
+  }
+
+  if (isListArchived(dependency.blocker.list) || isListArchived(dependency.blocked.list)) {
+    return { status: "list-archived" };
   }
 
   if (!(await hasWriteAccessToBoth(database, actorUserId, blockerId, blockedId))) {

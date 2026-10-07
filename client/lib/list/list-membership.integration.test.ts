@@ -463,6 +463,63 @@ async function run() {
       const remainingLeads = await prisma.listMember.count({ where: { listId, role: "LEAD" } });
       assert.equal(remainingLeads, 1, "exactly one Lead must remain");
     }
+
+    // #104 story 2: a Lead is refused with list-archived when adding a
+    // Member to an archived List — even though they'd otherwise be allowed
+    // — and the membership never changes.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createListLead(workspaceId, listId);
+      const targetId = await createUser();
+      await addWorkspaceMember(workspaceId, targetId, "MEMBER");
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await addListMember(prisma, { actorUserId: leadId, listId, userId: targetId, role: "MEMBER" });
+      assert.deepEqual(result, { status: "list-archived" });
+      const membership = await prisma.listMember.findUnique({
+        where: { listId_userId: { listId, userId: targetId } },
+      });
+      assert.equal(membership, null);
+    }
+
+    // #104 story 2: removing a Member from an archived List is refused too.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createListLead(workspaceId, listId);
+      const memberId = await createUser();
+      await addWorkspaceMember(workspaceId, memberId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: memberId, role: "MEMBER" } });
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await removeListMember(prisma, { actorUserId: leadId, listId, userId: memberId });
+      assert.deepEqual(result, { status: "list-archived" });
+      const membership = await prisma.listMember.findUnique({
+        where: { listId_userId: { listId, userId: memberId } },
+      });
+      assert.equal(membership?.role, "MEMBER");
+    }
+
+    // #104 story 2: changing a Member's role on an archived List is refused.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const leadId = await createListLead(workspaceId, listId);
+      const memberId = await createUser();
+      await addWorkspaceMember(workspaceId, memberId, "MEMBER");
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: memberId, role: "MEMBER" } });
+      await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
+
+      const result = await changeListMemberRole(prisma, {
+        actorUserId: leadId,
+        listId,
+        userId: memberId,
+        role: "LEAD",
+      });
+      assert.deepEqual(result, { status: "list-archived" });
+      const membership = await prisma.listMember.findUnique({
+        where: { listId_userId: { listId, userId: memberId } },
+      });
+      assert.equal(membership?.role, "MEMBER");
+    }
   } finally {
     await prisma.listMember.deleteMany({ where: { listId: { in: createdListIds } } });
     await prisma.list.deleteMany({ where: { id: { in: createdListIds } } });
