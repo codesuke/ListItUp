@@ -281,11 +281,11 @@ export default async function ListPage({ params, searchParams }: Props) {
               ·
             </span>
             <ListStatusControl status={data.status} canEdit={data.canEditDescription} boundSetStatus={boundSetStatus} />
-            {data.archivedAt && (
+            {data.archivedAt ? (
               <span className="rounded-[5px] bg-surface-4 px-[7px] py-[2px] text-[10px] font-semibold uppercase tracking-[0.05em] text-ink-muted">
                 Archived
               </span>
-            )}
+            ) : null}
           </div>
 
           <nav className="mb-6 flex flex-wrap items-center gap-6 border-b border-line">

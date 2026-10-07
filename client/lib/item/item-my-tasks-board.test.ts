@@ -19,6 +19,7 @@ function item(overrides: Partial<MyTaskItem> & Pick<MyTaskItem, "id">): MyTaskIt
     dueDate: null,
     hasParent: false,
     listId: "list-1",
+    listArchivedAt: null,
     listName: "List",
     sourceWorkspaceId: "ws-1",
     sourceWorkspaceName: "Marketing",

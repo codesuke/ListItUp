@@ -234,6 +234,29 @@ async function run() {
       const items = await loadMyTasksItems(prisma, { userId });
       assert.deepEqual(items.map((item) => item.title), ["Still visible"]);
     }
+
+    // #104: an Item's listArchivedAt reflects its source List's own
+    // archived status — the Board view's per-card "Archived" indicator and
+    // disabled drag read off this, since My Tasks spans many Lists at once.
+    {
+      const userId = await createUser();
+
+      const active = await createWorkspaceWithList("Active");
+      await addMember(active.workspaceId, active.listId, userId);
+      const activeItemId = await createItem(active.listId, userId, { title: "In an active List" });
+      await assign(activeItemId, userId);
+
+      const archived = await createWorkspaceWithList("Archived Project");
+      await addMember(archived.workspaceId, archived.listId, userId);
+      const archivedItemId = await createItem(archived.listId, userId, { title: "In an archived List" });
+      await assign(archivedItemId, userId);
+      await prisma.list.update({ where: { id: archived.listId }, data: { archivedAt: new Date() } });
+
+      const items = await loadMyTasksItems(prisma, { userId });
+      const byTitle = new Map(items.map((item) => [item.title, item]));
+      assert.equal(byTitle.get("In an active List")?.listArchivedAt, null);
+      assert.ok(byTitle.get("In an archived List")?.listArchivedAt);
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

@@ -18,6 +18,11 @@ export type MyTaskItem = {
   hasParent: boolean;
   listId: string;
   listName: string;
+  // Drives the Board view's per-card "Archived" indicator and disabled
+  // drag (#104) — My Tasks spans every List across every Workspace, so
+  // archived status has to travel with each Item rather than being a
+  // single page-level flag the way the List page's is.
+  listArchivedAt: Date | null;
   sourceWorkspaceId: string;
   sourceWorkspaceName: string;
   sourceWorkspaceKind: WorkspaceKind;
@@ -309,7 +314,13 @@ export function myTaskRowBadge(
 
 function toMyTaskItem(
   item: Item & {
-    list: { id: string; name: string; workspaceId: string; workspace: { id: string; name: string; kind: WorkspaceKind } };
+    list: {
+      id: string;
+      name: string;
+      workspaceId: string;
+      archivedAt: Date | null;
+      workspace: { id: string; name: string; kind: WorkspaceKind };
+    };
     attachments: { id: string; fileName: string; sizeBytes: number; createdAt: Date; uploader: { name: string } }[];
   }
 ): MyTaskItem {
@@ -322,6 +333,7 @@ function toMyTaskItem(
     hasParent: item.parentId !== null,
     listId: item.list.id,
     listName: item.list.name,
+    listArchivedAt: item.list.archivedAt,
     sourceWorkspaceId: item.list.workspace.id,
     sourceWorkspaceName: item.list.workspace.name,
     sourceWorkspaceKind: item.list.workspace.kind,
