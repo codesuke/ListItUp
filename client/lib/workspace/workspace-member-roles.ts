@@ -1,7 +1,10 @@
 import type { PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
-import { lockAndCountSoleLeadLists } from "@/lib/list/list-membership";
+import { lockAndFindSoleLeadLists, type SoleLeadList } from "@/lib/list/list-membership";
 import { canAccessWorkspaceSettings } from "@/lib/permissions/workspace-access";
+import { canActorManageTargetRole } from "@/lib/workspace/workspace-membership";
 import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
+
+export type { SoleLeadList };
 
 // A Workspace Member is invited as MEMBER or VIEWER (see
 // workspace-invitations.ts) and promoted to ADMIN, or demoted back, after
@@ -33,12 +36,15 @@ export interface UpdateWorkspaceMemberRoleInput {
 }
 
 export type UpdateWorkspaceMemberRoleResult =
-  | { status: "updated" }
+  | { status: "updated"; role: AssignableWorkspaceRole }
   | { status: "forbidden" }
   | { status: "invalid-role" }
   | { status: "not-found" }
   | { status: "cannot-change-owner" }
-  | { status: "sole-lead-block"; count: number };
+  // `lists` mirrors removeWorkspaceMember's discriminated shape (#91): the
+  // full Lists only for an Owner actor, an empty array for an Admin (see
+  // workspace-membership.ts).
+  | { status: "sole-lead-block"; count: number; lists: SoleLeadList[] };
 
 // Authorization and role validation happen here, not just on the Members
 // page's controls — a Server Action calling this is not itself a security
@@ -85,20 +91,38 @@ export async function updateWorkspaceMemberRole(
     return { status: "invalid-role" };
   }
 
+  const role = input.role;
+
+  // The authority matrix is the same one removeWorkspaceMember uses: the
+  // Owner may act on anyone but themself (already excluded above), an
+  // Admin only on a Member or Viewer, never a peer Admin. On top of that,
+  // an Admin may never grant ADMIN itself — only the Owner creates Admins
+  // (#92) — even for a Member/Viewer target they could otherwise promote
+  // between those two roles.
+  if (
+    !canActorManageTargetRole(actingMembership.role, targetMembership.role) ||
+    (actingMembership.role === "ADMIN" && role === "ADMIN")
+  ) {
+    return { status: "forbidden" };
+  }
+
   // Demoting to Viewer must respect the never-zero-Leads invariant: it's
   // blocked while the target is the sole Lead of any List in this Workspace,
   // and otherwise converts their List LEAD/MEMBER rows to VIEWER in the same
   // transaction so stored List roles never outrank the new Viewer ceiling
-  // (List Lead Rules spec, story 25-26).
-  if (input.role === "VIEWER") {
-    const role = input.role;
+  // (List Lead Rules spec, story 25-26). The blocked result carries the
+  // actual Lists only for an Owner actor, who already has implicit access
+  // to every List in the Workspace (ADR 0017); an Admin gets only the count
+  // (#91's rationale, reused here).
+  if (role === "VIEWER") {
     return database.$transaction(async (tx) => {
-      const soleLeadListCount = await lockAndCountSoleLeadLists(tx, {
+      const soleLeadLists = await lockAndFindSoleLeadLists(tx, {
         workspaceId: input.workspaceId,
         userId: input.targetUserId,
       });
-      if (soleLeadListCount > 0) {
-        return { status: "sole-lead-block", count: soleLeadListCount };
+      if (soleLeadLists.length > 0) {
+        const lists = actingMembership.role === "OWNER" ? soleLeadLists : [];
+        return { status: "sole-lead-block", count: soleLeadLists.length, lists };
       }
 
       await tx.workspaceMember.update({
@@ -116,7 +140,7 @@ export async function updateWorkspaceMemberRole(
         data: { role: "VIEWER" },
       });
 
-      return { status: "updated" };
+      return { status: "updated", role };
     });
   }
 
@@ -124,8 +148,8 @@ export async function updateWorkspaceMemberRole(
     where: {
       workspaceId_userId: { workspaceId: input.workspaceId, userId: input.targetUserId },
     },
-    data: { role: input.role },
+    data: { role },
   });
 
-  return { status: "updated" };
+  return { status: "updated", role };
 }

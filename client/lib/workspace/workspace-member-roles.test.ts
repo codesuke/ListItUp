@@ -97,11 +97,12 @@ async function run() {
         role: "ADMIN",
       });
 
-      assert.deepEqual(result, { status: "updated" });
+      assert.deepEqual(result, { status: "updated", role: "ADMIN" });
       assert.equal(await roleOf(workspaceId, memberId), "ADMIN");
     }
 
-    // An Admin can demote another Admin back to Member.
+    // An Admin is refused for any change involving a peer Admin — never a
+    // demotion, never a promotion — matching the Remove authority matrix.
     {
       const { workspaceId } = await createWorkspaceWithOwner();
       const actingAdminId = await addMember(workspaceId, "ADMIN");
@@ -114,8 +115,44 @@ async function run() {
         role: "MEMBER",
       });
 
-      assert.deepEqual(result, { status: "updated" });
-      assert.equal(await roleOf(workspaceId, targetAdminId), "MEMBER");
+      assert.deepEqual(result, { status: "forbidden" });
+      assert.equal(await roleOf(workspaceId, targetAdminId), "ADMIN");
+    }
+
+    // An Admin can switch a Member to Viewer and a Viewer back to Member,
+    // but can never grant Admin — only the Owner creates Admins.
+    {
+      const { workspaceId } = await createWorkspaceWithOwner();
+      const actingAdminId = await addMember(workspaceId, "ADMIN");
+      const memberId = await addMember(workspaceId, "MEMBER");
+      const viewerId = await addMember(workspaceId, "VIEWER");
+
+      const toViewer = await updateWorkspaceMemberRole(prisma, {
+        workspaceId,
+        actingUserId: actingAdminId,
+        targetUserId: memberId,
+        role: "VIEWER",
+      });
+      assert.deepEqual(toViewer, { status: "updated", role: "VIEWER" });
+      assert.equal(await roleOf(workspaceId, memberId), "VIEWER");
+
+      const toMember = await updateWorkspaceMemberRole(prisma, {
+        workspaceId,
+        actingUserId: actingAdminId,
+        targetUserId: viewerId,
+        role: "MEMBER",
+      });
+      assert.deepEqual(toMember, { status: "updated", role: "MEMBER" });
+      assert.equal(await roleOf(workspaceId, viewerId), "MEMBER");
+
+      const toAdmin = await updateWorkspaceMemberRole(prisma, {
+        workspaceId,
+        actingUserId: actingAdminId,
+        targetUserId: viewerId,
+        role: "ADMIN",
+      });
+      assert.deepEqual(toAdmin, { status: "forbidden" });
+      assert.equal(await roleOf(workspaceId, viewerId), "MEMBER");
     }
 
     // A Member cannot change anyone's role.
@@ -209,7 +246,11 @@ async function run() {
         role: "VIEWER",
       });
 
-      assert.deepEqual(result, { status: "sole-lead-block", count: 1 });
+      assert.deepEqual(result, {
+        status: "sole-lead-block",
+        count: 1,
+        lists: [{ id: soleLeadListId, name: "Checklist" }],
+      });
       assert.equal(await roleOf(workspaceId, memberId), "MEMBER");
       assert.equal(await listRoleOf(soleLeadListId, memberId), "LEAD");
       assert.equal(await listRoleOf(coLeadListId, memberId), "LEAD");
@@ -234,7 +275,7 @@ async function run() {
         role: "VIEWER",
       });
 
-      assert.deepEqual(result, { status: "updated" });
+      assert.deepEqual(result, { status: "updated", role: "VIEWER" });
       assert.equal(await roleOf(workspaceId, memberId), "VIEWER");
       assert.equal(await listRoleOf(coLeadListId, memberId), "VIEWER");
       assert.equal(await listRoleOf(plainMemberListId, memberId), "VIEWER");
@@ -242,12 +283,12 @@ async function run() {
     }
 
     // Sole-Lead status is counted per List: being the sole Lead of two Lists
-    // reports a count of two.
+    // reports a count of two, with both Lists named for an Owner actor.
     {
       const { workspaceId, ownerId } = await createWorkspaceWithOwner();
       const memberId = await addMember(workspaceId, "MEMBER");
-      await addList(workspaceId, [{ userId: memberId, role: "LEAD" }]);
-      await addList(workspaceId, [{ userId: memberId, role: "LEAD" }]);
+      const firstListId = await addList(workspaceId, [{ userId: memberId, role: "LEAD" }]);
+      const secondListId = await addList(workspaceId, [{ userId: memberId, role: "LEAD" }]);
 
       const result = await updateWorkspaceMemberRole(prisma, {
         workspaceId,
@@ -256,7 +297,31 @@ async function run() {
         role: "VIEWER",
       });
 
-      assert.deepEqual(result, { status: "sole-lead-block", count: 2 });
+      assert.equal(result.status, "sole-lead-block");
+      assert.equal(result.status === "sole-lead-block" && result.count, 2);
+      assert.deepEqual(
+        result.status === "sole-lead-block" && result.lists.map((list) => list.id).sort(),
+        [firstListId, secondListId].sort()
+      );
+    }
+
+    // An Admin demoting a sole-Lead Member to Viewer is also blocked, but
+    // gets only the count — not the List identities — since an Admin has no
+    // implicit access to every List in the Workspace (#91's rationale).
+    {
+      const { workspaceId } = await createWorkspaceWithOwner();
+      const actingAdminId = await addMember(workspaceId, "ADMIN");
+      const memberId = await addMember(workspaceId, "MEMBER");
+      await addList(workspaceId, [{ userId: memberId, role: "LEAD" }]);
+
+      const result = await updateWorkspaceMemberRole(prisma, {
+        workspaceId,
+        actingUserId: actingAdminId,
+        targetUserId: memberId,
+        role: "VIEWER",
+      });
+
+      assert.deepEqual(result, { status: "sole-lead-block", count: 1, lists: [] });
     }
   } finally {
     await prisma.workspaceMember.deleteMany({

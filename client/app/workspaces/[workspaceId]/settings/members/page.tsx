@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 import { isAssignableWorkspaceRole, WORKSPACE_ROLE_LABEL as ROLE_LABEL } from "@/lib/workspace/workspace-member-roles";
-import { canActorRemoveTargetRole } from "@/lib/workspace/workspace-membership";
+import { canActorManageTargetRole } from "@/lib/workspace/workspace-membership";
 
 import { InviteMemberForm } from "./InviteMemberForm";
 import { LeaveWorkspaceButton } from "./LeaveWorkspaceButton";
@@ -62,11 +62,15 @@ export default async function WorkspaceMembersPage({ params }: Props) {
                 ) : null}
               </div>
               <div className="flex shrink-0 items-center gap-3">
-                {canManageInvitations && isAssignableWorkspaceRole(member.role) ? (
+                {canManageInvitations &&
+                currentMember &&
+                isAssignableWorkspaceRole(member.role) &&
+                canActorManageTargetRole(currentMember.role, member.role) ? (
                   <MemberRoleSelect
                     workspaceId={workspaceId}
                     userId={member.userId}
                     role={member.role}
+                    canGrantAdmin={currentMember.role === "OWNER"}
                   />
                 ) : (
                   <span className="shrink-0 border border-line-strong px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-muted">
@@ -75,7 +79,7 @@ export default async function WorkspaceMembersPage({ params }: Props) {
                 )}
                 {canManageInvitations &&
                 currentMember &&
-                canActorRemoveTargetRole(currentMember.role, member.role) &&
+                canActorManageTargetRole(currentMember.role, member.role) &&
                 member.userId !== session.user.id ? (
                   <RemoveMemberButton workspaceId={workspaceId} userId={member.userId} name={member.name} />
                 ) : null}

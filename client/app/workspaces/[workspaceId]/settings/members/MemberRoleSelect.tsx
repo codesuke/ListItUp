@@ -13,10 +13,12 @@ export function MemberRoleSelect({
   workspaceId,
   userId,
   role,
+  canGrantAdmin,
 }: {
   workspaceId: string;
   userId: string;
   role: AssignableWorkspaceRole;
+  canGrantAdmin: boolean;
 }) {
   const boundAction = updateMemberRoleAction.bind(null, workspaceId, userId);
   const [state, formAction, isPending] = useActionState(
@@ -44,7 +46,7 @@ export function MemberRoleSelect({
         }}
         className={selectClass}
       >
-        <option value="ADMIN">Admin</option>
+        {canGrantAdmin ? <option value="ADMIN">Admin</option> : null}
         <option value="MEMBER">Member</option>
         <option value="VIEWER">Viewer</option>
       </select>

@@ -30,17 +30,22 @@ export type LeaveWorkspaceResult =
   // case).
   | { status: "sole-lead-block"; count: number; lists: SoleLeadList[] };
 
-// The authority matrix for who may remove whom (#88, #91): the Owner may
-// remove anyone but themself; an Admin may remove only a Member or Viewer,
-// never a peer Admin. The `targetRole === "OWNER"` branch below is never
-// reached from removeWorkspaceMember's own call site — that function
-// always resolves an OWNER target through the more specific
-// cannot-remove-owner status first — but it is live for this function's
-// other caller, the Members page, which calls it directly to decide
-// whether to render the Remove control at all (including for the Owner's
-// own row), instead of restating the rule and risking a "forbidden" error
-// after the click.
-export function canActorRemoveTargetRole(actorRole: WorkspaceRole, targetRole: WorkspaceRole): boolean {
+// The authority matrix for who may act on whom (#88, #91, #92): the Owner
+// may remove or change the role of anyone but themself; an Admin may do
+// either only to a Member or Viewer, never a peer Admin. Removal and role
+// assignment share this exact matrix — an Admin who can't touch a peer
+// Admin's membership can't touch their role either — so
+// updateWorkspaceMemberRole (workspace-member-roles.ts) reuses this rather
+// than restating it; it layers its own extra rule on top (an Admin may
+// never grant ADMIN, even to a Member or Viewer they can otherwise manage).
+// The `targetRole === "OWNER"` branch below is never reached from
+// removeWorkspaceMember's own call site — that function always resolves an
+// OWNER target through the more specific cannot-remove-owner status first
+// — but it is live for both functions' other caller, the Members page,
+// which calls it directly to decide whether to render the Remove control
+// and the role Select at all (including for the Owner's own row), instead
+// of restating the rule and risking a "forbidden" error after the click.
+export function canActorManageTargetRole(actorRole: WorkspaceRole, targetRole: WorkspaceRole): boolean {
   if (targetRole === "OWNER") {
     return false;
   }
@@ -117,7 +122,7 @@ export async function removeWorkspaceMember(
     return { status: "cannot-remove-owner" };
   }
 
-  if (!canActorRemoveTargetRole(actingMembership.role, targetMembership.role)) {
+  if (!canActorManageTargetRole(actingMembership.role, targetMembership.role)) {
     return { status: "forbidden" };
   }
 

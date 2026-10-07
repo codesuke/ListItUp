@@ -161,6 +161,21 @@ export async function updateMemberRoleAction(
     return { status: "error", message: UPDATE_MEMBER_ROLE_ERROR_MESSAGE[result.status] };
   }
 
+  const [targetUser, workspace] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: targetUserId } }),
+    prisma.workspace.findUniqueOrThrow({ where: { id: workspaceId } }),
+  ]);
+
+  await notifyWorkspaceMembershipChange(prisma, mailer, {
+    recipientId: targetUserId,
+    recipientEmail: targetUser.email,
+    actorUserId: session.user.id,
+    actorName: session.user.name,
+    workspaceId,
+    workspaceName: workspace.name,
+    notice: { type: "role-changed", newRole: result.role },
+  });
+
   revalidatePath(membersPath(workspaceId));
 
   return { status: "idle" };
