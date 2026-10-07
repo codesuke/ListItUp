@@ -323,7 +323,11 @@ async function run() {
       await addListLead(listId, memberId);
 
       const blocked = await leaveWorkspace(prisma, { workspaceId, userId: memberId });
-      assert.deepEqual(blocked, { status: "sole-lead-block", count: 1 });
+      assert.deepEqual(blocked, {
+        status: "sole-lead-block",
+        count: 1,
+        lists: [{ id: listId, name: "Checklist" }],
+      });
 
       await addListLead(listId, coworkerId);
       const left = await leaveWorkspace(prisma, { workspaceId, userId: memberId });

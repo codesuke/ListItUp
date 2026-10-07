@@ -1,9 +1,5 @@
 import type { Prisma, PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
-import {
-  lockAndCountSoleLeadLists,
-  lockAndFindSoleLeadLists,
-  type SoleLeadList,
-} from "@/lib/list/list-membership";
+import { lockAndFindSoleLeadLists, type SoleLeadList } from "@/lib/list/list-membership";
 import { canAccessWorkspaceSettings } from "@/lib/permissions/workspace-access";
 import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
@@ -26,7 +22,13 @@ export type LeaveWorkspaceResult =
   | { status: "left" }
   | { status: "not-found" }
   | { status: "owner-must-transfer-first" }
-  | { status: "sole-lead-block"; count: number };
+  // Unlike removeWorkspaceMember's Admin-actor branch, `lists` is always
+  // populated here: the person leaving is the target, and anyone who leads
+  // a List already has access to see it, so there's no viewer without
+  // implicit access to protect against (contrast lockAndFindSoleLeadLists'
+  // Owner-only identity-surfacing rule, which exists for the other actor
+  // case).
+  | { status: "sole-lead-block"; count: number; lists: SoleLeadList[] };
 
 // The authority matrix for who may remove whom (#88, #91): the Owner may
 // remove anyone but themself; an Admin may remove only a Member or Viewer,
@@ -134,9 +136,10 @@ export async function removeWorkspaceMember(
 
 // Leaving is removal of oneself: the same sole-Lead block and cleanup
 // apply (#98, #91). The Owner is refused and must transfer ownership first
-// (#88 user story 16) so a Workspace is never left without one. The
-// redirect for a departing member whose active Workspace was this one
-// belongs to #93.
+// (#88 user story 16) so a Workspace is never left without one. Unlike
+// removeWorkspaceMember, the sole-Lead block always carries the List names
+// (not just a count): the person leaving already has access to every List
+// they lead, so there's no one here to withhold identities from (#93).
 export async function leaveWorkspace(
   database: PrismaClient,
   input: { workspaceId: string; userId: string }
@@ -161,9 +164,9 @@ export async function leaveWorkspace(
   }
 
   return database.$transaction(async (tx) => {
-    const soleLeadListCount = await lockAndCountSoleLeadLists(tx, { workspaceId, userId });
-    if (soleLeadListCount > 0) {
-      return { status: "sole-lead-block", count: soleLeadListCount };
+    const soleLeadLists = await lockAndFindSoleLeadLists(tx, { workspaceId, userId });
+    if (soleLeadLists.length > 0) {
+      return { status: "sole-lead-block", count: soleLeadLists.length, lists: soleLeadLists };
     }
 
     await clearDepartingMemberArtifacts(tx, { workspaceId, userId });
