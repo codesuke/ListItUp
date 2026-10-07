@@ -105,24 +105,32 @@ export async function transferOwnershipAction(
     return { status: "error", message: "Type the Workspace name exactly to confirm." };
   }
 
-  const newOwner = await prisma.workspaceMember.findUnique({
-    where: { workspaceId_userId: { workspaceId, userId: newOwnerUserId } },
-    include: { user: true },
+  // The hardened transferWorkspaceOwnership() re-checks acting-Owner,
+  // Workspace kind/deletion and new-Owner eligibility on its own (#90) —
+  // this action no longer needs to pre-validate the target itself.
+  const result = await transferWorkspaceOwnership(prisma, {
+    workspaceId,
+    actingUserId: session.user.id,
+    newOwnerUserId,
   });
 
-  if (!newOwner) {
+  if (result.status === "new-owner-not-a-member") {
     return { status: "error", message: "That member is no longer in this Workspace." };
   }
 
-  const result = await transferWorkspaceOwnership(prisma, workspaceId, newOwnerUserId);
+  if (result.status === "new-owner-ineligible") {
+    return { status: "error", message: "Only an Admin or Member can become the new Owner." };
+  }
 
   if (result.status !== "transferred") {
     return { status: "error", message: "Transfer failed. Try again." };
   }
 
+  const newOwnerUser = await prisma.user.findUniqueOrThrow({ where: { id: newOwnerUserId } });
+
   await Promise.all([
     mailer.send({
-      to: newOwner.user.email,
+      to: newOwnerUser.email,
       type: "workspace-ownership-transfer",
       template: workspaceOwnershipTransferredToNewOwnerEmail({
         workspaceName: membership.workspace.name,
@@ -134,7 +142,7 @@ export async function transferOwnershipAction(
       type: "workspace-ownership-transfer",
       template: workspaceOwnershipTransferredFromPreviousOwnerEmail({
         workspaceName: membership.workspace.name,
-        counterpartyName: newOwner.user.name,
+        counterpartyName: newOwnerUser.name,
       }),
     }),
   ]);

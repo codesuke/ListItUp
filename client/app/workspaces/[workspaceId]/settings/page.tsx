@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import type { WorkspaceRole } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 import { WORKSPACE_ROLE_LABEL as ROLE_LABEL } from "@/lib/workspace/workspace-member-roles";
+import { isEligibleForOwnershipTransfer } from "@/lib/workspace/workspace-ownership";
 
 import { DeleteWorkspaceForm } from "./DeleteWorkspaceForm";
 import { loadWorkspaceSettingsPageData } from "./page-data";
@@ -25,8 +27,10 @@ export default async function WorkspaceSettingsPage({ params }: Props) {
   }
 
   const { workspaceName, viewerRole, members } = data;
+  const isTransferCandidate = (member: { userId: string; role: WorkspaceRole }): boolean =>
+    member.userId !== session.user.id && isEligibleForOwnershipTransfer(member.role);
   const transferCandidates = members
-    .filter((member) => member.userId !== session.user.id)
+    .filter(isTransferCandidate)
     .map((member) => ({ userId: member.userId, name: member.name, email: member.email }));
 
   return (

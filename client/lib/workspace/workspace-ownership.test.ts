@@ -25,10 +25,9 @@ async function run() {
   const createdUserIds: string[] = [];
   const createdWorkspaceIds: string[] = [];
 
-  async function createWorkspaceWithOwner(): Promise<{
-    workspaceId: string;
-    ownerId: string;
-  }> {
+  async function createWorkspaceWithOwner(
+    kind: "SHARED" | "PERSONAL" = "SHARED"
+  ): Promise<{ workspaceId: string; ownerId: string }> {
     const workspaceId = randomUUID();
     const ownerId = randomUUID();
     createdWorkspaceIds.push(workspaceId);
@@ -37,7 +36,7 @@ async function run() {
     await prisma.user.create({
       data: { id: ownerId, name: "Owner", email: `owner-${randomUUID()}@example.test` },
     });
-    await prisma.workspace.create({ data: { id: workspaceId, name: "Launch Team" } });
+    await prisma.workspace.create({ data: { id: workspaceId, name: "Launch Team", kind } });
     await prisma.workspaceMember.create({
       data: { id: randomUUID(), workspaceId, userId: ownerId, role: "OWNER" },
     });
@@ -68,40 +67,132 @@ async function run() {
     return membership?.role;
   }
 
+  async function ownerCountOf(workspaceId: string): Promise<number> {
+    return prisma.workspaceMember.count({ where: { workspaceId, role: "OWNER" } });
+  }
+
   try {
-    // The outgoing Owner defaults to ADMIN when no target role is given,
-    // and the new Owner ends at OWNER.
+    // A successful transfer: the outgoing Owner lands on Admin, the new
+    // Owner (an existing Admin) ends at Owner.
     {
       const { workspaceId, ownerId } = await createWorkspaceWithOwner();
       const newOwnerId = await addMember(workspaceId, "ADMIN");
 
-      const result = await transferWorkspaceOwnership(prisma, workspaceId, newOwnerId);
+      const result = await transferWorkspaceOwnership(prisma, {
+        workspaceId,
+        actingUserId: ownerId,
+        newOwnerUserId: newOwnerId,
+      });
 
       assert.deepEqual(result, { status: "transferred" });
       assert.equal(await roleOf(workspaceId, ownerId), "ADMIN");
       assert.equal(await roleOf(workspaceId, newOwnerId), "OWNER");
+      assert.equal(await ownerCountOf(workspaceId), 1);
     }
 
-    // An explicit outgoing-owner target role is honored.
+    // An existing Member is just as eligible as an Admin.
     {
       const { workspaceId, ownerId } = await createWorkspaceWithOwner();
       const newOwnerId = await addMember(workspaceId, "MEMBER");
 
-      const result = await transferWorkspaceOwnership(
-        prisma,
+      const result = await transferWorkspaceOwnership(prisma, {
         workspaceId,
-        newOwnerId,
-        "VIEWER"
-      );
+        actingUserId: ownerId,
+        newOwnerUserId: newOwnerId,
+      });
 
       assert.deepEqual(result, { status: "transferred" });
-      assert.equal(await roleOf(workspaceId, ownerId), "VIEWER");
+      assert.equal(await roleOf(workspaceId, ownerId), "ADMIN");
       assert.equal(await roleOf(workspaceId, newOwnerId), "OWNER");
+      assert.equal(await ownerCountOf(workspaceId), 1);
     }
 
-    // A mid-transaction failure (the new Owner is not yet a member, so the
-    // second update fails after the first has already run) must roll back
-    // entirely: the original Owner is left intact, never zero- or two-Owner.
+    // A non-Owner actor (here, the intended new Owner itself) calling the
+    // transfer directly is refused — the authority check lives in the
+    // operation, not only in the Settings Server Action that gates it today.
+    {
+      const { workspaceId, ownerId } = await createWorkspaceWithOwner();
+      const adminId = await addMember(workspaceId, "ADMIN");
+
+      const result = await transferWorkspaceOwnership(prisma, {
+        workspaceId,
+        actingUserId: adminId,
+        newOwnerUserId: ownerId,
+      });
+
+      assert.deepEqual(result, { status: "not-owner" });
+      assert.equal(await roleOf(workspaceId, ownerId), "OWNER");
+      assert.equal(await roleOf(workspaceId, adminId), "ADMIN");
+    }
+
+    // A Viewer can never become Owner.
+    {
+      const { workspaceId, ownerId } = await createWorkspaceWithOwner();
+      const viewerId = await addMember(workspaceId, "VIEWER");
+
+      const result = await transferWorkspaceOwnership(prisma, {
+        workspaceId,
+        actingUserId: ownerId,
+        newOwnerUserId: viewerId,
+      });
+
+      assert.deepEqual(result, { status: "new-owner-ineligible" });
+      assert.equal(await roleOf(workspaceId, ownerId), "OWNER");
+      assert.equal(await roleOf(workspaceId, viewerId), "VIEWER");
+    }
+
+    // "Transferring" to the current Owner is refused rather than silently
+    // no-op'd.
+    {
+      const { workspaceId, ownerId } = await createWorkspaceWithOwner();
+
+      const result = await transferWorkspaceOwnership(prisma, {
+        workspaceId,
+        actingUserId: ownerId,
+        newOwnerUserId: ownerId,
+      });
+
+      assert.deepEqual(result, { status: "new-owner-ineligible" });
+      assert.equal(await roleOf(workspaceId, ownerId), "OWNER");
+    }
+
+    // A Personal Space has nothing to transfer.
+    {
+      const { workspaceId, ownerId } = await createWorkspaceWithOwner("PERSONAL");
+      const memberId = await addMember(workspaceId, "ADMIN");
+
+      const result = await transferWorkspaceOwnership(prisma, {
+        workspaceId,
+        actingUserId: ownerId,
+        newOwnerUserId: memberId,
+      });
+
+      assert.deepEqual(result, { status: "personal-space" });
+      assert.equal(await roleOf(workspaceId, ownerId), "OWNER");
+    }
+
+    // A deleted Workspace stays frozen.
+    {
+      const { workspaceId, ownerId } = await createWorkspaceWithOwner();
+      const memberId = await addMember(workspaceId, "ADMIN");
+      await prisma.workspace.update({
+        where: { id: workspaceId },
+        data: { deletedAt: new Date(), deletedByUserId: ownerId },
+      });
+
+      const result = await transferWorkspaceOwnership(prisma, {
+        workspaceId,
+        actingUserId: ownerId,
+        newOwnerUserId: memberId,
+      });
+
+      assert.deepEqual(result, { status: "workspace-deleted" });
+      assert.equal(await roleOf(workspaceId, ownerId), "OWNER");
+    }
+
+    // A mid-transaction failure (the new Owner is not a member at all) must
+    // roll back entirely: the original Owner is left intact, never zero- or
+    // two-Owner.
     {
       const { workspaceId, ownerId } = await createWorkspaceWithOwner();
       const nonMemberUserId = randomUUID();
@@ -114,11 +205,11 @@ async function run() {
         },
       });
 
-      const result = await transferWorkspaceOwnership(
-        prisma,
+      const result = await transferWorkspaceOwnership(prisma, {
         workspaceId,
-        nonMemberUserId
-      );
+        actingUserId: ownerId,
+        newOwnerUserId: nonMemberUserId,
+      });
 
       assert.deepEqual(result, { status: "new-owner-not-a-member" });
       assert.equal(
@@ -126,10 +217,48 @@ async function run() {
         "OWNER",
         "a failed transfer must leave the original Owner's role untouched"
       );
-      const ownerCount = await prisma.workspaceMember.count({
-        where: { workspaceId, role: "OWNER" },
-      });
-      assert.equal(ownerCount, 1, "exactly one Owner must remain after a failed transfer");
+      assert.equal(
+        await ownerCountOf(workspaceId),
+        1,
+        "exactly one Owner must remain after a failed transfer"
+      );
+    }
+
+    // Two concurrent transfers against the same Workspace must never leave
+    // two Owners: the current Owner is identified from the acting User's own
+    // membership row, locked via the Workspace row, so the second transfer
+    // to commit finds the acting User already demoted to Admin.
+    {
+      const { workspaceId, ownerId } = await createWorkspaceWithOwner();
+      const candidateAId = await addMember(workspaceId, "ADMIN");
+      const candidateBId = await addMember(workspaceId, "MEMBER");
+
+      const [resultA, resultB] = await Promise.all([
+        transferWorkspaceOwnership(prisma, {
+          workspaceId,
+          actingUserId: ownerId,
+          newOwnerUserId: candidateAId,
+        }),
+        transferWorkspaceOwnership(prisma, {
+          workspaceId,
+          actingUserId: ownerId,
+          newOwnerUserId: candidateBId,
+        }),
+      ]);
+
+      const statuses = [resultA.status, resultB.status].sort();
+      assert.deepEqual(
+        statuses,
+        ["not-owner", "transferred"],
+        "exactly one concurrent transfer succeeds; the other finds the acting User no longer Owner"
+      );
+
+      assert.equal(
+        await ownerCountOf(workspaceId),
+        1,
+        "exactly one Owner must remain after concurrent transfers"
+      );
+      assert.equal(await roleOf(workspaceId, ownerId), "ADMIN");
     }
 
     // After a transfer, the former Owner (now Admin) keeps Lead-level
@@ -158,7 +287,11 @@ async function run() {
       const unjoinedListId =
         unjoinedListResult.status === "created" ? unjoinedListResult.listId : "";
 
-      const result = await transferWorkspaceOwnership(prisma, workspaceId, newOwnerId);
+      const result = await transferWorkspaceOwnership(prisma, {
+        workspaceId,
+        actingUserId: ownerId,
+        newOwnerUserId: newOwnerId,
+      });
       assert.deepEqual(result, { status: "transferred" });
       assert.equal(await roleOf(workspaceId, ownerId), "ADMIN");
 
@@ -172,17 +305,6 @@ async function run() {
         "NONE",
         "the former Owner has no access to a List they never joined"
       );
-    }
-
-    // No Owner on the Workspace at all is reported rather than throwing.
-    {
-      const workspaceId = randomUUID();
-      createdWorkspaceIds.push(workspaceId);
-      await prisma.workspace.create({ data: { id: workspaceId, name: "Ownerless" } });
-      const someUserId = await addMember(workspaceId, "MEMBER");
-
-      const result = await transferWorkspaceOwnership(prisma, workspaceId, someUserId);
-      assert.deepEqual(result, { status: "no-current-owner" });
     }
   } finally {
     await prisma.workspaceMember.deleteMany({
