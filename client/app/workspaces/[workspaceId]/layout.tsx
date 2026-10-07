@@ -1,8 +1,10 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { AppShell } from "@/components/workspace/AppShell";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
+import { resolveDefaultWorkspaceId } from "@/lib/workspace/default-workspace";
+import { resolveWorkspaceLayoutRedirectTarget } from "@/lib/workspace/workspace-layout-access";
 
 export default async function WorkspaceLayout({
   children,
@@ -19,7 +21,19 @@ export default async function WorkspaceLayout({
     include: { workspace: true },
   });
 
-  if (!membership || membership.workspace.deletedAt) {
+  // No membership row means this User doesn't belong here any more — most
+  // often someone removed from the Workspace (#91) following a stale link
+  // or the removal notice email — so they're sent to a Workspace they
+  // still belong to rather than a dead end (see
+  // resolveWorkspaceLayoutRedirectTarget). A Workspace that still exists
+  // but is soft-deleted (#74) stays a genuine 404: who was removed from it
+  // doesn't change that it's frozen.
+  if (!membership) {
+    const defaultWorkspaceId = await resolveDefaultWorkspaceId(prisma, session.user.id);
+    redirect(resolveWorkspaceLayoutRedirectTarget(defaultWorkspaceId));
+  }
+
+  if (membership.workspace.deletedAt) {
     notFound();
   }
 

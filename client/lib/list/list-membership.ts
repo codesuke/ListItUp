@@ -68,18 +68,22 @@ export async function lockAndInspectListMember(
 
 // Locks every List where the User holds an explicit Lead row — one
 // Workspace's worth when `workspaceId` is given, every Workspace the User
-// belongs to when it's omitted (account deletion, #100) — then counts how
-// many of those Lists have no other Lead. The invariant shared by Workspace
-// removal, leaving, demotion to Viewer and account deletion (#98, #99,
-// #100): none of those may strand a List. Must run inside the transaction
-// that performs the guarded write, before any other read in that
-// transaction, for the same race-serialization reason as
-// lockAndInspectListMember. Only the count is ever surfaced to the UI, never
-// List names or identities (per the List Lead Rules spec).
-export async function lockAndCountSoleLeadLists(
+// belongs to when it's omitted (account deletion, #100) — then reports
+// which of those Lists have no other Lead. The invariant shared by
+// Workspace removal, leaving, demotion to Viewer and account deletion
+// (#98, #99, #100): none of those may strand a List. Must run inside the
+// transaction that performs the guarded write, before any other read in
+// that transaction, for the same race-serialization reason as
+// lockAndInspectListMember. Identities are only safe to surface to a
+// caller with implicit access to every List in the Workspace (the Owner,
+// per ADR 0017) — anyone else must go through lockAndCountSoleLeadLists
+// below instead (per the List Lead Rules spec and #91).
+export type SoleLeadList = { id: string; name: string };
+
+export async function lockAndFindSoleLeadLists(
   tx: Prisma.TransactionClient,
   input: { userId: string; workspaceId?: string }
-): Promise<number> {
+): Promise<SoleLeadList[]> {
   const { workspaceId, userId } = input;
 
   const ledLists = await tx.listMember.findMany({
@@ -91,7 +95,7 @@ export async function lockAndCountSoleLeadLists(
     select: { listId: true },
   });
   if (ledLists.length === 0) {
-    return 0;
+    return [];
   }
 
   const listIds = ledLists.map((row) => row.listId).sort();
@@ -102,8 +106,27 @@ export async function lockAndCountSoleLeadLists(
     where: { listId: { in: listIds }, role: "LEAD", userId: { not: userId } },
   });
   const listsWithOtherLead = new Set(otherLeads.map((row) => row.listId));
+  const soleLeadListIds = listIds.filter((listId) => !listsWithOtherLead.has(listId));
+  if (soleLeadListIds.length === 0) {
+    return [];
+  }
 
-  return listIds.filter((listId) => !listsWithOtherLead.has(listId)).length;
+  return tx.list.findMany({
+    where: { id: { in: soleLeadListIds } },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+// The count-only projection of lockAndFindSoleLeadLists — what every caller
+// other than an Owner-scoped removal must use, since only the count is safe
+// to surface to someone without implicit access to every List in the
+// Workspace (per the List Lead Rules spec).
+export async function lockAndCountSoleLeadLists(
+  tx: Prisma.TransactionClient,
+  input: { userId: string; workspaceId?: string }
+): Promise<number> {
+  return (await lockAndFindSoleLeadLists(tx, input)).length;
 }
 
 // A ListMember row may only reference a User who already holds a

@@ -13,7 +13,8 @@ import {
   resendInvitation,
   revokeInvitation,
 } from "@/lib/workspace/workspace-invitations";
-import { leaveWorkspace, removeWorkspaceMember } from "@/lib/workspace/workspace-membership";
+import { leaveWorkspace, removeWorkspaceMember, type SoleLeadList } from "@/lib/workspace/workspace-membership";
+import { notifyWorkspaceMembershipChange } from "@/lib/workspace/workspace-membership-notifications";
 import { updateWorkspaceMemberRole } from "@/lib/workspace/workspace-member-roles";
 import {
   createRedisWorkspaceInvitationRateLimiter,
@@ -124,9 +125,16 @@ const UPDATE_MEMBER_ROLE_ERROR_MESSAGE = {
   "cannot-change-owner": "The Workspace Owner's role can only change via ownership transfer.",
 } as const;
 
-function soleLeadBlockMessage(count: number): string {
-  const lists = count === 1 ? "List" : "Lists";
-  return `This person is the sole Lead of ${count} ${lists} — promote another Lead on each one first.`;
+// The Owner gets the affected Lists' names (they have implicit access to
+// every List in the Workspace, ADR 0017); an Admin — who doesn't — gets
+// only the count and is told to ask the Owner instead (#91).
+function soleLeadBlockMessage(result: { count: number; lists?: SoleLeadList[] }): string {
+  const plural = result.count === 1 ? "List" : "Lists";
+  if (result.lists && result.lists.length > 0) {
+    const names = result.lists.map((list) => list.name).join(", ");
+    return `This person is the sole Lead of ${result.count} ${plural} (${names}) — promote another Lead on each one first.`;
+  }
+  return `This person is the sole Lead of ${result.count} ${plural} you can't see — ask the Workspace Owner to assign a new Lead first.`;
 }
 
 export async function updateMemberRoleAction(
@@ -146,7 +154,7 @@ export async function updateMemberRoleAction(
   });
 
   if (result.status === "sole-lead-block") {
-    return { status: "error", message: soleLeadBlockMessage(result.count) };
+    return { status: "error", message: soleLeadBlockMessage(result) };
   }
 
   if (result.status !== "updated") {
@@ -163,7 +171,7 @@ export type RemoveMemberState =
   | { status: "error"; message: string };
 
 const REMOVE_MEMBER_ERROR_MESSAGE = {
-  forbidden: "Only the Workspace Owner or an Admin can remove members.",
+  forbidden: "You don't have permission to remove this person.",
   "not-found": "That person is no longer a member of this Workspace.",
   "cannot-remove-owner": "The Workspace Owner can't be removed.",
 } as const;
@@ -188,12 +196,27 @@ export async function removeMemberAction(
   });
 
   if (result.status === "sole-lead-block") {
-    return { status: "error", message: soleLeadBlockMessage(result.count) };
+    return { status: "error", message: soleLeadBlockMessage(result) };
   }
 
   if (result.status !== "removed") {
     return { status: "error", message: REMOVE_MEMBER_ERROR_MESSAGE[result.status] };
   }
+
+  const [targetUser, workspace] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: targetUserId } }),
+    prisma.workspace.findUniqueOrThrow({ where: { id: workspaceId } }),
+  ]);
+
+  await notifyWorkspaceMembershipChange(prisma, mailer, {
+    recipientId: targetUserId,
+    recipientEmail: targetUser.email,
+    actorUserId: session.user.id,
+    actorName: session.user.name,
+    workspaceId,
+    workspaceName: workspace.name,
+    notice: { type: "removed" },
+  });
 
   revalidatePath(membersPath(workspaceId));
 
@@ -224,7 +247,7 @@ export async function leaveWorkspaceAction(
   const result = await leaveWorkspace(prisma, { workspaceId, userId: session.user.id });
 
   if (result.status === "sole-lead-block") {
-    return { status: "error", message: soleLeadBlockMessage(result.count) };
+    return { status: "error", message: soleLeadBlockMessage(result) };
   }
 
   if (result.status !== "left") {

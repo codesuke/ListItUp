@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedSession } from "@/lib/session/require-authenticated-session";
 import { isAssignableWorkspaceRole, WORKSPACE_ROLE_LABEL as ROLE_LABEL } from "@/lib/workspace/workspace-member-roles";
+import { canActorRemoveTargetRole } from "@/lib/workspace/workspace-membership";
 
 import { InviteMemberForm } from "./InviteMemberForm";
 import { LeaveWorkspaceButton } from "./LeaveWorkspaceButton";
@@ -72,7 +73,10 @@ export default async function WorkspaceMembersPage({ params }: Props) {
                     {ROLE_LABEL[member.role]}
                   </span>
                 )}
-                {canManageInvitations && member.role !== "OWNER" && member.userId !== session.user.id ? (
+                {canManageInvitations &&
+                currentMember &&
+                canActorRemoveTargetRole(currentMember.role, member.role) &&
+                member.userId !== session.user.id ? (
                   <RemoveMemberButton workspaceId={workspaceId} userId={member.userId} name={member.name} />
                 ) : null}
               </div>

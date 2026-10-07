@@ -59,6 +59,15 @@ async function run() {
     await prisma.listMember.create({ data: { id: randomUUID(), listId, userId, role: "LEAD" } });
   }
 
+  // Cascades (Item -> ItemAssignee/Note/PersonalNote, List -> Item) mean
+  // the existing List/Workspace teardown below is enough to clean these up
+  // too; no separate createdItemIds tracking is needed.
+  async function createItem(listId: string, creatorId: string): Promise<string> {
+    const itemId = randomUUID();
+    await prisma.item.create({ data: { id: itemId, listId, title: "Ship the release notes", creatorId } });
+    return itemId;
+  }
+
   function workspaceMembershipExists(workspaceId: string, userId: string) {
     return prisma.workspaceMember
       .findUnique({ where: { workspaceId_userId: { workspaceId, userId } } })
@@ -127,9 +136,11 @@ async function run() {
       assert.deepEqual(result, { status: "cannot-remove-owner" });
     }
 
-    // Removal is blocked while the target is the sole Lead of any List, and
-    // reports only the blocking count — the membership, List role and Guest
-    // grant are all left untouched (#98).
+    // Removal is blocked while the target is the sole Lead of any List; an
+    // Owner actor — who has implicit access to every List in the Workspace
+    // (ADR 0017) — gets the affected Lists' identities back, and the
+    // membership, List role and Guest grant are all left untouched (#98,
+    // #91).
     {
       const workspaceId = await createWorkspace();
       const ownerId = await addWorkspaceMember(workspaceId, "OWNER");
@@ -145,7 +156,11 @@ async function run() {
         targetUserId: memberId,
       });
 
-      assert.deepEqual(result, { status: "sole-lead-block", count: 1 });
+      assert.deepEqual(result, {
+        status: "sole-lead-block",
+        count: 1,
+        lists: [{ id: soleLeadListId, name: "Checklist" }],
+      });
       assert.equal(await workspaceMembershipExists(workspaceId, memberId), true);
       const listRole = await prisma.listMember.findUnique({
         where: { listId_userId: { listId: soleLeadListId, userId: memberId } },
@@ -155,6 +170,95 @@ async function run() {
         where: { listId_userId: { listId: guestListId, userId: memberId } },
       });
       assert.ok(guestRow, "a blocked removal must not touch the Guest grant either");
+    }
+
+    // The same block for an Admin actor — who has no implicit List access —
+    // reports only the count, never the List's identity (#91).
+    {
+      const workspaceId = await createWorkspace();
+      await addWorkspaceMember(workspaceId, "OWNER");
+      const adminId = await addWorkspaceMember(workspaceId, "ADMIN");
+      const memberId = await addWorkspaceMember(workspaceId, "MEMBER");
+      const soleLeadListId = await createList(workspaceId);
+      await addListLead(soleLeadListId, memberId);
+
+      const result = await removeWorkspaceMember(prisma, {
+        actingUserId: adminId,
+        workspaceId,
+        targetUserId: memberId,
+      });
+
+      assert.deepEqual(result, { status: "sole-lead-block", count: 1, lists: [] });
+    }
+
+    // An Admin is refused when removing a peer Admin — only the Owner can
+    // (#88, #91).
+    {
+      const workspaceId = await createWorkspace();
+      await addWorkspaceMember(workspaceId, "OWNER");
+      const adminAId = await addWorkspaceMember(workspaceId, "ADMIN");
+      const adminBId = await addWorkspaceMember(workspaceId, "ADMIN");
+
+      const result = await removeWorkspaceMember(prisma, {
+        actingUserId: adminAId,
+        workspaceId,
+        targetUserId: adminBId,
+      });
+
+      assert.deepEqual(result, { status: "forbidden" });
+      assert.equal(await workspaceMembershipExists(workspaceId, adminBId), true);
+    }
+
+    // A Personal Space has nobody to remove.
+    {
+      const workspaceId = await createWorkspace("PERSONAL");
+      const ownerId = await addWorkspaceMember(workspaceId, "OWNER");
+      const strangerId = await createUser();
+
+      const result = await removeWorkspaceMember(prisma, {
+        actingUserId: ownerId,
+        workspaceId,
+        targetUserId: strangerId,
+      });
+
+      assert.deepEqual(result, { status: "forbidden" });
+    }
+
+    // Removal clears the target's Item assignments, starred Lists and
+    // personal notes in this Workspace, but never touches content they
+    // authored — Items and Notes stay, still attributed to them (#91).
+    {
+      const workspaceId = await createWorkspace();
+      const ownerId = await addWorkspaceMember(workspaceId, "OWNER");
+      const memberId = await addWorkspaceMember(workspaceId, "MEMBER");
+      const listId = await createList(workspaceId);
+      const itemId = await createItem(listId, memberId);
+      await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId, userId: memberId } });
+      await prisma.starred.create({ data: { id: randomUUID(), listId, userId: memberId } });
+      await prisma.personalNote.create({
+        data: { id: randomUUID(), itemId, userId: memberId, body: "Chase this up Monday." },
+      });
+      const noteId = randomUUID();
+      await prisma.note.create({ data: { id: noteId, itemId, authorId: memberId, body: "Shipped the first pass." } });
+
+      const result = await removeWorkspaceMember(prisma, {
+        actingUserId: ownerId,
+        workspaceId,
+        targetUserId: memberId,
+      });
+
+      assert.deepEqual(result, { status: "removed" });
+      assert.equal(await prisma.itemAssignee.findFirst({ where: { itemId, userId: memberId } }), null);
+      assert.equal(await prisma.starred.findFirst({ where: { listId, userId: memberId } }), null);
+      assert.equal(await prisma.personalNote.findFirst({ where: { itemId, userId: memberId } }), null);
+
+      const survivingItem = await prisma.item.findUnique({ where: { id: itemId } });
+      assert.ok(survivingItem, "the Item the removed member authored must survive");
+      assert.equal(survivingItem?.creatorId, memberId, "authorship stays attributed to the removed member");
+
+      const survivingNote = await prisma.note.findUnique({ where: { id: noteId } });
+      assert.ok(survivingNote, "the Note the removed member authored must survive");
+      assert.equal(survivingNote?.authorId, memberId);
     }
 
     // Once another Lead exists, removal succeeds and clears the person's

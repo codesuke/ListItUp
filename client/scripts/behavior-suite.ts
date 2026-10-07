@@ -69,6 +69,7 @@ const TEST_FILES = [
   "lib/workspace/workspace-deletion-notifications.integration.test.ts",
   "lib/workspace/workspace-purge.integration.test.ts",
   "lib/workspace/default-workspace.test.ts",
+  "lib/workspace/workspace-layout-access.test.ts",
   "lib/workspace/workspace-peer-comparison.test.ts",
   "app/workspaces/[workspaceId]/lists/[listId]/page.smoke.test.tsx",
   "app/workspaces/[workspaceId]/lists/[listId]/items/[itemId]/page.smoke.test.tsx",
