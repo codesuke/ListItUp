@@ -1,4 +1,5 @@
 import type { ListStatus, PrismaClient } from "@/generated/prisma/client";
+import { hasImplicitListAccess } from "@/lib/permissions/workspace-access";
 import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
 export type ListSummary = {
@@ -51,7 +52,7 @@ export async function browseLists(
     where: { workspaceId_userId: { workspaceId, userId } },
   });
 
-  const canSeeEveryList = workspaceMembership?.role === "OWNER";
+  const canSeeEveryList = hasImplicitListAccess(workspaceMembership?.role);
 
   const visibilityFilter = canSeeEveryList
     ? {}

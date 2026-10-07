@@ -1,8 +1,8 @@
 import type { PrismaClient } from "@/generated/prisma/client";
+import { canManageWorkspace } from "@/lib/permissions/workspace-access";
+import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
 export type SetPeerComparisonEnabledResult = { status: "updated" } | { status: "forbidden" };
-
-const ALLOWED_ROLES = new Set(["OWNER", "ADMIN"]);
 
 // List Dashboard's Peer Comparison setting (#58): workspace-level, off by
 // default, changeable only by a Workspace Owner or Admin — a List Lead
@@ -14,9 +14,10 @@ export async function setPeerComparisonEnabled(
 ): Promise<SetPeerComparisonEnabledResult> {
   const membership = await database.workspaceMember.findUnique({
     where: { workspaceId_userId: { workspaceId: input.workspaceId, userId: input.userId } },
+    include: { workspace: { select: { deletedAt: true } } },
   });
 
-  if (!membership || !ALLOWED_ROLES.has(membership.role)) {
+  if (!membership || isDeletedWorkspace(membership.workspace) || !canManageWorkspace(membership.role)) {
     return { status: "forbidden" };
   }
 

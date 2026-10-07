@@ -267,6 +267,30 @@ async function run() {
       );
     }
 
+    // An orphaned ListMember row — no backing WorkspaceMember at all in
+    // this List's Workspace — is treated as absent rather than trusted.
+    {
+      const workspaceId = await createWorkspace();
+      const userId = await createUser();
+      const listId = await createListIn(workspaceId);
+      await addListMember(listId, userId, "LEAD");
+
+      assert.equal(await resolveListAccess(prisma, { userId, listId }), "NONE");
+    }
+
+    // The same orphaned ListMember row, but the User also holds a Guest
+    // grant on that List: the Guest grant still resolves normally — the L1
+    // defense only disregards the ListMember row, it doesn't force NONE.
+    {
+      const workspaceId = await createWorkspace();
+      const userId = await createUser();
+      const listId = await createListIn(workspaceId);
+      await addListMember(listId, userId, "LEAD");
+      await addGuest(listId, userId);
+
+      assert.equal(await resolveListAccess(prisma, { userId, listId }), "READ");
+    }
+
     // A Deleted Workspace's List resolves to NONE for everyone — Owner,
     // Guest, and export — regardless of role (#76).
     {

@@ -154,6 +154,24 @@ async function run() {
       assert.deepEqual(result, { status: "creator-lacks-required-role" });
     }
 
+    // A soft-deleted Workspace refuses List creation even for its Owner
+    // (#76) — a Deleted Workspace is locked down everywhere, not just in
+    // the places that happened to already check `deletedAt`.
+    {
+      const { workspaceId, memberId: ownerId } = await createWorkspaceWithMember("OWNER");
+      await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+
+      const result = await createList(prisma, {
+        workspaceId,
+        creatorUserId: ownerId,
+        name: "Should not exist",
+      });
+
+      assert.deepEqual(result, { status: "creator-lacks-required-role" });
+      const lists = await prisma.list.findMany({ where: { workspaceId } });
+      assert.equal(lists.length, 0, "no List must be created in a soft-deleted Workspace");
+    }
+
     // The creator's explicit Lead row is immediately subject to the
     // never-zero-Leads invariant: a freshly created List's creator can't be
     // removed from it, since they're its only Lead (#95).

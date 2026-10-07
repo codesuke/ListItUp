@@ -1,18 +1,14 @@
 import { randomUUID } from "node:crypto";
 
-import type { PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
+import type { PrismaClient } from "@/generated/prisma/client";
+import { canManageWorkspace } from "@/lib/permissions/workspace-access";
+import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
 export type CreateLabelResult =
   | { status: "created"; labelId: string }
   | { status: "workspace-not-found" }
   | { status: "forbidden" }
   | { status: "duplicate-name" };
-
-// Mirrors List-creation rights (lib/list/list-creation.ts): only Workspace
-// Owner/Admin can create a Label. This naturally covers Personal Space too
-// — a User's Personal Space membership is always OWNER — so it needs no
-// branch on Workspace.kind (#34).
-const ROLES_ALLOWED_TO_CREATE_LABEL: readonly WorkspaceRole[] = ["OWNER", "ADMIN"];
 
 const UNIQUE_CONSTRAINT_ERROR_CODE = "P2002";
 
@@ -35,11 +31,14 @@ export async function createLabel(
   if (!workspace) {
     return { status: "workspace-not-found" };
   }
+  if (isDeletedWorkspace(workspace)) {
+    return { status: "forbidden" };
+  }
 
   const membership = await database.workspaceMember.findUnique({
     where: { workspaceId_userId: { workspaceId, userId: actorUserId } },
   });
-  if (!membership || !ROLES_ALLOWED_TO_CREATE_LABEL.includes(membership.role)) {
+  if (!membership || !canManageWorkspace(membership.role)) {
     return { status: "forbidden" };
   }
 

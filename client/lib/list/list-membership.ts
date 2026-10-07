@@ -38,6 +38,13 @@ function exceedsViewerCeiling(workspaceRole: WorkspaceRole | undefined, role: Li
   return workspaceRole === "VIEWER" && role !== "VIEWER";
 }
 
+// The never-empty-Lead rule's one enforcement mechanism (ADR 0019): every
+// mutation that deletes a ListMember/WorkspaceMember row, or changes a
+// ListMemberRole away from LEAD, must call this (or lockAndCountSoleLeadLists
+// below) inside its own transaction before performing that write. There is
+// no DB constraint or trigger backstop — code review and this comment are
+// the only guard against a future call site bypassing it by omission.
+//
 // Locks the List row so a check-then-write against its Lead count
 // serializes against any other concurrent change to the same List's Leads
 // — two simultaneous demotions of the last two Leads must leave exactly one
@@ -121,7 +128,11 @@ export async function lockAndFindSoleLeadLists(
 // The count-only projection of lockAndFindSoleLeadLists — what every caller
 // other than an Owner-scoped removal must use, since only the count is safe
 // to surface to someone without implicit access to every List in the
-// Workspace (per the List Lead Rules spec).
+// Workspace (per the List Lead Rules spec). Subject to the same ADR
+// 0019 rule as lockAndInspectListMember above: any mutation that removes a
+// User from a Workspace, or otherwise deletes a ListMember/WorkspaceMember
+// row or changes a ListMemberRole away from LEAD for them, must call this
+// (or lockAndFindSoleLeadLists directly) inside its own transaction first.
 export async function lockAndCountSoleLeadLists(
   tx: Prisma.TransactionClient,
   input: { userId: string; workspaceId?: string }

@@ -4,6 +4,7 @@ import {
   canAccessWorkspaceSettings,
   canManageWorkspace,
   canViewWorkspaceMembers,
+  hasImplicitListAccess,
 } from "./workspace-access";
 
 function run() {
@@ -43,6 +44,16 @@ function run() {
     assert.equal(canViewWorkspaceMembers({ role, workspaceKind: "PERSONAL" }), false);
   }
   assert.equal(canViewWorkspaceMembers({ role: null, workspaceKind: "SHARED" }), false);
+
+  // Only the Owner has implicit Lead-equivalent access to every List in
+  // the Workspace (ADR 0016) — this must mirror resolveListAccess's own
+  // inline Owner check exactly.
+  assert.equal(hasImplicitListAccess("OWNER"), true);
+  assert.equal(hasImplicitListAccess("ADMIN"), false);
+  assert.equal(hasImplicitListAccess("MEMBER"), false);
+  assert.equal(hasImplicitListAccess("VIEWER"), false);
+  assert.equal(hasImplicitListAccess(null), false);
+  assert.equal(hasImplicitListAccess(undefined), false);
 
   console.log("workspace access permissions test passed");
 }

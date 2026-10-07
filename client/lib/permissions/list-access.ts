@@ -54,12 +54,22 @@ export async function resolveListAccess(
   // The Workspace Owner sees every List in their Workspace, including
   // private ones, with Lead-equivalent access regardless of any explicit
   // List-level row (ADR 0016). A Workspace Admin has no such implicit
-  // access and falls through to their explicit List role below.
+  // access and falls through to their explicit List role below. This check
+  // must never drift from hasImplicitListAccess()'s mirror of it
+  // (lib/permissions/workspace-access.ts), which call sites that can't
+  // afford a resolveListAccess() per List use instead.
   if (workspaceMembership?.role === "OWNER") {
     return "LEAD";
   }
 
-  let level: ListAccessLevel = listMembership
+  // A ListMember row only grants access when a WorkspaceMember row backs it
+  // in this same Workspace — an orphaned ListMember (stale data, a bypassed
+  // cleanup path) is treated as absent rather than trusted, falling through
+  // to the Guest check below exactly as if no ListMember row existed. Guest
+  // access has no WorkspaceMember by design and is untouched by this check.
+  const hasBackingWorkspaceMembership = workspaceMembership !== null;
+
+  let level: ListAccessLevel = listMembership && hasBackingWorkspaceMembership
     ? LIST_ROLE_TO_LEVEL[listMembership.role]
     : guestGrant
       ? "READ"

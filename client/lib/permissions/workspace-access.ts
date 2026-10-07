@@ -27,3 +27,15 @@ export function canViewWorkspaceMembers(input: {
 }): boolean {
   return input.role != null && input.workspaceKind === "SHARED";
 }
+
+// Whether a WorkspaceRole grants implicit Lead-equivalent access to every
+// List in the Workspace, bypassing any explicit List-level role (ADR 0016)
+// — currently just the Owner. This is the exact counterpart to
+// resolveListAccess's own inline `workspaceMembership?.role === "OWNER"`
+// check (lib/permissions/list-access.ts): the two must never drift from
+// each other, since this predicate exists so call sites that can't afford
+// a resolveListAccess() call per List (list-browsing.ts, global-search.ts)
+// can still ask the same question.
+export function hasImplicitListAccess(role: WorkspaceRole | null | undefined): boolean {
+  return role === "OWNER";
+}

@@ -1,17 +1,13 @@
 import { randomUUID } from "node:crypto";
 
-import type { PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
+import type { PrismaClient } from "@/generated/prisma/client";
+import { canManageWorkspace } from "@/lib/permissions/workspace-access";
+import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
 export type CreateListResult =
   | { status: "created"; listId: string }
   | { status: "creator-lacks-workspace-membership" }
   | { status: "creator-lacks-required-role" };
-
-// Only Workspace Owner/Admin may create a List (ADR 0009). This naturally
-// covers Personal Space too: a User's Personal Space membership is always
-// OWNER (see provisionPersonalWorkspace), so this single role check needs no
-// branch on Workspace.kind.
-const ROLES_ALLOWED_TO_CREATE_LIST: readonly WorkspaceRole[] = ["OWNER", "ADMIN"];
 
 // Lists are private by default (ADR 0009): the creator becomes the List's
 // first Lead and no other Workspace Member gains access from this call.
@@ -28,13 +24,14 @@ export async function createList(
   return database.$transaction(async (tx) => {
     const creatorMembership = await tx.workspaceMember.findUnique({
       where: { workspaceId_userId: { workspaceId, userId: creatorUserId } },
+      include: { workspace: { select: { deletedAt: true } } },
     });
 
     if (!creatorMembership) {
       return { status: "creator-lacks-workspace-membership" };
     }
 
-    if (!ROLES_ALLOWED_TO_CREATE_LIST.includes(creatorMembership.role)) {
+    if (isDeletedWorkspace(creatorMembership.workspace) || !canManageWorkspace(creatorMembership.role)) {
       return { status: "creator-lacks-required-role" };
     }
 

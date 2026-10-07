@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import { hasImplicitListAccess } from "@/lib/permissions/workspace-access";
 import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
 export type SearchedList = {
@@ -70,7 +71,7 @@ export async function globalSearch(
     return EMPTY_RESULT;
   }
 
-  const canSeeEveryList = workspaceMembership.role === "OWNER";
+  const canSeeEveryList = hasImplicitListAccess(workspaceMembership.role);
   const listVisibilityFilter = buildListVisibilityFilter(canSeeEveryList, userId);
 
   const [lists, items, members] = await Promise.all([

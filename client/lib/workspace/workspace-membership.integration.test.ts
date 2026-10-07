@@ -288,6 +288,19 @@ async function run() {
         await resolveListAccess(prisma, { userId: memberId, listId: guestListId }),
         "NONE"
       );
+
+      // Hygiene, not just the resolveListAccess defense (#106): no
+      // ListMember or Guest row for the removed member survives in this
+      // Workspace, so an orphaned row never accumulates even though
+      // resolveListAccess would now disregard one anyway.
+      assert.equal(
+        await prisma.listMember.findFirst({ where: { userId: memberId, list: { workspaceId } } }),
+        null
+      );
+      assert.equal(
+        await prisma.guest.findFirst({ where: { userId: memberId, list: { workspaceId } } }),
+        null
+      );
     }
 
     // Any non-Owner can leave once they lead no List alone.
@@ -333,6 +346,13 @@ async function run() {
       const left = await leaveWorkspace(prisma, { workspaceId, userId: memberId });
       assert.deepEqual(left, { status: "left" });
       assert.equal(await resolveListAccess(prisma, { userId: memberId, listId }), "NONE");
+
+      // Hygiene, not just the resolveListAccess defense (#106): no
+      // ListMember row for the person who left survives in this Workspace.
+      assert.equal(
+        await prisma.listMember.findFirst({ where: { userId: memberId, list: { workspaceId } } }),
+        null
+      );
     }
 
     // A Personal Space has nobody to leave.

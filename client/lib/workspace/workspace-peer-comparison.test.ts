@@ -85,6 +85,21 @@ async function run() {
       assert.equal(workspace.peerComparisonEnabled, false);
     }
 
+    // A soft-deleted Workspace refuses the change even for its Owner (#76)
+    // — a Deleted Workspace is locked down everywhere.
+    {
+      const ownerId = await createUser();
+      const workspaceId = await createWorkspace();
+      await joinWorkspace(workspaceId, ownerId, "OWNER");
+      await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+
+      const result = await setPeerComparisonEnabled(prisma, { userId: ownerId, workspaceId, enabled: true });
+      assert.deepEqual(result, { status: "forbidden" });
+
+      const workspace = await prisma.workspace.findUniqueOrThrow({ where: { id: workspaceId } });
+      assert.equal(workspace.peerComparisonEnabled, false);
+    }
+
     // A non-Member of the Workspace is forbidden.
     {
       const outsiderId = await createUser();

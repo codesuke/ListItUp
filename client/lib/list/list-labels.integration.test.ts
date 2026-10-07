@@ -79,6 +79,20 @@ async function run() {
       assert.equal(result.status, "created");
     }
 
+    // A soft-deleted Workspace refuses Label creation even for its Owner
+    // (#76) — a Deleted Workspace is locked down everywhere.
+    {
+      const workspaceId = await createWorkspace();
+      const ownerId = await createUser();
+      await addWorkspaceMember(workspaceId, ownerId, "OWNER");
+      await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
+
+      const result = await createLabel(prisma, { actorUserId: ownerId, workspaceId, name: "Should not exist" });
+      assert.deepEqual(result, { status: "forbidden" });
+      const labels = await prisma.label.findMany({ where: { workspaceId } });
+      assert.equal(labels.length, 0);
+    }
+
     // Duplicate names within the same Workspace are rejected.
     {
       const workspaceId = await createWorkspace();
