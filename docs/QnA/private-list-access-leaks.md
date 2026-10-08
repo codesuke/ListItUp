@@ -73,4 +73,4 @@ This session settles how these surfaces should behave once access is granted, us
 
 - Glossary updates: none — `CONTEXT.md`'s existing Assignee/Personal Note/Guest definitions already describe the intended domain shape; these are enforcement fixes, not new concepts.
 - ADRs created: [0021](../ADR/0021-private-list-access-leaks-write-and-read-time-enforcement.md).
-- Specs affected: `docs/Specs-Planned/private-list-access-leaks.md`.
+- Specs affected: `docs/Specs-Planned/private-list-access-leaks.md`, published to the issue tracker as [#107](https://github.com/codesuke/ListItUp/issues/107).
