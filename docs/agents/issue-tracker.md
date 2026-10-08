@@ -4,9 +4,9 @@ Issues and PRDs for this repo live as GitHub Issues. Use the `gh` CLI for issue 
 
 ## Repository
 
-`Dhruvivek/ListItUp`
+`codesuke/ListItUp`
 
-**History:** this repo used to be `codesuke/ListItUp`. As of 2026-08-26 the agent account (`Dhruvivek`) only has read access there, so issues/PRDs moved to `Dhruvivek/ListItUp` (the agent's own fork, `origin` in this clone). `VirtuNode-dev/ListItUp` (`upstream`) also exists with full admin access if the tracker needs to move again later — check with the user before switching.
+**History:** between 2026-08-26 and 2026-10-08 the tracker lived on `Dhruvivek/ListItUp` (the agent's fork) while the agent account only had read access to `codesuke/ListItUp`; early wayfinder tickets (#1–#11) and links to them in `docs/QnA/` still point there. As of 2026-10-08 the tracker is back on `codesuke/ListItUp`, which is `origin` in this clone. Pass `--repo codesuke/ListItUp` if `gh` resolves a different default.
 
 ## Conventions
 
