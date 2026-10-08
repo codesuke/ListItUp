@@ -56,7 +56,8 @@ async function run() {
   }
 
   try {
-    // A List Member can add and remove an Assignee.
+    // A List Member can add and remove an Assignee who has at least READ
+    // access to the Item's List.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const memberId = await createUser();
@@ -66,6 +67,8 @@ async function run() {
         data: { id: randomUUID(), listId, title: "Test Item", creatorId: memberId },
       });
       const assigneeId = await createUser();
+      await addWorkspaceMember(workspaceId, assigneeId, "MEMBER");
+      await addListMember(listId, assigneeId, "MEMBER");
 
       const added = await addAssignee(prisma, { actorUserId: memberId, itemId: item.id, userId: assigneeId });
       assert.deepEqual(added, { status: "added" });
@@ -94,6 +97,57 @@ async function run() {
       assert.deepEqual(result, { status: "forbidden" });
     }
 
+    // #107/ADR 0021: assigning a User with zero access to the Item's List
+    // is refused, even though the actor has WRITE — assignment can't be
+    // used to leak a private Item to someone who shouldn't see it.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const memberId = await createUser();
+      await addWorkspaceMember(workspaceId, memberId, "MEMBER");
+      await addListMember(listId, memberId, "MEMBER");
+      const item = await prisma.item.create({
+        data: { id: randomUUID(), listId, title: "Test Item", creatorId: memberId },
+      });
+      const outsiderId = await createUser();
+
+      const result = await addAssignee(prisma, { actorUserId: memberId, itemId: item.id, userId: outsiderId });
+      assert.deepEqual(result, { status: "assignee-no-access" });
+      const assignees = await prisma.itemAssignee.findMany({ where: { itemId: item.id } });
+      assert.equal(assignees.length, 0, "no ItemAssignee row must be created");
+    }
+
+    // #107/ADR 0021: a target with only READ access — a List Viewer or a
+    // Guest — remains a valid assignee, for visibility/FYI purposes even
+    // though they can't act on the Item themselves.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const memberId = await createUser();
+      await addWorkspaceMember(workspaceId, memberId, "MEMBER");
+      await addListMember(listId, memberId, "MEMBER");
+      const item = await prisma.item.create({
+        data: { id: randomUUID(), listId, title: "Test Item", creatorId: memberId },
+      });
+
+      const viewerAssigneeId = await createUser();
+      await addWorkspaceMember(workspaceId, viewerAssigneeId, "MEMBER");
+      await addListMember(listId, viewerAssigneeId, "VIEWER");
+      const viewerResult = await addAssignee(prisma, {
+        actorUserId: memberId,
+        itemId: item.id,
+        userId: viewerAssigneeId,
+      });
+      assert.deepEqual(viewerResult, { status: "added" });
+
+      const guestAssigneeId = await createUser();
+      await prisma.guest.create({ data: { id: randomUUID(), listId, userId: guestAssigneeId } });
+      const guestResult = await addAssignee(prisma, {
+        actorUserId: memberId,
+        itemId: item.id,
+        userId: guestAssigneeId,
+      });
+      assert.deepEqual(guestResult, { status: "added" });
+    }
+
     // Creator attribution stays fixed as Assignees change.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
@@ -104,7 +158,11 @@ async function run() {
         data: { id: randomUUID(), listId, title: "Test Item", creatorId },
       });
       const assigneeA = await createUser();
+      await addWorkspaceMember(workspaceId, assigneeA, "MEMBER");
+      await addListMember(listId, assigneeA, "MEMBER");
       const assigneeB = await createUser();
+      await addWorkspaceMember(workspaceId, assigneeB, "MEMBER");
+      await addListMember(listId, assigneeB, "MEMBER");
 
       await addAssignee(prisma, { actorUserId: creatorId, itemId: item.id, userId: assigneeA });
       await addAssignee(prisma, { actorUserId: creatorId, itemId: item.id, userId: assigneeB });

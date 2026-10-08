@@ -57,6 +57,8 @@ async function run() {
     const delegate = await createUser();
     const { workspaceId, listId } = await createWorkspaceWithList("Marketing");
     const otherWorkspace = await createWorkspaceWithList("Engineering");
+    await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId, userId: owner, role: "MEMBER" } });
+    await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: owner, role: "MEMBER" } });
 
     const delegatedItem = await createItem(listId, owner, "Delegated brief");
     await assign(delegatedItem, delegate);
@@ -74,6 +76,75 @@ async function run() {
 
     assert.deepEqual(items.map((item) => item.title), ["Delegated brief"]);
     assert.equal(items[0].assigneeCount, 1);
+
+    // #107 story 9: an archived List's delegated Item is excluded, even
+    // though the creator still has normal role-based access to that List.
+    {
+      const archivedListWorkspace = await createWorkspaceWithList("Archived");
+      const archivedItem = await createItem(archivedListWorkspace.listId, owner, "In an archived List");
+      await assign(archivedItem, delegate);
+      await prisma.list.update({ where: { id: archivedListWorkspace.listId }, data: { archivedAt: new Date() } });
+
+      const results = await loadAssignedByMeItems(prisma, {
+        userId: owner,
+        workspaceId: archivedListWorkspace.workspaceId,
+      });
+      assert.deepEqual(results, []);
+    }
+
+    // #107/ADR 0021: a Deleted Workspace's delegated Items never surface —
+    // a pre-existing gap this surface didn't close before (My Tasks
+    // already did).
+    {
+      const deletedWorkspace = await createWorkspaceWithList("Retired");
+      const deletedItem = await createItem(deletedWorkspace.listId, owner, "In a deleted Workspace");
+      await assign(deletedItem, delegate);
+      await prisma.workspace.update({ where: { id: deletedWorkspace.workspaceId }, data: { deletedAt: new Date() } });
+
+      const results = await loadAssignedByMeItems(prisma, { userId: owner, workspaceId: deletedWorkspace.workspaceId });
+      assert.deepEqual(results, []);
+    }
+
+    // #107/ADR 0021: the creator (the viewer here) losing List access hides
+    // their own delegated Item until access is restored, without needing
+    // to recreate the delegation.
+    {
+      const { workspaceId: accessWorkspaceId, listId: accessListId } = await createWorkspaceWithList("Design");
+      await prisma.workspaceMember.create({
+        data: { id: randomUUID(), workspaceId: accessWorkspaceId, userId: owner, role: "MEMBER" },
+      });
+      await prisma.listMember.create({
+        data: { id: randomUUID(), listId: accessListId, userId: owner, role: "MEMBER" },
+      });
+      const revocableItem = await createItem(accessListId, owner, "Loses access to its own List");
+      await assign(revocableItem, delegate);
+
+      assert.deepEqual(
+        (await loadAssignedByMeItems(prisma, { userId: owner, workspaceId: accessWorkspaceId })).map(
+          (item) => item.title
+        ),
+        ["Loses access to its own List"]
+      );
+
+      await prisma.listMember.deleteMany({ where: { listId: accessListId, userId: owner } });
+      await prisma.workspaceMember.deleteMany({ where: { workspaceId: accessWorkspaceId, userId: owner } });
+
+      assert.deepEqual(await loadAssignedByMeItems(prisma, { userId: owner, workspaceId: accessWorkspaceId }), []);
+
+      await prisma.workspaceMember.create({
+        data: { id: randomUUID(), workspaceId: accessWorkspaceId, userId: owner, role: "MEMBER" },
+      });
+      await prisma.listMember.create({
+        data: { id: randomUUID(), listId: accessListId, userId: owner, role: "MEMBER" },
+      });
+
+      assert.deepEqual(
+        (await loadAssignedByMeItems(prisma, { userId: owner, workspaceId: accessWorkspaceId })).map(
+          (item) => item.title
+        ),
+        ["Loses access to its own List"]
+      );
+    }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })

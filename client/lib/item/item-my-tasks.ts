@@ -1,4 +1,5 @@
 import type { Item, ItemPriority, ItemState, PrismaClient, WorkspaceKind } from "@/generated/prisma/client";
+import { meetsListAccessLevel, resolveListAccessForMany } from "@/lib/permissions/list-access";
 import { ACTIVE_WORKSPACE_WHERE } from "@/lib/workspace/workspace-visibility";
 
 export type MyTaskAttachment = {
@@ -380,6 +381,11 @@ export async function loadMyTasksItems(
       item: {
         list: {
           workspace: ACTIVE_WORKSPACE_WHERE,
+          // A frozen/closed List's Items don't clutter active task queues
+          // (#107 story 9) — kept as its own dedicated condition rather
+          // than folded into resolveListAccess, since archived status
+          // stays orthogonal to access level (ADR 0018).
+          archivedAt: null,
           ...(sourceWorkspaceId ? { workspaceId: sourceWorkspaceId } : {}),
         },
         ...(search ? { title: { contains: search, mode: "insensitive" as const } } : {}),
@@ -395,13 +401,24 @@ export async function loadMyTasksItems(
     },
   });
 
-  const visibleItems = assignments
-    .map((assignment) => assignment.item)
-    .filter((item) => {
-      if (item.state === "COMPLETE") return includeCompleted;
-      if (item.state === "ARCHIVED") return includeArchived;
-      return true;
-    });
+  const candidateItems = assignments.map((assignment) => assignment.item);
+
+  // Access revoked after a valid assignment is caught here, at read time
+  // (#107/ADR 0021) — the write-time gate on addAssignee only covers new
+  // assignments, so a stale ItemAssignee row survives access loss and must
+  // be hidden rather than deleted (access restoration is then a free side
+  // effect of the row surviving).
+  const accessByListId = await resolveListAccessForMany(database, {
+    userId,
+    listIds: candidateItems.map((item) => item.listId),
+  });
+
+  const visibleItems = candidateItems.filter((item) => {
+    if (!meetsListAccessLevel(accessByListId.get(item.listId) ?? "NONE", "READ")) return false;
+    if (item.state === "COMPLETE") return includeCompleted;
+    if (item.state === "ARCHIVED") return includeArchived;
+    return true;
+  });
 
   return applyMyTasksSort(visibleItems.map(toMyTaskItem), sortBy, now);
 }

@@ -36,7 +36,12 @@ async function run() {
     return userId;
   }
 
-  async function createWorkspaceWithItem(): Promise<{ itemId: string; creatorId: string }> {
+  async function createWorkspaceWithItem(): Promise<{
+    itemId: string;
+    creatorId: string;
+    listId: string;
+    workspaceId: string;
+  }> {
     const workspaceId = randomUUID();
     const listId = randomUUID();
     const creatorId = await createUser("Actor");
@@ -45,7 +50,15 @@ async function run() {
     await prisma.list.create({ data: { id: listId, workspaceId, name: "Test List" } });
     const itemId = randomUUID();
     await prisma.item.create({ data: { id: itemId, listId, title: "Ship the release", creatorId } });
-    return { itemId, creatorId };
+    return { itemId, creatorId, listId, workspaceId };
+  }
+
+  // Every loader re-checks the recipient's current List access (#107/ADR
+  // 0021), so a recipient fixture needs an explicit grant to see an
+  // Item-anchored notification at all.
+  async function grantListAccess(workspaceId: string, listId: string, userId: string): Promise<void> {
+    await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId, userId, role: "MEMBER" } });
+    await prisma.listMember.create({ data: { id: randomUUID(), listId, userId, role: "MEMBER" } });
   }
 
   async function createNotification(input: {
@@ -78,8 +91,9 @@ async function run() {
     // notifications, newest first, and excludes DUE_DATE_REMINDER (out of
     // the Activity tab's scope per #47) and archived notifications.
     {
-      const { itemId, creatorId } = await createWorkspaceWithItem();
+      const { itemId, creatorId, listId, workspaceId } = await createWorkspaceWithItem();
       const recipientId = await createUser("Recipient");
+      await grantListAccess(workspaceId, listId, recipientId);
       const otherUserId = await createUser("Someone Else");
 
       const older = await createNotification({ recipientId, actorId: creatorId, itemId, type: "ASSIGNEE_ADDED" });
@@ -107,8 +121,9 @@ async function run() {
 
     // Filtering by category narrows to that category's NotificationTypes.
     {
-      const { itemId, creatorId } = await createWorkspaceWithItem();
+      const { itemId, creatorId, listId, workspaceId } = await createWorkspaceWithItem();
       const recipientId = await createUser("Recipient");
+      await grantListAccess(workspaceId, listId, recipientId);
 
       const noteNotificationId = await createNotification({
         recipientId,
@@ -127,8 +142,9 @@ async function run() {
     // including DUE_DATE_REMINDER, which counts toward the badge even
     // though it's excluded from the Activity list above.
     {
-      const { itemId, creatorId } = await createWorkspaceWithItem();
+      const { itemId, creatorId, listId, workspaceId } = await createWorkspaceWithItem();
       const recipientId = await createUser("Recipient");
+      await grantListAccess(workspaceId, listId, recipientId);
       const otherUserId = await createUser("Someone Else");
 
       const notificationId = await createNotification({
@@ -161,8 +177,9 @@ async function run() {
     // notifications, each scoped to the recipient, against a fixture set
     // with varying read/bookmarked/archived/type state (#49).
     {
-      const { itemId, creatorId } = await createWorkspaceWithItem();
+      const { itemId, creatorId, listId, workspaceId } = await createWorkspaceWithItem();
       const recipientId = await createUser("Recipient");
+      await grantListAccess(workspaceId, listId, recipientId);
       const otherUserId = await createUser("Someone Else");
 
       const bookmarkedActive = await createNotification({
@@ -223,8 +240,9 @@ async function run() {
     // toggleNotificationBookmark flips bookmarkedAt for the owning
     // recipient only, and is a true toggle (bookmark, then unbookmark).
     {
-      const { itemId, creatorId } = await createWorkspaceWithItem();
+      const { itemId, creatorId, listId, workspaceId } = await createWorkspaceWithItem();
       const recipientId = await createUser("Recipient");
+      await grantListAccess(workspaceId, listId, recipientId);
       const otherUserId = await createUser("Someone Else");
       const notificationId = await createNotification({
         recipientId,
@@ -251,8 +269,9 @@ async function run() {
     // archiveNotification sets archivedAt for the owning recipient only,
     // never deletes the row, and is idempotent when already archived.
     {
-      const { itemId, creatorId } = await createWorkspaceWithItem();
+      const { itemId, creatorId, listId, workspaceId } = await createWorkspaceWithItem();
       const recipientId = await createUser("Recipient");
+      await grantListAccess(workspaceId, listId, recipientId);
       const otherUserId = await createUser("Someone Else");
       const notificationId = await createNotification({
         recipientId,
@@ -330,6 +349,8 @@ async function run() {
       const live = await createWorkspaceWithItem();
       const deleted = await createWorkspaceWithItem();
       const recipientId = await createUser("Recipient");
+      await grantListAccess(live.workspaceId, live.listId, recipientId);
+      await grantListAccess(deleted.workspaceId, deleted.listId, recipientId);
 
       const liveNotificationId = await createNotification({
         recipientId,
@@ -391,6 +412,56 @@ async function run() {
         "even an archived notification from a Deleted Workspace stays excluded"
       );
       assert.equal(await countUnreadNotifications(prisma, recipientId), 1, "only the live Workspace's notification counts");
+    }
+
+    // #107/ADR 0021: a Notification about an Item the recipient has since
+    // lost List access to is excluded from every loader and from the
+    // unread count, without the row itself being deleted, and reappears
+    // once access is restored — without the Notification being recreated.
+    {
+      const { itemId, creatorId, listId, workspaceId } = await createWorkspaceWithItem();
+      const recipientId = await createUser("Recipient");
+      await grantListAccess(workspaceId, listId, recipientId);
+
+      const notificationId = await createNotification({
+        recipientId,
+        actorId: creatorId,
+        itemId,
+        type: "ASSIGNEE_ADDED",
+        bookmarkedAt: new Date(),
+      });
+      const mentionId = await createNotification({ recipientId, actorId: creatorId, itemId, type: "MENTIONED" });
+
+      assert.deepEqual((await loadActivityNotifications(prisma, { recipientId })).map((n) => n.id).sort(), [
+        mentionId,
+        notificationId,
+      ].sort());
+      assert.deepEqual((await loadBookmarkedNotifications(prisma, { recipientId })).map((n) => n.id), [
+        notificationId,
+      ]);
+      assert.deepEqual((await loadMentionedNotifications(prisma, { recipientId })).map((n) => n.id), [mentionId]);
+      assert.equal(await countUnreadNotifications(prisma, recipientId), 2);
+
+      await prisma.listMember.deleteMany({ where: { listId, userId: recipientId } });
+      await prisma.workspaceMember.deleteMany({ where: { workspaceId, userId: recipientId } });
+
+      assert.deepEqual(await loadActivityNotifications(prisma, { recipientId }), []);
+      assert.deepEqual(await loadBookmarkedNotifications(prisma, { recipientId }), []);
+      assert.deepEqual(await loadMentionedNotifications(prisma, { recipientId }), []);
+      assert.equal(await countUnreadNotifications(prisma, recipientId), 0);
+      assert.equal(
+        await prisma.notification.count({ where: { id: { in: [notificationId, mentionId] } } }),
+        2,
+        "losing access must never delete the underlying Notification rows"
+      );
+
+      await grantListAccess(workspaceId, listId, recipientId);
+
+      assert.deepEqual((await loadActivityNotifications(prisma, { recipientId })).map((n) => n.id).sort(), [
+        mentionId,
+        notificationId,
+      ].sort());
+      assert.equal(await countUnreadNotifications(prisma, recipientId), 2);
     }
   } finally {
     const listIds = (

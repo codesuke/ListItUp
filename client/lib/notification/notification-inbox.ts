@@ -1,4 +1,5 @@
 import type { NotificationType, Prisma, PrismaClient, WorkspaceRole } from "@/generated/prisma/client";
+import { meetsListAccessLevel, resolveListAccessForMany } from "@/lib/permissions/list-access";
 import { WORKSPACE_ROLE_LABEL } from "@/lib/workspace/workspace-member-roles";
 import { ACTIVE_WORKSPACE_WHERE } from "@/lib/workspace/workspace-visibility";
 
@@ -135,10 +136,36 @@ function mapNotification(notification: {
   };
 }
 
-// Reads are scoped by recipientId directly — a Notification row is already
-// access-controlled at creation time (see notification-triggers.ts), so
-// there's no separate lib/permissions/ check on the read path, matching
-// lib/item/item-my-tasks.ts's userId-scoped read pattern.
+// Reads are scoped by recipientId first, same as every loader below — a
+// Notification row is access-controlled at creation time (see
+// notification-triggers.ts), but that can go stale if access is revoked
+// afterward, so filterByCurrentAccess re-checks it here too (#107/ADR
+// 0021).
+//
+// Access revoked after a Notification was created doesn't retroactively
+// delete the row — it's hidden here instead, at read time, by re-checking
+// the recipient's *current* access to the underlying Item's List. A
+// WORKSPACE_MEMBER_REMOVED/WORKSPACE_ROLE_CHANGED row (#89) has no Item to
+// check and passes through unfiltered. Resolved once per distinct List
+// across the whole result set rather than once per row, to avoid an N+1
+// query.
+async function filterByCurrentAccess<T extends { item: { list: { id: string } } | null }>(
+  database: PrismaClient,
+  recipientId: string,
+  notifications: T[]
+): Promise<T[]> {
+  const listIds = notifications.flatMap((notification) => (notification.item ? [notification.item.list.id] : []));
+  if (listIds.length === 0) {
+    return notifications;
+  }
+
+  const accessByListId = await resolveListAccessForMany(database, { userId: recipientId, listIds });
+  return notifications.filter((notification) => {
+    if (!notification.item) return true;
+    return meetsListAccessLevel(accessByListId.get(notification.item.list.id) ?? "NONE", "READ");
+  });
+}
+
 export async function loadActivityNotifications(
   database: PrismaClient,
   input: { recipientId: string; category?: ActivityCategory }
@@ -150,8 +177,9 @@ export async function loadActivityNotifications(
     include: NOTIFICATION_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
+  const visible = await filterByCurrentAccess(database, input.recipientId, notifications);
 
-  return notifications.map(mapNotification);
+  return visible.map(mapNotification);
 }
 
 // Bookmarking is independent of archiving (a User can archive a bookmarked
@@ -174,8 +202,9 @@ export async function loadBookmarkedNotifications(
     include: NOTIFICATION_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
+  const visible = await filterByCurrentAccess(database, input.recipientId, notifications);
 
-  return notifications.map(mapNotification);
+  return visible.map(mapNotification);
 }
 
 // Archive lists every archived notification regardless of type or category
@@ -190,8 +219,9 @@ export async function loadArchivedNotifications(
     include: NOTIFICATION_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
+  const visible = await filterByCurrentAccess(database, input.recipientId, notifications);
 
-  return notifications.map(mapNotification);
+  return visible.map(mapNotification);
 }
 
 // @Mentioned narrows to MENTIONED-type notifications only — the same type
@@ -211,18 +241,25 @@ export async function loadMentionedNotifications(
     include: NOTIFICATION_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
+  const visible = await filterByCurrentAccess(database, input.recipientId, notifications);
 
-  return notifications.map(mapNotification);
+  return visible.map(mapNotification);
 }
 
 // Counts every unread, non-archived Notification regardless of type —
 // including DUE_DATE_REMINDER, which the Activity tab above doesn't list —
 // so the nav badge reflects the User's full unread count, not just what
-// this ticket's tab happens to render (#47).
+// this ticket's tab happens to render (#47). Selects just enough of each
+// row to run the same current-access re-check the loaders above do (#107/
+// ADR 0021) — a plain database.count() can't express that filter.
 export async function countUnreadNotifications(database: PrismaClient, recipientId: string): Promise<number> {
-  return database.notification.count({
+  const notifications = await database.notification.findMany({
     where: { recipientId, readAt: null, archivedAt: null, ...ACTIVE_WORKSPACE_NOTIFICATION_WHERE },
+    select: { item: { select: { list: { select: { id: true } } } } },
   });
+  const visible = await filterByCurrentAccess(database, recipientId, notifications);
+
+  return visible.length;
 }
 
 // Scoped to recipientId so a User can only ever mark their own

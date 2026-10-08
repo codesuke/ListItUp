@@ -72,7 +72,15 @@ export async function createNote(
 export type UpsertPersonalNoteResult =
   | { status: "ok" }
   | { status: "item-not-found" }
+  | { status: "forbidden" }
   | { status: "not-assignee" };
+
+// Both the READ floor below and the existing "is assignee" check are
+// required (#107/ADR 0021): a stale ItemAssignee row stops being a
+// meaningful access proxy once access loss hides rather than deletes it, so
+// relying on it alone would let a dormant Assignee keep reading/writing
+// Notes on an Item they can no longer otherwise see.
+const PERSONAL_NOTE_REQUIRED_ACCESS_LEVEL = "READ";
 
 // Scoped to the owning User only — an Assignee of the Item can keep private
 // planning context here without touching the shared Item or its
@@ -88,6 +96,11 @@ export async function upsertPersonalNote(
   const item = await database.item.findUnique({ where: { id: itemId } });
   if (!item) {
     return { status: "item-not-found" };
+  }
+
+  const access = await resolveItemAccess(database, { userId: actorUserId, itemId });
+  if (!meetsListAccessLevel(access, PERSONAL_NOTE_REQUIRED_ACCESS_LEVEL)) {
+    return { status: "forbidden" };
   }
 
   const assignee = await database.itemAssignee.findUnique({
@@ -108,11 +121,19 @@ export async function upsertPersonalNote(
 
 // Never surfaced on the shared Item to anyone but its owner — callers pass
 // the current session's userId as actorUserId, so there is no separate
-// visibility check to bypass (#37).
+// visibility check to bypass (#37). A caller whose List access has dropped
+// below READ gets the same "not found" shape as never having written a
+// Note (#107/ADR 0021), even though the row still exists — a dormant
+// ItemAssignee row is not enough on its own to keep reading it.
 export async function getPersonalNote(
   database: PrismaClient,
   input: { actorUserId: string; itemId: string }
 ): Promise<{ body: string } | null> {
+  const access = await resolveItemAccess(database, { userId: input.actorUserId, itemId: input.itemId });
+  if (!meetsListAccessLevel(access, PERSONAL_NOTE_REQUIRED_ACCESS_LEVEL)) {
+    return null;
+  }
+
   const note = await database.personalNote.findUnique({
     where: { itemId_userId: { itemId: input.itemId, userId: input.actorUserId } },
   });

@@ -1,7 +1,7 @@
 import type { CustomFieldType, ItemPriority, ItemState, PrismaClient } from "@/generated/prisma/client";
 import { getPersonalNote } from "@/lib/item/item-notes";
 import { resolveItemAccess } from "@/lib/permissions/item-access";
-import { meetsListAccessLevel } from "@/lib/permissions/list-access";
+import { meetsListAccessLevel, resolveListAccessForMany } from "@/lib/permissions/list-access";
 
 export type CustomFieldDefinitionSummary = {
   id: string;
@@ -9,6 +9,17 @@ export type CustomFieldDefinitionSummary = {
   type: CustomFieldType;
   options: string[];
 };
+
+// A cross-List blocking/blockedBy dependency whose other side lives in a
+// List the viewer can't read renders as this opaque placeholder instead of
+// its real title/listId (#107 story 7, ADR 0021) — the dependency's
+// existence was already established by someone with WRITE on both Items at
+// creation time, so only the other Item's content is sensitive, not the
+// link's existence. The row itself is never dropped from blocking/
+// blockedBy, only switched to this shape.
+export type DependencyLinkedItem =
+  | { id: string; accessible: true; title: string; listId: string }
+  | { id: string; accessible: false };
 
 export type ItemDetailData = {
   itemId: string;
@@ -49,9 +60,11 @@ export type ItemDetailData = {
   customFieldValues: Record<string, string>;
   canDefineCustomFields: boolean;
   // Dependencies (#35) — purely informational, cross-List. "blocking" is
-  // what this Item blocks; "blockedBy" is what blocks this Item.
-  blocking: { id: string; title: string; listId: string }[];
-  blockedBy: { id: string; title: string; listId: string }[];
+  // what this Item blocks; "blockedBy" is what blocks this Item. Either
+  // side may render as the DependencyLinkedItem placeholder (#107 story 7)
+  // when the viewer can't read the other Item's List.
+  blocking: DependencyLinkedItem[];
+  blockedBy: DependencyLinkedItem[];
   // Other Items in this same List, excluding ones already linked in
   // either direction — the "add a Dependency" candidate pool for the
   // common case. Cross-List linking still works via the lib/item/
@@ -168,6 +181,23 @@ export async function loadItemDetailData(
     ...item.blockedBy.map((dependency) => dependency.blocker.id),
   ]);
 
+  // The viewer's access to the current Item's List doesn't cover a
+  // cross-List dependency's *other* side (#107 story 7) — re-resolved here
+  // per distinct other List rather than once per dependency.
+  const dependencyAccessByListId = await resolveListAccessForMany(database, {
+    userId,
+    listIds: [
+      ...item.blocking.map((dependency) => dependency.blocked.listId),
+      ...item.blockedBy.map((dependency) => dependency.blocker.listId),
+    ],
+  });
+
+  function toDependencyLinkedItem(other: { id: string; title: string; listId: string }): DependencyLinkedItem {
+    return meetsListAccessLevel(dependencyAccessByListId.get(other.listId) ?? "NONE", "READ")
+      ? { id: other.id, accessible: true, title: other.title, listId: other.listId }
+      : { id: other.id, accessible: false };
+  }
+
   const mentionCandidatesById = new Map<string, { userId: string; name: string }>();
   for (const assignee of item.assignees) {
     mentionCandidatesById.set(assignee.userId, { userId: assignee.userId, name: assignee.user.name });
@@ -204,8 +234,8 @@ export async function loadItemDetailData(
     customFieldDefinitions,
     customFieldValues: Object.fromEntries(item.customFieldValues.map((v) => [v.definitionId, v.value])),
     canDefineCustomFields: meetsListAccessLevel(access, "LEAD"),
-    blocking: item.blocking.map((dependency) => dependency.blocked),
-    blockedBy: item.blockedBy.map((dependency) => dependency.blocker),
+    blocking: item.blocking.map((dependency) => toDependencyLinkedItem(dependency.blocked)),
+    blockedBy: item.blockedBy.map((dependency) => toDependencyLinkedItem(dependency.blocker)),
     sameListItems: otherListItems.filter((candidate) => !linkedItemIds.has(candidate.id)),
     attachments: item.attachments.map((attachment) => ({
       id: attachment.id,

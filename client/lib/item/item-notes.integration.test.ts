@@ -125,8 +125,8 @@ async function run() {
 
     // An Assignee can upsert their own Personal Note, visible only to them.
     {
-      const { listId, userId: creatorId } = await createWorkspaceListAndMember();
-      const assigneeId = await createUser();
+      const { workspaceId, listId, userId: creatorId } = await createWorkspaceListAndMember();
+      const assigneeId = await addListMember(workspaceId, listId, "VIEWER");
       const itemId = await createTestItem(listId, creatorId);
       await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId, userId: assigneeId } });
 
@@ -184,8 +184,8 @@ async function run() {
     // archived-List mutation block — an Assignee can still upsert their own
     // Personal Note on an archived List's Item.
     {
-      const { listId, userId: creatorId } = await createWorkspaceListAndMember();
-      const assigneeId = await createUser();
+      const { workspaceId, listId, userId: creatorId } = await createWorkspaceListAndMember();
+      const assigneeId = await addListMember(workspaceId, listId, "VIEWER");
       const itemId = await createTestItem(listId, creatorId);
       await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId, userId: assigneeId } });
       await prisma.list.update({ where: { id: listId }, data: { archivedAt: new Date() } });
@@ -198,6 +198,58 @@ async function run() {
       assert.deepEqual(result, { status: "ok" });
       const note = await getPersonalNote(prisma, { actorUserId: assigneeId, itemId });
       assert.deepEqual(note, { body: "Still allowed on an archived List." });
+    }
+
+    // #107/ADR 0021: once the caller's List access drops below READ, both
+    // functions refuse — getPersonalNote as "not found", upsertPersonalNote
+    // as "forbidden" — even while a stale ItemAssignee row for them still
+    // exists. Access being restored brings both back without recreating
+    // the Note or the assignment.
+    {
+      const { workspaceId, listId, userId: creatorId } = await createWorkspaceListAndMember();
+      const assigneeId = await addListMember(workspaceId, listId, "VIEWER");
+      const itemId = await createTestItem(listId, creatorId);
+      await prisma.itemAssignee.create({ data: { id: randomUUID(), itemId, userId: assigneeId } });
+
+      const created = await upsertPersonalNote(prisma, {
+        actorUserId: assigneeId,
+        itemId,
+        body: "Written while I still had access.",
+      });
+      assert.deepEqual(created, { status: "ok" });
+
+      await prisma.listMember.deleteMany({ where: { listId, userId: assigneeId } });
+      await prisma.workspaceMember.deleteMany({ where: { workspaceId, userId: assigneeId } });
+
+      const rejectedRead = await getPersonalNote(prisma, { actorUserId: assigneeId, itemId });
+      assert.equal(rejectedRead, null, "a lost-access caller must see 'not found', not the row's real content");
+
+      const rejectedWrite = await upsertPersonalNote(prisma, {
+        actorUserId: assigneeId,
+        itemId,
+        body: "Should not be written.",
+      });
+      assert.deepEqual(rejectedWrite, { status: "forbidden" });
+
+      const assigneeStillExists = await prisma.itemAssignee.findUnique({
+        where: { itemId_userId: { itemId, userId: assigneeId } },
+      });
+      assert.ok(assigneeStillExists, "the stale ItemAssignee row must not be deleted by access loss alone");
+      const noteRow = await prisma.personalNote.findUnique({ where: { itemId_userId: { itemId, userId: assigneeId } } });
+      assert.equal(noteRow?.body, "Written while I still had access.", "the Note row must survive untouched");
+
+      await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId, userId: assigneeId, role: "MEMBER" } });
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: assigneeId, role: "VIEWER" } });
+
+      const restoredRead = await getPersonalNote(prisma, { actorUserId: assigneeId, itemId });
+      assert.deepEqual(restoredRead, { body: "Written while I still had access." });
+
+      const restoredWrite = await upsertPersonalNote(prisma, {
+        actorUserId: assigneeId,
+        itemId,
+        body: "Updated after access was restored.",
+      });
+      assert.deepEqual(restoredWrite, { status: "ok" });
     }
   } finally {
     const listIds = (

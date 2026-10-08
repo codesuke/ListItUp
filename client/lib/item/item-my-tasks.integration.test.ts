@@ -235,9 +235,10 @@ async function run() {
       assert.deepEqual(items.map((item) => item.title), ["Still visible"]);
     }
 
-    // #104: an Item's listArchivedAt reflects its source List's own
-    // archived status — the Board view's per-card "Archived" indicator and
-    // disabled drag read off this, since My Tasks spans many Lists at once.
+    // #107 story 9: an archived List's Item is excluded from My Tasks
+    // entirely, even though the User still has normal role-based access to
+    // that List — a dedicated filter, independent of resolveListAccess
+    // (ADR 0018, ADR 0021).
     {
       const userId = await createUser();
 
@@ -253,9 +254,34 @@ async function run() {
       await prisma.list.update({ where: { id: archived.listId }, data: { archivedAt: new Date() } });
 
       const items = await loadMyTasksItems(prisma, { userId });
-      const byTitle = new Map(items.map((item) => [item.title, item]));
-      assert.equal(byTitle.get("In an active List")?.listArchivedAt, null);
-      assert.ok(byTitle.get("In an archived List")?.listArchivedAt);
+      assert.deepEqual(items.map((item) => item.title), ["In an active List"]);
+    }
+
+    // #107/ADR 0021: an Item an assignee has since lost List access to (List
+    // membership removed) disappears from My Tasks even though the stale
+    // ItemAssignee row is kept, and reappears without re-assignment once
+    // access is restored.
+    {
+      const userId = await createUser();
+      const { workspaceId, listId } = await createWorkspaceWithList("Private Project");
+      await addMember(workspaceId, listId, userId);
+      const itemId = await createItem(listId, userId, { title: "Should vanish on access loss" });
+      await assign(itemId, userId);
+
+      assert.deepEqual((await loadMyTasksItems(prisma, { userId })).map((item) => item.title), [
+        "Should vanish on access loss",
+      ]);
+
+      await prisma.listMember.deleteMany({ where: { listId, userId } });
+      await prisma.workspaceMember.deleteMany({ where: { workspaceId, userId } });
+
+      assert.deepEqual(await loadMyTasksItems(prisma, { userId }), []);
+
+      await addMember(workspaceId, listId, userId);
+
+      assert.deepEqual((await loadMyTasksItems(prisma, { userId })).map((item) => item.title), [
+        "Should vanish on access loss",
+      ]);
     }
   } finally {
     const listIds = (

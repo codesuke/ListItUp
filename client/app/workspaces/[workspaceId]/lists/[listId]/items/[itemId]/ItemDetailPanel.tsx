@@ -546,13 +546,19 @@ export function ItemDetailPanel({
                   <div key={blocker.id} className="flex items-center gap-2 py-1 text-[13px]">
                     <ArrowLeft className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
                     <span className="text-ink-muted">Blocked by</span>
-                    <Link
-                      href={`/workspaces/${workspaceId}/lists/${blocker.listId}/items/${blocker.id}`}
-                      className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
-                    >
-                      {blocker.title}
-                    </Link>
-                    {data.canEdit && (
+                    {blocker.accessible ? (
+                      <Link
+                        href={`/workspaces/${workspaceId}/lists/${blocker.listId}/items/${blocker.id}`}
+                        className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
+                      >
+                        {blocker.title}
+                      </Link>
+                    ) : (
+                      <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-ink-faint">
+                        <Lock className="h-3 w-3 flex-shrink-0" /> An item you don&apos;t have access to
+                      </span>
+                    )}
+                    {data.canEdit && blocker.accessible && (
                       <form action={boundRemoveDependency(blocker.id, data.itemId)}>
                         <button type="submit" className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
                           Remove
@@ -565,13 +571,19 @@ export function ItemDetailPanel({
                   <div key={blocked.id} className="flex items-center gap-2 py-1 text-[13px]">
                     <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint" />
                     <span className="text-ink-muted">Blocks</span>
-                    <Link
-                      href={`/workspaces/${workspaceId}/lists/${blocked.listId}/items/${blocked.id}`}
-                      className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
-                    >
-                      {blocked.title}
-                    </Link>
-                    {data.canEdit && (
+                    {blocked.accessible ? (
+                      <Link
+                        href={`/workspaces/${workspaceId}/lists/${blocked.listId}/items/${blocked.id}`}
+                        className="min-w-0 flex-1 truncate text-ink transition-colors duration-150 hover:underline"
+                      >
+                        {blocked.title}
+                      </Link>
+                    ) : (
+                      <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-ink-faint">
+                        <Lock className="h-3 w-3 flex-shrink-0" /> An item you don&apos;t have access to
+                      </span>
+                    )}
+                    {data.canEdit && blocked.accessible && (
                       <form action={boundRemoveDependency(data.itemId, blocked.id)}>
                         <button type="submit" className="text-[12px] text-ink-faint transition-colors duration-150 hover:text-[#ff8a70]">
                           Remove

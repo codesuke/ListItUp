@@ -125,8 +125,10 @@ async function run() {
     // Assignee; moving into "Unassigned" is rejected as ambiguous for a
     // multi-valued field.
     {
-      const { listId, userId } = await createWorkspaceWithListAndMember();
+      const { workspaceId, listId, userId } = await createWorkspaceWithListAndMember();
       const assigneeId = await createUser();
+      await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId, userId: assigneeId, role: "MEMBER" } });
+      await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: assigneeId, role: "MEMBER" } });
       const itemId = await createTestItem(listId, userId);
 
       const moved = await moveItemToColumn(prisma, {

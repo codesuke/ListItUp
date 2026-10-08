@@ -29,7 +29,12 @@ async function run() {
     return userId;
   }
 
-  async function createWorkspaceWithItem(): Promise<{ itemId: string; creatorId: string }> {
+  async function createWorkspaceWithItem(): Promise<{
+    itemId: string;
+    creatorId: string;
+    listId: string;
+    workspaceId: string;
+  }> {
     const workspaceId = randomUUID();
     const listId = randomUUID();
     const creatorId = await createUser("Actor");
@@ -38,7 +43,14 @@ async function run() {
     await prisma.list.create({ data: { id: listId, workspaceId, name: "Test List" } });
     const itemId = randomUUID();
     await prisma.item.create({ data: { id: itemId, listId, title: "Ship the release", creatorId } });
-    return { itemId, creatorId };
+    return { itemId, creatorId, listId, workspaceId };
+  }
+
+  // The read-time access re-check (#107/ADR 0021) means a recipient needs
+  // an explicit grant to see an Item-anchored notification at all.
+  async function grantListAccess(workspaceId: string, listId: string, userId: string): Promise<void> {
+    await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId, userId, role: "MEMBER" } });
+    await prisma.listMember.create({ data: { id: randomUUID(), listId, userId, role: "MEMBER" } });
   }
 
   try {
@@ -46,8 +58,9 @@ async function run() {
     // newest first, and opening one (markNotificationRead) flips its read
     // state and updates the unread badge count returned alongside it (#47).
     {
-      const { itemId, creatorId } = await createWorkspaceWithItem();
+      const { itemId, creatorId, listId, workspaceId } = await createWorkspaceWithItem();
       const userId = await createUser("Recipient");
+      await grantListAccess(workspaceId, listId, userId);
       const otherUserId = await createUser("Someone Else");
 
       const olderId = randomUUID();
@@ -82,8 +95,9 @@ async function run() {
     // filtered slice of the same fixture set, scoped to the signed-in User
     // (#49's per-tab smoke coverage).
     {
-      const { itemId, creatorId } = await createWorkspaceWithItem();
+      const { itemId, creatorId, listId, workspaceId } = await createWorkspaceWithItem();
       const userId = await createUser("Recipient");
+      await grantListAccess(workspaceId, listId, userId);
 
       const toBookmark = randomUUID();
       await prisma.notification.create({

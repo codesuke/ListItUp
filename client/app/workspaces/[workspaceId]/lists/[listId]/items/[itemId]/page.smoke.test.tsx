@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
-import { loadItemDetailData } from "./page-data";
+import { type DependencyLinkedItem, loadItemDetailData } from "./page-data";
+
+// Narrows an accessible DependencyLinkedItem to its title, failing loudly
+// if the fixture didn't expect an opaque placeholder here.
+function accessibleTitle(entry: DependencyLinkedItem): string {
+  assert.ok(entry.accessible, "expected an accessible dependency, got the opaque placeholder");
+  return entry.title;
+}
 
 async function run() {
   if (!process.env.DATABASE_URL) {
@@ -243,6 +250,15 @@ async function run() {
       const otherWorkspaceId = randomUUID();
       await prisma.workspace.create({ data: { id: otherWorkspaceId, name: "Other Workspace" } });
       await prisma.list.create({ data: { id: otherListId, workspaceId: otherWorkspaceId, name: "Other List" } });
+      // Linking across Lists requires WRITE on both sides (createDependency),
+      // so memberId needs access here too for the rendered title/listId to
+      // show rather than the #107 opaque placeholder.
+      await prisma.workspaceMember.create({
+        data: { id: randomUUID(), workspaceId: otherWorkspaceId, userId: memberId, role: "MEMBER" },
+      });
+      await prisma.listMember.create({
+        data: { id: randomUUID(), listId: otherListId, userId: memberId, role: "MEMBER" },
+      });
       const downstream = await prisma.item.create({
         data: { id: randomUUID(), listId: otherListId, title: "Downstream, cross-List", creatorId: memberId },
       });
@@ -260,9 +276,11 @@ async function run() {
       const data = await loadItemDetailData(prisma, { userId: memberId, workspaceId, listId, itemId: item.id });
 
       assert.ok(data);
-      assert.deepEqual(data!.blockedBy.map((d) => d.title), ["Upstream blocker"]);
-      assert.deepEqual(data!.blocking.map((d) => d.title), ["Downstream, cross-List"]);
-      assert.equal(data!.blocking[0].listId, otherListId, "cross-List Dependencies keep their own listId");
+      assert.deepEqual(data!.blockedBy.map(accessibleTitle), ["Upstream blocker"]);
+      assert.deepEqual(data!.blocking.map(accessibleTitle), ["Downstream, cross-List"]);
+      const crossListBlocking = data!.blocking[0];
+      assert.ok(crossListBlocking?.accessible);
+      assert.equal(crossListBlocking.listId, otherListId, "cross-List Dependencies keep their own listId");
       assert.deepEqual(
         data!.sameListItems,
         [{ id: unrelated.id, title: "Unrelated" }],
@@ -270,6 +288,49 @@ async function run() {
       );
 
       await prisma.workspace.deleteMany({ where: { id: otherWorkspaceId } });
+    }
+
+    // #107 story 7: a cross-List blocking/blockedBy Item in a List the
+    // viewer can't read renders as an opaque placeholder — the dependency
+    // row is still included, just with its title/listId withheld.
+    {
+      const { workspaceId, listId } = await createWorkspaceWithList();
+      const memberId = await createUser();
+      await prisma.workspaceMember.create({
+        data: { id: randomUUID(), workspaceId, userId: memberId, role: "MEMBER" },
+      });
+      await prisma.listMember.create({
+        data: { id: randomUUID(), listId, userId: memberId, role: "MEMBER" },
+      });
+      const item = await prisma.item.create({
+        data: { id: randomUUID(), listId, title: "Visible item", creatorId: memberId },
+      });
+
+      const privateWorkspaceId = randomUUID();
+      const privateListId = randomUUID();
+      createdWorkspaceIds.push(privateWorkspaceId);
+      await prisma.workspace.create({ data: { id: privateWorkspaceId, name: "Private Workspace" } });
+      await prisma.list.create({ data: { id: privateListId, workspaceId: privateWorkspaceId, name: "Private List" } });
+      const otherCreatorId = await createUser();
+      const privateBlocker = await prisma.item.create({
+        data: { id: randomUUID(), listId: privateListId, title: "Private blocker", creatorId: otherCreatorId },
+      });
+      const privateBlocked = await prisma.item.create({
+        data: { id: randomUUID(), listId: privateListId, title: "Private blocked", creatorId: otherCreatorId },
+      });
+
+      await prisma.itemDependency.create({
+        data: { id: randomUUID(), blockerId: privateBlocker.id, blockedId: item.id },
+      });
+      await prisma.itemDependency.create({
+        data: { id: randomUUID(), blockerId: item.id, blockedId: privateBlocked.id },
+      });
+
+      const data = await loadItemDetailData(prisma, { userId: memberId, workspaceId, listId, itemId: item.id });
+
+      assert.ok(data);
+      assert.deepEqual(data!.blockedBy, [{ id: privateBlocker.id, accessible: false }]);
+      assert.deepEqual(data!.blocking, [{ id: privateBlocked.id, accessible: false }]);
     }
 
     // Attachments render newest first with uploader name and size (#39).

@@ -87,7 +87,8 @@ export type MoveItemToColumnResult =
   | { status: "forbidden" }
   | { status: "blocker-reason-required" }
   | { status: "invalid-column" }
-  | { status: "list-archived" };
+  | { status: "list-archived" }
+  | { status: "assignee-no-access" };
 
 // Moving an Item between Board columns updates its grouped field via
 // lib/item/'s existing mutation functions (#31) — the same authorization

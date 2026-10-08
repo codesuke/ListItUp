@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
-import { canExportList, resolveListAccess } from "./list-access";
+import { canExportList, resolveListAccess, resolveListAccessForMany } from "./list-access";
 
 async function run() {
   if (!process.env.DATABASE_URL) {
@@ -346,6 +346,42 @@ async function run() {
           levelBefore,
           `expected ${userId}'s access level to stay ${levelBefore} after archiving`
         );
+      }
+    }
+    // resolveListAccessForMany (#107, ADR 0021) must agree with
+    // resolveListAccess called individually per List — same User, a mix of
+    // Workspace roles/List roles/Guest grants/a Deleted Workspace/a
+    // nonexistent List, across more than one distinct Workspace at once.
+    {
+      const workspaceA = await createWorkspace();
+      const workspaceB = await createWorkspace();
+      const deletedWorkspace = await createWorkspace();
+      const userId = await createUser();
+
+      await addWorkspaceMember(workspaceA, userId, "OWNER");
+      const ownerListId = await createListIn(workspaceA);
+
+      await addWorkspaceMember(workspaceB, userId, "MEMBER");
+      const memberListId = await createListIn(workspaceB);
+      await addListMember(memberListId, userId, "MEMBER");
+
+      const noRoleListId = await createListIn(workspaceB);
+
+      const guestListId = await createListIn(workspaceB);
+      await addGuest(guestListId, userId);
+
+      await addWorkspaceMember(deletedWorkspace, userId, "OWNER");
+      const deletedListId = await createListIn(deletedWorkspace);
+      await prisma.workspace.update({ where: { id: deletedWorkspace }, data: { deletedAt: new Date() } });
+
+      const missingListId = randomUUID();
+
+      const listIds = [ownerListId, memberListId, noRoleListId, guestListId, deletedListId, missingListId];
+      const batched = await resolveListAccessForMany(prisma, { userId, listIds });
+
+      for (const listId of listIds) {
+        const individual = await resolveListAccess(prisma, { userId, listId });
+        assert.equal(batched.get(listId), individual, `mismatch for List ${listId}`);
       }
     }
   } finally {
