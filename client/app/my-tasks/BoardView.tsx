@@ -144,46 +144,38 @@ export function BoardView({
                   <span className="text-xs text-ink-muted">{column.items.length}</span>
                 </div>
                 <DroppableColumn id={column.key} className="flex min-h-16 flex-col gap-2 p-2">
-                  {column.items.map((item) => {
-                    // A card from an archived List is frozen too (#104) —
-                    // disabled, not hidden, same as the List page's own
-                    // controls, even though My Tasks spans many Lists at
-                    // once.
-                    const isListArchived = item.listArchivedAt !== null;
-                    return (
-                      <DraggableCard key={item.id} id={item.id} disabled={!canMove || isListArchived}>
-                        <a
-                          href={myTaskItemHref(item, item.id)}
-                          className="flex items-start text-sm text-ink hover:text-ink hover:underline"
-                        >
-                          {item.hasParent && <CornerDownRight className="mr-1 mt-0.5 h-3 w-3 flex-shrink-0 text-ink-faint" />}
-                          {item.title}
-                        </a>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-muted">
-                          <span>{myTaskWorkspaceLabel(item)}</span>
-                          {item.priority !== "NORMAL" && <span>{PRIORITY_LABEL[item.priority]}</span>}
-                          {item.dueDate && (
-                            <span>
-                              {new Date(item.dueDate).toLocaleDateString(undefined, {
-                                month: "short",
-                                day: "numeric",
-                              })}
-                            </span>
-                          )}
-                          {isListArchived ? <span className="font-medium uppercase tracking-[0.05em]">Archived</span> : null}
-                        </div>
-                        {canMove && !isListArchived ? (
-                          <MoveControl
-                            item={item}
-                            columns={columns}
-                            currentColumnKey={column.key}
-                            groupBy={groupBy}
-                            boundMoveItem={boundMoveItem}
-                          />
-                        ) : null}
-                      </DraggableCard>
-                    );
-                  })}
+                  {column.items.map((item) => (
+                    <DraggableCard key={item.id} id={item.id} disabled={!canMove}>
+                      <a
+                        href={myTaskItemHref(item, item.id)}
+                        className="flex items-start text-sm text-ink hover:text-ink hover:underline"
+                      >
+                        {item.hasParent && <CornerDownRight className="mr-1 mt-0.5 h-3 w-3 flex-shrink-0 text-ink-faint" />}
+                        {item.title}
+                      </a>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-muted">
+                        <span>{myTaskWorkspaceLabel(item)}</span>
+                        {item.priority !== "NORMAL" && <span>{PRIORITY_LABEL[item.priority]}</span>}
+                        {item.dueDate && (
+                          <span>
+                            {new Date(item.dueDate).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      {canMove ? (
+                        <MoveControl
+                          item={item}
+                          columns={columns}
+                          currentColumnKey={column.key}
+                          groupBy={groupBy}
+                          boundMoveItem={boundMoveItem}
+                        />
+                      ) : null}
+                    </DraggableCard>
+                  ))}
                   {column.items.length === 0 && (
                     <div className="px-2 py-4 text-center text-xs text-ink-muted">Empty</div>
                   )}
