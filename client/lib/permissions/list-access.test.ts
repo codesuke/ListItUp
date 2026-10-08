@@ -350,11 +350,13 @@ async function run() {
     }
     // resolveListAccessForMany (#107, ADR 0021) must agree with
     // resolveListAccess called individually per List — same User, a mix of
-    // Workspace roles/List roles/Guest grants/a Deleted Workspace/a
-    // nonexistent List, across more than one distinct Workspace at once.
+    // Workspace roles/List roles/the Workspace Viewer ceiling/a Deleted
+    // Workspace/a nonexistent List, across more than one distinct
+    // Workspace at once.
     {
       const workspaceA = await createWorkspace();
       const workspaceB = await createWorkspace();
+      const workspaceC = await createWorkspace();
       const deletedWorkspace = await createWorkspace();
       const userId = await createUser();
 
@@ -367,8 +369,9 @@ async function run() {
 
       const noRoleListId = await createListIn(workspaceB);
 
-      const guestListId = await createListIn(workspaceB);
-      await addGuest(guestListId, userId);
+      await addWorkspaceMember(workspaceC, userId, "VIEWER");
+      const viewerCeilingListId = await createListIn(workspaceC);
+      await addListMember(viewerCeilingListId, userId, "LEAD");
 
       await addWorkspaceMember(deletedWorkspace, userId, "OWNER");
       const deletedListId = await createListIn(deletedWorkspace);
@@ -376,7 +379,7 @@ async function run() {
 
       const missingListId = randomUUID();
 
-      const listIds = [ownerListId, memberListId, noRoleListId, guestListId, deletedListId, missingListId];
+      const listIds = [ownerListId, memberListId, noRoleListId, viewerCeilingListId, deletedListId, missingListId];
       const batched = await resolveListAccessForMany(prisma, { userId, listIds });
 
       for (const listId of listIds) {

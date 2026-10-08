@@ -116,9 +116,9 @@ async function run() {
       assert.equal(assignees.length, 0, "no ItemAssignee row must be created");
     }
 
-    // #107/ADR 0021: a target with only READ access — a List Viewer or a
-    // Guest — remains a valid assignee, for visibility/FYI purposes even
-    // though they can't act on the Item themselves.
+    // #107/ADR 0021: a target with only READ access — a List Viewer —
+    // remains a valid assignee, for visibility/FYI purposes even though
+    // they can't act on the Item themselves.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const memberId = await createUser();
@@ -137,15 +137,6 @@ async function run() {
         userId: viewerAssigneeId,
       });
       assert.deepEqual(viewerResult, { status: "added" });
-
-      const guestAssigneeId = await createUser();
-      await prisma.guest.create({ data: { id: randomUUID(), listId, userId: guestAssigneeId } });
-      const guestResult = await addAssignee(prisma, {
-        actorUserId: memberId,
-        itemId: item.id,
-        userId: guestAssigneeId,
-      });
-      assert.deepEqual(guestResult, { status: "added" });
     }
 
     // Creator attribution stays fixed as Assignees change.

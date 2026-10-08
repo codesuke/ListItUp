@@ -25,7 +25,7 @@ export type RemoveAssigneeResult =
 const REQUIRED_ACCESS_LEVEL = "WRITE";
 
 // The target of an assignment only needs READ (#107/ADR 0021) — a capped
-// Viewer/Guest is still a valid assignee for visibility/FYI purposes, even
+// List Viewer is still a valid assignee for visibility/FYI purposes, even
 // though they can't act on the Item themselves. This is what stops WRITE
 // access from being usable to leak a private Item to someone with no
 // access to its List at all.
