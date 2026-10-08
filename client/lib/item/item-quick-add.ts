@@ -104,9 +104,8 @@ async function resolveFallbackListId(
 
 // Matches Quick-Add's `~list` shorthand against Lists the User can write
 // to, case-insensitively. Candidates are scoped to Workspaces the User
-// belongs to (Guests only ever reach READ, per lib/permissions/list-access.ts,
-// so they can never satisfy the WRITE check below and are safely excluded
-// up front) and checked in a stable order so ties resolve deterministically.
+// belongs to and checked in a stable order so ties resolve
+// deterministically.
 async function resolveNamedListId(
   database: PrismaClient,
   userId: string,

@@ -21,7 +21,7 @@ A named grouping of an Item's siblings within a List, used to organize a List's 
 _Avoid_: Column, stage, bucket
 
 **Channel**:
-A named, ongoing text conversation within a List, organized Discord-style — a List may have multiple Channels, each with its own message history, shown in the List's Messages view. Every List gets one un-deletable default Channel on creation; a List Lead or Workspace Admin can create, rename, delete, or reorder additional ones. Any User with access to the List — including a List Viewer or a Guest — can read, post, and attach files in its Channels, even though they cannot edit that List's Items (see Viewer, Guest). A sender can delete their own message; a List Lead or Workspace Admin can delete anyone's. v2 feature — not built in v1.
+A named, ongoing text conversation within a List, organized Discord-style — a List may have multiple Channels, each with its own message history, shown in the List's Messages view. Every List gets one un-deletable default Channel on creation; a List Lead or Workspace Admin can create, rename, delete, or reorder additional ones. Any User with access to the List — including a List Viewer — can read, post, and attach files in its Channels, even though they cannot edit that List's Items (see Viewer). A sender can delete their own message; a List Lead or Workspace Admin can delete anyone's. v2 feature — not built in v1.
 _Avoid_: Thread, chat room, chat (as a noun for the concept itself)
 
 **Item**:
@@ -57,7 +57,7 @@ A lightweight text update attached to an Item for context or decisions.
 _Avoid_: Comment, reply, thread
 
 **Mention**:
-A `@name` reference to a User inside a Note, notifying that User. Only Users who already have access to the Note's Item (its Assignees, or the List's Members/Leads/Viewers/Guests) can be mentioned.
+A `@name` reference to a User inside a Note, notifying that User. Only Users who already have access to the Note's Item (its Assignees, or the List's Members/Leads/Viewers) can be mentioned.
 _Avoid_: Tag, ping
 
 **Direct Message**:
@@ -137,7 +137,7 @@ A Workspace-level role for a User who is strictly read-only, both in the Workspa
 _Avoid_: Guest, observer, read-only user
 
 **List Lead**:
-A List-level role for a User who manages one specific List: its settings, its List-level membership, and its Guests, with full access to its content. The List's creator becomes its first Lead. A List always has at least one Lead: the last Lead cannot be removed, demoted, or leave, and no User can lose Workspace access while sole Lead of any List. A Workspace Viewer cannot be a Lead.
+A List-level role for a User who manages one specific List: its settings and its List-level membership, with full access to its content. The List's creator becomes its first Lead. A List always has at least one Lead: the last Lead cannot be removed, demoted, or leave, and no User can lose Workspace access while sole Lead of any List. A Workspace Viewer cannot be a Lead.
 _Avoid_: Project lead, list owner, list admin
 
 **List Member**:
@@ -148,12 +148,8 @@ _Avoid_: Collaborator, contributor
 A List-level role for a User who can read one specific List's Items without changing them. Can nonetheless read, post, and attach files in that List's Channels — the read-only ceiling covers Items, not Channels (see Channel, ADR 0013).
 _Avoid_: Guest, observer
 
-**Guest**:
-An external person granted read-only access to one specific List, without joining the Workspace. A Guest has no Workspace-level identity and no visibility into anything outside the List(s) they were explicitly granted access to. The same person may hold independent Guest access to multiple Lists. A Guest can nonetheless read, post, and attach files in that List's Channels — the read-only grant covers Items, not Channels (see Channel, ADR 0013).
-_Avoid_: External collaborator, client, viewer
-
 **Pending Invitation**:
-An invitation for a person to join a Workspace as a Member or Viewer that has been sent but not yet accepted. It expires after 7 days; an Owner or Admin can resend or revoke it. Distinct from Guest access, which is granted per List.
+An invitation for a person to join a Workspace as a Member or Viewer that has been sent but not yet accepted. It expires after 7 days; an Owner or Admin can resend or revoke it.
 _Avoid_: Invite link, request
 
 **Capture**:
@@ -197,7 +193,7 @@ The act of returning an Archived List or Item to active use.
 _Avoid_: Unarchive, recover
 
 **Report**:
-A live summary view of a single List's Items, filtered by Assignee, state, or date. Any Member can name and save a Report's filter setup for reuse (private to them by default; re-opening it always re-runs against current data, never a frozen copy) and export its current results as a CSV file. A List can also be exported whole as a CSV file (every Item, including Archived ones), by any User with Workspace or List access except a Guest.
+A live summary view of a single List's Items, filtered by Assignee, state, or date. Any Member can name and save a Report's filter setup for reuse (private to them by default; re-opening it always re-runs against current data, never a frozen copy) and export its current results as a CSV file. A List can also be exported whole as a CSV file (every Item, including Archived ones), by any User who can read that List.
 _Avoid_: Snapshot, document (a saved Report re-runs live; it does not freeze data)
 
 **Analytics**:

@@ -22,7 +22,6 @@ model User {
   twoFactor                      TwoFactor[]
   workspaceMembers               WorkspaceMember[]
   listMembers                    ListMember[]
-  guestAccess                    Guest[]
   starredLists                   Starred[]
   createdItems                   Item[]                   @relation("ItemCreator")
   itemAssignments                ItemAssignee[]
@@ -179,8 +178,7 @@ model WorkspaceInvitation {
 // A List's role ladder is independent of WorkspaceRole (ADR 0009): a
 // ListMember row may only reference a User who already holds a
 // Workspace-level membership in that List's Workspace — enforced at the
-// application layer in lib/list/, since Guest (below) is the only path to
-// List access without one.
+// application layer in lib/list/.
 enum ListMemberRole {
   LEAD
   MEMBER
@@ -217,7 +215,6 @@ model List {
   updatedAt              DateTime                @updatedAt
   workspace              Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   members                ListMember[]
-  guests                 Guest[]
   starredBy              Starred[]
   sections               Section[]
   items                  Item[]
@@ -239,22 +236,6 @@ model ListMember {
   @@unique([listId, userId])
   @@index([userId])
   @@map("list_member")
-}
-
-// Read-only access to exactly the List(s) it names, without requiring any
-// Workspace-level membership row (unlike ListMember above) — see CONTEXT.md
-// Guest and ADR 0009.
-model Guest {
-  id        String   @id
-  listId    String
-  userId    String
-  createdAt DateTime @default(now())
-  list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([listId, userId])
-  @@index([userId])
-  @@map("guest")
 }
 
 // A per-User-per-List flag (CONTEXT.md Starred), not a boolean column on

@@ -40,32 +40,27 @@ async function run() {
     const leadId = await createUser("Lana Lead");
     const memberId = await createUser("Mo Member");
     const viewerId = await createUser("Vic Viewer");
-    const guestId = await createUser("Gia Guest");
 
     await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: leadId, role: "LEAD" } });
     await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: memberId, role: "MEMBER" } });
     await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: viewerId, role: "VIEWER" } });
-    await prisma.guest.create({ data: { id: randomUUID(), listId, userId: guestId } });
 
     const roles = await getListRoles(prisma, { listId });
 
     assert.deepEqual(roles.leads.map((r) => r.userId), [leadId]);
     assert.deepEqual(roles.members.map((r) => r.userId), [memberId]);
     assert.deepEqual(roles.viewers.map((r) => r.userId), [viewerId]);
-    assert.deepEqual(roles.guests.map((r) => r.userId), [guestId]);
     assert.equal(roles.leads[0].name, "Lana Lead");
-    assert.equal(roles.guests[0].name, "Gia Guest");
 
     // An empty List has no roles in any bucket.
     const emptyListId = randomUUID();
     await prisma.list.create({ data: { id: emptyListId, workspaceId, name: "Empty List" } });
     const emptyRoles = await getListRoles(prisma, { listId: emptyListId });
-    assert.deepEqual(emptyRoles, { leads: [], members: [], viewers: [], guests: [] });
+    assert.deepEqual(emptyRoles, { leads: [], members: [], viewers: [] });
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })
     ).map((list) => list.id);
-    await prisma.guest.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.listMember.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.list.deleteMany({ where: { id: { in: listIds } } });
     await prisma.workspace.deleteMany({ where: { id: { in: createdWorkspaceIds } } });

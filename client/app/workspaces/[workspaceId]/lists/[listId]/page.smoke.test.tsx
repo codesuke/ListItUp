@@ -41,8 +41,7 @@ async function run() {
   }
 
   try {
-    // Export CSV (#72): offered to a List Lead and a List Viewer, but not to
-    // a Guest, who holds no Workspace or List role.
+    // Export CSV (#72): offered to a List Lead and a List Viewer alike.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const leadId = await createUser();
@@ -51,17 +50,12 @@ async function run() {
       const viewerId = await createUser();
       await prisma.workspaceMember.create({ data: { id: randomUUID(), workspaceId, userId: viewerId, role: "MEMBER" } });
       await prisma.listMember.create({ data: { id: randomUUID(), listId, userId: viewerId, role: "VIEWER" } });
-      const guestId = await createUser();
-      await prisma.guest.create({ data: { id: randomUUID(), listId, userId: guestId } });
 
       const leadData = await loadListPageData(prisma, { userId: leadId, workspaceId, listId });
       const viewerData = await loadListPageData(prisma, { userId: viewerId, workspaceId, listId });
-      const guestData = await loadListPageData(prisma, { userId: guestId, workspaceId, listId });
 
       assert.equal(leadData!.canExport, true);
       assert.equal(viewerData!.canExport, true);
-      assert.ok(guestData, "a Guest can still open the List");
-      assert.equal(guestData!.canExport, false);
     }
 
     // A List Lead sees full data and can edit Description.

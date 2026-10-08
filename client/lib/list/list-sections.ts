@@ -42,7 +42,7 @@ export type SetListGroupByResult =
   | { status: "invalid-group-by" };
 
 // A List Lead, List Member, or the Workspace Owner can manage Sections
-// and the List view's grouping (#29) — a List Viewer or Guest cannot.
+// and the List view's grouping (#29) — a List Viewer cannot.
 const REQUIRED_ACCESS_LEVEL = "WRITE";
 
 // Only "SECTION" is groupable today. This expands once Item's schema ships

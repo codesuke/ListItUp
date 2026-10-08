@@ -8,7 +8,7 @@ This is treated as a deliberate, narrow exception rather than a loosening of the
 
 ## Status
 
-accepted
+accepted (Guest half superseded by ADR 0022, which removed Guests; the Viewer exception stands)
 
 ## Consequences
 

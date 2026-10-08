@@ -9,13 +9,12 @@ import { AssigneeAvatar } from "@/components/workspace/AssigneeAvatar";
 import type { ListRoleActionResult } from "./actions";
 import type { ListRoleEntry, ListRoles } from "@/lib/list/list-roles";
 
-type RoleColumnKey = "LEAD" | "MEMBER" | "VIEWER" | "GUEST";
+type RoleColumnKey = "LEAD" | "MEMBER" | "VIEWER";
 
-const ROLE_COLUMNS: { key: RoleColumnKey; label: string; removeLabel?: string }[] = [
+const ROLE_COLUMNS: { key: RoleColumnKey; label: string }[] = [
   { key: "LEAD", label: "Lead" },
   { key: "MEMBER", label: "Member" },
   { key: "VIEWER", label: "Viewer" },
-  { key: "GUEST", label: "Guest", removeLabel: "Revoke" },
 ];
 
 function entriesForColumn(roles: ListRoles, key: RoleColumnKey): ListRoleEntry[] {
@@ -26,8 +25,6 @@ function entriesForColumn(roles: ListRoles, key: RoleColumnKey): ListRoleEntry[]
       return roles.members;
     case "VIEWER":
       return roles.viewers;
-    case "GUEST":
-      return roles.guests;
   }
 }
 
@@ -42,7 +39,7 @@ function findEntry(roles: ListRoles, userId: string): { entry: ListRoleEntry; co
 }
 
 // The Roles panel's kanban (List Lead threshold, same as the panel's other
-// controls): dragging a person card between the Lead/Member/Viewer/Guest
+// controls): dragging a person card between the Lead/Member/Viewer
 // columns changes their List access, reusing the same DraggableCard/
 // DroppableColumn pick-up-and-drop motion as the List Board
 // (components/board/).
@@ -52,19 +49,17 @@ export function OverviewRolesBoard({
   canManageRoles,
   canDrag,
   boundRemoveMember,
-  boundRevokeGuest,
   boundMoveRole,
   boundPromoteToLead,
   boundStepDown,
 }: {
   roles: ListRoles;
   currentUserId: string;
-  // Gates every per-row Roles-panel control: Remove/Revoke, Make Lead, and
+  // Gates every per-row Roles-panel control: Remove, Make Lead, and
   // Step down (>=LEAD access — see ListPageData.canEditDescription).
   canManageRoles: boolean;
   canDrag: boolean;
   boundRemoveMember: (userId: string) => Promise<ListRoleActionResult>;
-  boundRevokeGuest: (userId: string) => Promise<void>;
   boundMoveRole: (userId: string, toRole: RoleColumnKey) => Promise<ListRoleActionResult>;
   boundPromoteToLead: (userId: string) => Promise<ListRoleActionResult>;
   boundStepDown: (userId: string) => Promise<ListRoleActionResult>;
@@ -116,7 +111,7 @@ export function OverviewRolesBoard({
         onDragCancel={() => setActiveEntry(null)}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3">
           {ROLE_COLUMNS.map((column) => {
             const entries = entriesForColumn(roles, column.key);
 
@@ -172,14 +167,10 @@ export function OverviewRolesBoard({
                             {canManageRoles && (
                               <button
                                 type="button"
-                                onClick={() =>
-                                  void (column.key === "GUEST"
-                                    ? boundRevokeGuest(entry.userId)
-                                    : runGuardedAction(boundRemoveMember, entry.userId))
-                                }
+                                onClick={() => void runGuardedAction(boundRemoveMember, entry.userId)}
                                 className={rowButtonClass}
                               >
-                                {column.removeLabel ?? "Remove"}
+                                Remove
                               </button>
                             )}
                           </div>

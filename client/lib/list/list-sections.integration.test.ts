@@ -93,16 +93,6 @@ async function run() {
       assert.equal(sections.length, 0);
     }
 
-    // A Guest cannot create a Section.
-    {
-      const { listId } = await createWorkspaceWithList();
-      const guestId = await createUser();
-      await prisma.guest.create({ data: { id: randomUUID(), listId, userId: guestId } });
-
-      const result = await createSection(prisma, { actorUserId: guestId, listId, name: "Should not exist" });
-      assert.deepEqual(result, { status: "forbidden" });
-    }
-
     // Rename/Duplicate/Delete all authorize the same way.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
@@ -228,7 +218,6 @@ async function run() {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })
     ).map((list) => list.id);
-    await prisma.guest.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.section.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.listMember.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.list.deleteMany({ where: { id: { in: listIds } } });

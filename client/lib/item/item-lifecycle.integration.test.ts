@@ -132,18 +132,6 @@ async function run() {
       assert.deepEqual(result, { status: "forbidden" });
     }
 
-    // A Guest cannot transition an Item's state either.
-    {
-      const { listId } = await createWorkspaceWithListAndMember();
-      const creatorId = await createUser();
-      const itemId = await createTestItem(listId, creatorId);
-      const guestId = await createUser();
-      await prisma.guest.create({ data: { id: randomUUID(), listId, userId: guestId } });
-
-      const result = await transitionItemState(prisma, { actorUserId: guestId, itemId, state: "COMPLETE" });
-      assert.deepEqual(result, { status: "forbidden" });
-    }
-
     // archiveItem/restoreItem round-trip through the ARCHIVED state,
     // returning the Item to active use exactly as it was before archiving
     // — state, BlockerReason, Section, and Assignees all unchanged (#38).
@@ -239,7 +227,6 @@ async function run() {
     await prisma.itemAssignee.deleteMany({ where: { item: { listId: { in: listIds } } } });
     await prisma.item.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.listMember.deleteMany({ where: { listId: { in: listIds } } });
-    await prisma.guest.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.list.deleteMany({ where: { id: { in: listIds } } });
     await prisma.workspaceMember.deleteMany({
       where: { workspaceId: { in: createdWorkspaceIds } },

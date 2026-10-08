@@ -76,15 +76,13 @@ export type ListPageData = {
   // archived status is a second, independent gate on top of the role
   // check, so a Lead can't bypass the freeze.
   canEditDescription: boolean;
-  // Anyone who can read the List except a Guest — gates the Export CSV
-  // button (#72); the export route re-checks it. Export stays allowed on
-  // an archived List (#104) — only reads are exempt, not this flag.
+  // Anyone who can read the List — gates the Export CSV button (#72); the
+  // export route re-checks it. Export stays allowed on an archived List
+  // (#104) — only reads are exempt, not this flag.
   canExport: boolean;
   roles: ListRoles;
   // Workspace Members not yet holding any List-level role — the candidate
-  // pool for the Roles panel's "add Member/Viewer" control (#28). Guest
-  // grants aren't drawn from this list since a Guest need not be a
-  // Workspace Member at all.
+  // pool for the Roles panel's "add Member/Viewer" control (#28).
   eligibleMembers: EligibleWorkspaceMember[];
   // >=WRITE governs Section management, the "Add Rule" grouping control,
   // and Item creation (#29, #30) — a List Member manages these, unlike

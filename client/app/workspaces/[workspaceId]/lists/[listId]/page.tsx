@@ -30,7 +30,6 @@ import {
   promoteListMemberToLeadAction,
   removeListMemberAction,
   restoreItemAction,
-  revokeGuestAccessAction,
   setBoardGroupByAction,
   setListStatusAction,
   stepDownFromListLeadAction,
@@ -122,7 +121,6 @@ function OverviewTab({
   boundAddMember,
   boundRemoveMember,
   boundAddByEmail,
-  boundRevokeGuest,
   boundMoveRole,
   boundPromoteToLead,
   boundStepDown,
@@ -133,7 +131,6 @@ function OverviewTab({
   boundAddMember: (prevState: ListRoleActionResult, formData: FormData) => Promise<ListRoleActionResult>;
   boundRemoveMember: (userId: string) => Promise<ListRoleActionResult>;
   boundAddByEmail: (prevState: ListRoleActionResult, formData: FormData) => Promise<ListRoleActionResult>;
-  boundRevokeGuest: (userId: string) => Promise<void>;
   boundMoveRole: (userId: string, toRole: string) => Promise<ListRoleActionResult>;
   boundPromoteToLead: (userId: string) => Promise<ListRoleActionResult>;
   boundStepDown: (userId: string) => Promise<ListRoleActionResult>;
@@ -163,7 +160,6 @@ function OverviewTab({
           canManageRoles={canManage}
           canDrag={canDragRoles}
           boundRemoveMember={boundRemoveMember}
-          boundRevokeGuest={boundRevokeGuest}
           boundMoveRole={boundMoveRole}
           boundPromoteToLead={boundPromoteToLead}
           boundStepDown={boundStepDown}
@@ -229,7 +225,6 @@ export default async function ListPage({ params, searchParams }: Props) {
   const boundAddMember = addListMemberAction.bind(null, workspaceId, listId);
   const boundRemoveMember = removeListMemberAction.bind(null, workspaceId, listId);
   const boundAddByEmail = addListAccessByEmailAction.bind(null, workspaceId, listId);
-  const boundRevokeGuest = revokeGuestAccessAction.bind(null, workspaceId, listId);
   const boundMoveRole = moveListRoleAssignmentAction.bind(null, workspaceId, listId);
   const boundPromoteToLead = promoteListMemberToLeadAction.bind(null, workspaceId, listId);
   const boundStepDown = stepDownFromListLeadAction.bind(null, workspaceId, listId);
@@ -323,8 +318,7 @@ export default async function ListPage({ params, searchParams }: Props) {
             boundAddMember={boundAddMember}
             boundRemoveMember={boundRemoveMember}
             boundAddByEmail={boundAddByEmail}
-            boundRevokeGuest={boundRevokeGuest}
-            boundMoveRole={boundMoveRole}
+              boundMoveRole={boundMoveRole}
             boundPromoteToLead={boundPromoteToLead}
             boundStepDown={boundStepDown}
           />

@@ -1,6 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 
-// The single "is this Workspace visible to a member or Guest" filter (#76,
+// The single "is this Workspace visible to a member" filter (#76,
 // part of #74's restore-window spec). Spread ACTIVE_WORKSPACE_WHERE into
 // any Prisma query that resolves a Workspace, directly or through a
 // relation, so a newly added query excludes a Deleted Workspace by default

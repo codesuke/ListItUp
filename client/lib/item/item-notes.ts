@@ -77,7 +77,7 @@ export type UpsertPersonalNoteResult =
 // Scoped to the owning User only — an Assignee of the Item can keep private
 // planning context here without touching the shared Item or its
 // team-visible Notes (#37). Not gated by the WRITE access level above: an
-// Assignee who is only a List Viewer/Guest can still keep their own
+// Assignee who is only a List Viewer can still keep their own
 // Personal Note, since it never touches the shared Item.
 export async function upsertPersonalNote(
   database: PrismaClient,

@@ -6,11 +6,9 @@ import type { ListMemberRole } from "@/generated/prisma/client";
 import { createItem } from "@/lib/item/item-creation";
 import { restoreItem, transitionItemState } from "@/lib/item/item-lifecycle";
 import { isValidBoardGroupBy, moveItemToColumn, setBoardGroupBy, type BoardGroupBy } from "@/lib/list/list-board";
-import { addListAccessByEmail, type ListAccessByEmailRole } from "@/lib/list/list-access-by-email";
-import { revokeGuestAccess } from "@/lib/list/list-guests";
+import { addListAccessByEmail } from "@/lib/list/list-access-by-email";
 import { setListStatus, updateListDescription } from "@/lib/list/list-lifecycle";
 import { addListMember, changeListMemberRole, removeListMember } from "@/lib/list/list-membership";
-import { moveListRoleAssignment, type ListRoleBoardRole } from "@/lib/list/list-role-board";
 import {
   createSection,
   deleteSection,
@@ -33,13 +31,13 @@ const ADDABLE_ROLES: readonly ListMemberRole[] = ["MEMBER", "VIEWER"];
 
 // The Manage Access email field's role selector — Lead stays out of scope
 // here too, same reasoning as ADDABLE_ROLES above.
-const EMAIL_ADDABLE_ROLES: readonly ListAccessByEmailRole[] = ["MEMBER", "VIEWER", "GUEST"];
+const EMAIL_ADDABLE_ROLES: readonly ListMemberRole[] = ["MEMBER", "VIEWER"];
 
-// The Roles kanban can drag a person into any of the four columns, Lead
+// The Roles kanban can drag a person into any of the three columns, Lead
 // included — unlike the two role selectors above, this interaction is
-// gated at the LEAD threshold by moveListRoleAssignment itself, so a
-// coarser, full set of destinations is safe to expose.
-const DRAGGABLE_ROLES: readonly ListRoleBoardRole[] = ["LEAD", "MEMBER", "VIEWER", "GUEST"];
+// gated at the LEAD threshold by changeListMemberRole itself, so the full
+// set of destinations is safe to expose.
+const DRAGGABLE_ROLES: readonly ListMemberRole[] = ["LEAD", "MEMBER", "VIEWER"];
 
 // A guarded Roles-panel mutation's outcome for the client: either it went
 // through, or it didn't and the UI has a message to show (most commonly
@@ -212,7 +210,7 @@ export async function addListAccessByEmailAction(
   const email = String(formData.get("email") ?? "").trim();
   const role = String(formData.get("role") ?? "");
 
-  if (!email || !EMAIL_ADDABLE_ROLES.includes(role as ListAccessByEmailRole)) {
+  if (!email || !EMAIL_ADDABLE_ROLES.includes(role as ListMemberRole)) {
     return { status: "ok" };
   }
 
@@ -220,7 +218,7 @@ export async function addListAccessByEmailAction(
     actorUserId: session.user.id,
     listId,
     email,
-    role: role as ListAccessByEmailRole,
+    role: role as ListMemberRole,
   });
 
   if (result.status !== "added") {
@@ -231,17 +229,10 @@ export async function addListAccessByEmailAction(
   return { status: "ok" };
 }
 
-const MOVE_LIST_ROLE_ERROR_MESSAGE = {
-  "list-not-found": LIST_NOT_FOUND_MESSAGE,
-  forbidden: "You don't have permission to do that.",
-  "user-lacks-workspace-membership": "That person must join the Workspace first.",
-  "last-lead": LAST_LEAD_MESSAGE,
-  "list-archived": LIST_ARCHIVED_MESSAGE,
-} as const;
-
 // The Roles kanban's drag-and-drop (LEAD threshold, same as the panel's
-// other controls — enforced in moveListRoleAssignment itself, not just by
-// hiding the drag handle).
+// other controls — enforced in changeListMemberRole itself, not just by
+// hiding the drag handle). Every card on the board is an existing List
+// member, so a drop is the same guarded role change as "Make Lead".
 export async function moveListRoleAssignmentAction(
   workspaceId: string,
   listId: string,
@@ -250,33 +241,23 @@ export async function moveListRoleAssignmentAction(
 ): Promise<ListRoleActionResult> {
   const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
 
-  if (!DRAGGABLE_ROLES.includes(toRole as ListRoleBoardRole)) {
+  if (!DRAGGABLE_ROLES.includes(toRole as ListMemberRole)) {
     return { status: "ok" };
   }
 
-  const result = await moveListRoleAssignment(prisma, {
+  const result = await changeListMemberRole(prisma, {
     actorUserId: session.user.id,
     listId,
     userId: targetUserId,
-    toRole: toRole as ListRoleBoardRole,
+    role: toRole as ListMemberRole,
   });
 
-  if (result.status !== "moved") {
-    return { status: "error", message: MOVE_LIST_ROLE_ERROR_MESSAGE[result.status] };
+  if (result.status !== "changed") {
+    return { status: "error", message: CHANGE_LIST_MEMBER_ROLE_ERROR_MESSAGE[result.status] };
   }
 
   revalidatePath(listPath(workspaceId, listId));
   return { status: "ok" };
-}
-
-export async function revokeGuestAccessAction(
-  workspaceId: string,
-  listId: string,
-  targetUserId: string
-): Promise<void> {
-  const session = await requireAuthenticatedSession(listPath(workspaceId, listId));
-  await revokeGuestAccess(prisma, { actorUserId: session.user.id, listId, userId: targetUserId });
-  revalidatePath(listPath(workspaceId, listId));
 }
 
 export async function addSectionAction(

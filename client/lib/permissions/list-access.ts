@@ -3,11 +3,11 @@ import { isDeletedWorkspace } from "@/lib/workspace/workspace-visibility";
 
 // The single resolution order settled by ADR 0016 (superseding ADR 0009's
 // Admin half): Workspace Owner implicit Lead-equivalent access -> Workspace
-// Viewer ceiling -> explicit List-level role -> Guest access -> no access.
+// Viewer ceiling -> explicit List-level role -> no access.
 // A Workspace Admin has no implicit access and falls through to their
 // explicit List role, if any. Every List-scoped authorization check in the
 // app should call resolveListAccess() rather than querying
-// WorkspaceMember/ListMember/Guest directly.
+// WorkspaceMember/ListMember directly.
 export type ListAccessLevel = "NONE" | "READ" | "WRITE" | "LEAD";
 
 const LEVEL_ORDER: ListAccessLevel[] = ["NONE", "READ", "WRITE", "LEAD"];
@@ -37,18 +37,17 @@ export async function resolveListAccess(
   });
 
   // A Deleted Workspace is treated as nonexistent for every List-scoped
-  // check (#76) — the Owner's implicit access, explicit List roles, and
-  // Guest grants all resolve to NONE rather than resolving normally.
+  // check (#76) — the Owner's implicit access and explicit List roles both
+  // resolve to NONE rather than resolving normally.
   if (!list || isDeletedWorkspace(list.workspace)) {
     return "NONE";
   }
 
-  const [workspaceMembership, listMembership, guestGrant] = await Promise.all([
+  const [workspaceMembership, listMembership] = await Promise.all([
     database.workspaceMember.findUnique({
       where: { workspaceId_userId: { workspaceId: list.workspaceId, userId } },
     }),
     database.listMember.findUnique({ where: { listId_userId: { listId, userId } } }),
-    database.guest.findUnique({ where: { listId_userId: { listId, userId } } }),
   ]);
 
   // The Workspace Owner sees every List in their Workspace, including
@@ -64,16 +63,12 @@ export async function resolveListAccess(
 
   // A ListMember row only grants access when a WorkspaceMember row backs it
   // in this same Workspace — an orphaned ListMember (stale data, a bypassed
-  // cleanup path) is treated as absent rather than trusted, falling through
-  // to the Guest check below exactly as if no ListMember row existed. Guest
-  // access has no WorkspaceMember by design and is untouched by this check.
+  // cleanup path) is treated as absent rather than trusted, exactly as if no
+  // ListMember row existed.
   const hasBackingWorkspaceMembership = workspaceMembership !== null;
 
-  let level: ListAccessLevel = listMembership && hasBackingWorkspaceMembership
-    ? LIST_ROLE_TO_LEVEL[listMembership.role]
-    : guestGrant
-      ? "READ"
-      : "NONE";
+  let level: ListAccessLevel =
+    listMembership && hasBackingWorkspaceMembership ? LIST_ROLE_TO_LEVEL[listMembership.role] : "NONE";
 
   // The Workspace Viewer ceiling caps everything below it at read-only, even
   // if a higher List-level role was separately granted.
@@ -84,32 +79,12 @@ export async function resolveListAccess(
   return level;
 }
 
-// Export is a read, so the Viewer ceiling does not block it; a Guest is
-// refused because the data would leave the system for someone with no
-// Workspace identity (#72). resolveListAccess() reports READ for both a
-// List Viewer and a Guest, so the two are told apart here by whether the
-// User holds any Workspace or List role.
+// Export is a read, so the Viewer ceiling does not block it: anyone who can
+// read the List may export it (#72).
 export async function canExportList(
   database: PrismaClient,
   input: { userId: string; listId: string }
 ): Promise<boolean> {
-  const { userId, listId } = input;
-
   const access = await resolveListAccess(database, input);
-  if (!meetsListAccessLevel(access, "READ")) {
-    return false;
-  }
-
-  const list = await database.list.findUniqueOrThrow({
-    where: { id: listId },
-    select: { workspaceId: true },
-  });
-  const [workspaceMembership, listMembership] = await Promise.all([
-    database.workspaceMember.findUnique({
-      where: { workspaceId_userId: { workspaceId: list.workspaceId, userId } },
-    }),
-    database.listMember.findUnique({ where: { listId_userId: { listId, userId } } }),
-  ]);
-
-  return workspaceMembership !== null || listMembership !== null;
+  return meetsListAccessLevel(access, "READ");
 }

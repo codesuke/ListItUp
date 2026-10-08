@@ -59,10 +59,6 @@ async function run() {
     await prisma.listMember.create({ data: { id: randomUUID(), listId, userId, role } });
   }
 
-  async function addGuest(listId: string, userId: string) {
-    await prisma.guest.create({ data: { id: randomUUID(), listId, userId } });
-  }
-
   try {
     // A Workspace Owner sees every List, including ones with no explicit
     // ListMember row.
@@ -101,18 +97,6 @@ async function run() {
 
       const results = await browseLists(prisma, { userId: memberId, workspaceId });
       assert.deepEqual(results.map((r) => r.id), [visibleList]);
-    }
-
-    // A Guest sees only the List they were explicitly granted access to.
-    {
-      const workspaceId = await createWorkspace();
-      const guestId = await createUser();
-      const guestList = await createList(workspaceId, { name: "Guest List" });
-      await addGuest(guestList, guestId);
-      await createList(workspaceId, { name: "Not Guested" });
-
-      const results = await browseLists(prisma, { userId: guestId, workspaceId });
-      assert.deepEqual(results.map((r) => r.id), [guestList]);
     }
 
     // Search filters by name (case-insensitive substring).
@@ -188,27 +172,27 @@ async function run() {
       assert.deepEqual(results.map((r) => r.id), [shared]);
     }
 
-    // A Deleted Workspace returns no Lists, for an Owner or a Guest alike
-    // (#76).
+    // A Deleted Workspace returns no Lists, for an Owner or a List Member
+    // alike (#76).
     {
       const workspaceId = await createWorkspace();
       const ownerId = await createUser();
       await addWorkspaceMember(workspaceId, ownerId, "OWNER");
-      const guestId = await createUser();
-      const guestList = await createList(workspaceId, { name: "Guest List" });
-      await addGuest(guestList, guestId);
+      const memberId = await createUser();
+      await addWorkspaceMember(workspaceId, memberId, "MEMBER");
+      const memberList = await createList(workspaceId, { name: "Member List" });
+      await addListMember(memberList, memberId);
 
       await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
 
       assert.deepEqual(await browseLists(prisma, { userId: ownerId, workspaceId }), []);
-      assert.deepEqual(await browseLists(prisma, { userId: guestId, workspaceId }), []);
+      assert.deepEqual(await browseLists(prisma, { userId: memberId, workspaceId }), []);
     }
   } finally {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })
     ).map((list) => list.id);
     await prisma.starred.deleteMany({ where: { listId: { in: listIds } } });
-    await prisma.guest.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.listMember.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.list.deleteMany({ where: { id: { in: listIds } } });
     await prisma.workspaceMember.deleteMany({

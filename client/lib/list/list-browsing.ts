@@ -27,7 +27,7 @@ export type BrowseListsInput = {
 
 // Visibility here mirrors lib/permissions/'s resolveListAccess resolution
 // order (ADR 0016: the Workspace Owner sees every List; everyone else,
-// including an Admin, only Lists they're an explicit Member or Guest of)
+// including an Admin, only Lists they hold an explicit List role in)
 // but as one set-based query rather than one resolveListAccess() call per
 // List, since the browsing page needs to filter/search across a
 // Workspace's full List set efficiently.
@@ -37,9 +37,7 @@ export async function browseLists(
 ): Promise<ListSummary[]> {
   const { userId, workspaceId, search, status, memberUserId, starredOnly, archived = false } = input;
 
-  // Checked independently of WorkspaceMember below since a Guest (who has
-  // no WorkspaceMember row) must also see no Lists once the Workspace is
-  // deleted (#76).
+  // A Deleted Workspace shows no Lists to anyone, its Owner included (#76).
   const workspace = await database.workspace.findUnique({
     where: { id: workspaceId },
     select: { deletedAt: true },
@@ -56,7 +54,7 @@ export async function browseLists(
 
   const visibilityFilter = canSeeEveryList
     ? {}
-    : { OR: [{ members: { some: { userId } } }, { guests: { some: { userId } } }] };
+    : { members: { some: { userId } } };
 
   const lists = await database.list.findMany({
     where: {

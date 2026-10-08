@@ -322,7 +322,7 @@ async function run() {
     }
 
     // Notes render oldest first with their Mentions resolved, mention
-    // candidates cover Assignees/Members/Viewers/Guests (excluding the
+    // candidates cover Assignees/Members/Viewers (excluding the
     // viewer themselves), and a Personal Note is visible only to its
     // owning Assignee (#37).
     {

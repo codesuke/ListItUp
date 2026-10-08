@@ -27,10 +27,10 @@ export type ItemDetailData = {
   parent: { id: string; title: string } | null;
   children: { id: string; title: string; state: ItemState }[];
   // >=WRITE: a List Member, Lead, or the Workspace Owner can edit; a
-  // List Viewer or Guest gets a read-only surface (#30).
+  // List Viewer gets a read-only surface (#30).
   canEdit: boolean;
   sections: { id: string; name: string }[];
-  // List Leads/Members only — a Viewer/Guest can see an Item but isn't a
+  // List Leads/Members only — a Viewer can see an Item but isn't a
   // sensible assignee candidate (a UI-level judgment call, not enforced by
   // lib/item/ itself, which doesn't restrict who can be assigned).
   assignableMembers: { userId: string; name: string }[];
@@ -63,7 +63,7 @@ export type ItemDetailData = {
   attachments: { id: string; fileName: string; sizeBytes: number; uploaderName: string; createdAt: Date }[];
   // Notes (#37), oldest first, with their Mentions resolved to display
   // names. mentionCandidates is the Item's access list per CONTEXT.md's
-  // Mention entry (Assignees, and the List's Members/Leads/Viewers/Guests)
+  // Mention entry (Assignees, and the List's Members/Leads/Viewers)
   // — the UI's @mention picker; the authoritative check still lives in
   // createNote(), which validates against resolveItemAccess() directly.
   notes: {
@@ -128,7 +128,6 @@ export async function loadItemDetailData(
     sections,
     listMembers,
     allListMembers,
-    guests,
     workspaceMembership,
     workspaceLabels,
     customFieldDefinitions,
@@ -144,13 +143,8 @@ export async function loadItemDetailData(
     // Unlike assignableMembers above, this includes Viewers too — Mention
     // candidates are anyone with Item access, not just sensible Assignees
     // (CONTEXT.md's Mention entry: Assignees, or the List's
-    // Members/Leads/Viewers/Guests).
+    // Members/Leads/Viewers).
     database.listMember.findMany({
-      where: { listId },
-      include: { user: { select: { id: true, name: true } } },
-      orderBy: { createdAt: "asc" },
-    }),
-    database.guest.findMany({
       where: { listId },
       include: { user: { select: { id: true, name: true } } },
       orderBy: { createdAt: "asc" },
@@ -180,9 +174,6 @@ export async function loadItemDetailData(
   }
   for (const member of allListMembers) {
     mentionCandidatesById.set(member.userId, { userId: member.userId, name: member.user.name });
-  }
-  for (const guest of guests) {
-    mentionCandidatesById.set(guest.userId, { userId: guest.userId, name: guest.user.name });
   }
   mentionCandidatesById.delete(userId);
 

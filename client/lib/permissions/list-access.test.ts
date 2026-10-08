@@ -60,10 +60,6 @@ async function run() {
     await prisma.listMember.create({ data: { id: randomUUID(), listId, userId, role } });
   }
 
-  async function addGuest(listId: string, userId: string): Promise<void> {
-    await prisma.guest.create({ data: { id: randomUUID(), listId, userId } });
-  }
-
   try {
     // Workspace Owner: implicit Lead-equivalent access, no explicit List
     // role needed (ADR 0016).
@@ -176,25 +172,6 @@ async function run() {
       assert.equal(await resolveListAccess(prisma, { userId, listId }), "READ");
     }
 
-    // Guest with a matching grant: READ, with no Workspace membership at all.
-    {
-      const workspaceId = await createWorkspace();
-      const userId = await createUser();
-      const listId = await createListIn(workspaceId);
-      await addGuest(listId, userId);
-
-      assert.equal(await resolveListAccess(prisma, { userId, listId }), "READ");
-    }
-
-    // Guest without a matching grant: NONE.
-    {
-      const workspaceId = await createWorkspace();
-      const userId = await createUser();
-      const listId = await createListIn(workspaceId);
-
-      assert.equal(await resolveListAccess(prisma, { userId, listId }), "NONE");
-    }
-
     // User with no relationship to the Workspace or List at all: NONE.
     {
       const workspaceId = await createWorkspace();
@@ -205,8 +182,7 @@ async function run() {
     }
 
     // canExportList (#72): anyone who can read the List may export it —
-    // including the Viewer roles — except a Guest, who is external and
-    // holds no Workspace or List role. Everyone else is refused.
+    // including the Viewer roles. Everyone else is refused.
     {
       const workspaceId = await createWorkspace();
       const listId = await createListIn(workspaceId);
@@ -232,14 +208,12 @@ async function run() {
         assert.equal(await canExportList(prisma, { userId, listId }), true, `expected ${userId} to export`);
       }
 
-      const guest = await createUser();
-      await addGuest(listId, guest);
       const unassignedMember = await createUser();
       await addWorkspaceMember(workspaceId, unassignedMember, "MEMBER");
       const unassignedAdmin = await createUser();
       await addWorkspaceMember(workspaceId, unassignedAdmin, "ADMIN");
       const stranger = await createUser();
-      for (const userId of [guest, unassignedMember, unassignedAdmin, stranger]) {
+      for (const userId of [unassignedMember, unassignedAdmin, stranger]) {
         assert.equal(await canExportList(prisma, { userId, listId }), false, `expected ${userId} to be refused`);
       }
       assert.equal(await canExportList(prisma, { userId: owner, listId: randomUUID() }), false);
@@ -278,33 +252,21 @@ async function run() {
       assert.equal(await resolveListAccess(prisma, { userId, listId }), "NONE");
     }
 
-    // The same orphaned ListMember row, but the User also holds a Guest
-    // grant on that List: the Guest grant still resolves normally — the L1
-    // defense only disregards the ListMember row, it doesn't force NONE.
-    {
-      const workspaceId = await createWorkspace();
-      const userId = await createUser();
-      const listId = await createListIn(workspaceId);
-      await addListMember(listId, userId, "LEAD");
-      await addGuest(listId, userId);
-
-      assert.equal(await resolveListAccess(prisma, { userId, listId }), "READ");
-    }
-
     // A Deleted Workspace's List resolves to NONE for everyone — Owner,
-    // Guest, and export — regardless of role (#76).
+    // List Member, and export — regardless of role (#76).
     {
       const workspaceId = await createWorkspace();
       const listId = await createListIn(workspaceId);
       const owner = await createUser();
       await addWorkspaceMember(workspaceId, owner, "OWNER");
-      const guest = await createUser();
-      await addGuest(listId, guest);
+      const member = await createUser();
+      await addWorkspaceMember(workspaceId, member, "MEMBER");
+      await addListMember(listId, member, "MEMBER");
 
       await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
 
       assert.equal(await resolveListAccess(prisma, { userId: owner, listId }), "NONE");
-      assert.equal(await resolveListAccess(prisma, { userId: guest, listId }), "NONE");
+      assert.equal(await resolveListAccess(prisma, { userId: member, listId }), "NONE");
       assert.equal(await canExportList(prisma, { userId: owner, listId }), false);
     }
 
@@ -333,12 +295,10 @@ async function run() {
       await addListMember(listId, listViewer, "VIEWER");
       const workspaceViewer = await createUser();
       await addWorkspaceMember(workspaceId, workspaceViewer, "VIEWER");
-      const guest = await createUser();
-      await addGuest(listId, guest);
 
       await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
 
-      for (const userId of [owner, admin, lead, member, listViewer, workspaceViewer, guest]) {
+      for (const userId of [owner, admin, lead, member, listViewer, workspaceViewer]) {
         assert.equal(
           await resolveListAccess(prisma, { userId, listId }),
           "NONE",
@@ -372,11 +332,9 @@ async function run() {
       const workspaceViewer = await createUser();
       await addWorkspaceMember(workspaceId, workspaceViewer, "VIEWER");
       await addListMember(listId, workspaceViewer, "LEAD");
-      const guest = await createUser();
-      await addGuest(listId, guest);
 
       const levelsBeforeArchiving = new Map<string, string>();
-      for (const userId of [owner, admin, lead, member, listViewer, workspaceViewer, guest]) {
+      for (const userId of [owner, admin, lead, member, listViewer, workspaceViewer]) {
         levelsBeforeArchiving.set(userId, await resolveListAccess(prisma, { userId, listId }));
       }
 
@@ -391,7 +349,6 @@ async function run() {
       }
     }
   } finally {
-    await prisma.guest.deleteMany({ where: { userId: { in: createdUserIds } } });
     await prisma.listMember.deleteMany({ where: { userId: { in: createdUserIds } } });
     await prisma.list.deleteMany({ where: { workspaceId: { in: createdWorkspaceIds } } });
     await prisma.workspaceMember.deleteMany({

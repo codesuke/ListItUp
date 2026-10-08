@@ -55,7 +55,7 @@ export function canActorManageTargetRole(actorRole: WorkspaceRole, targetRole: W
   return actorRole === "ADMIN" && (targetRole === "MEMBER" || targetRole === "VIEWER");
 }
 
-// A stale ListMember/Guest row for someone no longer in the Workspace would
+// A stale ListMember row for someone no longer in the Workspace would
 // both leak List access (resolveListAccess does not require a current
 // WorkspaceMember row) and sit as a ghost "other Lead" that lets a List's
 // real last Lead believe they are covered. Item assignments, starred Lists
@@ -72,7 +72,6 @@ async function clearDepartingMemberArtifacts(
 ): Promise<void> {
   const { workspaceId, userId } = input;
   await tx.listMember.deleteMany({ where: { userId, list: { workspaceId } } });
-  await tx.guest.deleteMany({ where: { userId, list: { workspaceId } } });
   await tx.itemAssignee.deleteMany({ where: { userId, item: { list: { workspaceId } } } });
   await tx.starred.deleteMany({ where: { userId, list: { workspaceId } } });
   await tx.personalNote.deleteMany({ where: { userId, item: { list: { workspaceId } } } });

@@ -104,16 +104,6 @@ async function run() {
       assert.equal(items.length, 0);
     }
 
-    // A Guest cannot create an Item.
-    {
-      const { listId } = await createWorkspaceWithList();
-      const guestId = await createUser();
-      await prisma.guest.create({ data: { id: randomUUID(), listId, userId: guestId } });
-
-      const result = await createItem(prisma, { actorUserId: guestId, listId, title: "Should not exist" });
-      assert.deepEqual(result, { status: "forbidden" });
-    }
-
     // A List Member can create a nested child Item under any Item, at
     // arbitrary depth, via the self-referencing parent field.
     {
@@ -208,7 +198,6 @@ async function run() {
     await prisma.item.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.section.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.listMember.deleteMany({ where: { listId: { in: listIds } } });
-    await prisma.guest.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.list.deleteMany({ where: { id: { in: listIds } } });
     await prisma.workspaceMember.deleteMany({
       where: { workspaceId: { in: createdWorkspaceIds } },

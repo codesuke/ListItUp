@@ -29,12 +29,11 @@ export function AddListAccessByEmailForm({
         />
         <select
           name="role"
-          defaultValue="GUEST"
+          defaultValue="MEMBER"
           className="h-9 w-28 rounded-[6px] border border-line-strong bg-surface-2 px-3 text-sm text-ink"
         >
           <option value="MEMBER">Member</option>
           <option value="VIEWER">Viewer</option>
-          <option value="GUEST">Guest</option>
         </select>
         <button type="submit" className={`h-9 shrink-0 ${ADD_BUTTON_SECONDARY}`}>
           Add

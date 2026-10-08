@@ -39,20 +39,20 @@ Rough sequence — later items build on earlier ones:
 ### #27 — Per-List page shell + Overview tab
 
 - Tab bar on every List: **List, Board, Calendar, Files, Timeline, Dashboard, Messages** — build all seven tabs now. Dashboard and Messages render as visible "coming soon" placeholders (real content ships later; Messages is a v2 feature, don't build its content at all).
-- Overview tab: shows Description + a read-only Roles list (Lead/Member/Viewer/Guest).
+- Overview tab: shows Description + a read-only Roles list (Lead/Member/Viewer).
 - Description is editable, but only by a List Lead or Workspace Admin.
 
-### #28 — List-level role & Guest management
+### #28 — List-level role management
 
-- The mutating half of Overview's Roles panel: add/remove Member or Viewer, grant/revoke Guest access.
-- **UI gating:** only a List Lead can add/remove Member/Viewer; Lead or Workspace Admin can manage Guests. Everyone else sees the panel read-only (from #27) or not at all.
+- The mutating half of Overview's Roles panel: add/remove Member or Viewer. (Guest access was removed — ADR 0022.)
+- **UI gating:** only a List Lead can add/remove Member/Viewer. Everyone else sees the panel read-only (from #27) or not at all.
 
 ### #29 — Section management + List view
 
 - The **List view**: Items grouped into Sections (default grouping).
 - Section actions: Add, Rename, Duplicate, Delete, reorder (drag or similar), Expand/Collapse per Section, "Hide Empty Sections" toggle.
 - **"Add Rule"** is just a grouping-config control (pick which field groups the view) — not an automation/rule engine, don't build automation UI here.
-- **UI gating:** Section management available to List Lead/Member/Workspace Admin-Owner; List Viewer/Guest read-only.
+- **UI gating:** Section management available to List Lead/Member/Workspace Admin-Owner; List Viewer read-only.
 
 ### #30 — Item CRUD & core lifecycle
 
@@ -61,7 +61,7 @@ Rough sequence — later items build on earlier ones:
 - State control: `TO_DO` / `IN_PROGRESS` / `BLOCKED` / `COMPLETE` / `ARCHIVED`. Moving into `BLOCKED` must prompt for a short reason (required field, not optional).
 - Any single Assignee can mark Complete themselves — no "all assignees must agree" flow.
 - Nested child Items (subtasks-via-parent-item, arbitrary depth) — needs some kind of indent/tree UI in the Item detail or List view.
-- **UI gating:** create/edit hidden or disabled for List Viewer/Guest.
+- **UI gating:** create/edit hidden or disabled for List Viewer.
 
 ---
 
@@ -226,7 +226,7 @@ These fill in the "Dashboard" tab placeholders left by #27 (per-List) and #43 (M
 
 ## Cross-cutting UI notes
 
-- **Role gating is real, not cosmetic.** Every "Lead/Admin only" or "Viewer/Guest read-only" note above is enforced server-side too — disabling/hiding a control in the UI is the right pattern, but it won't be the only check.
+- **Role gating is real, not cosmetic.** Every "Lead/Admin only" or "Viewer read-only" note above is enforced server-side too — disabling/hiding a control in the UI is the right pattern, but it won't be the only check.
 - **Reserved tabs:** the List page's Dashboard/Messages tabs and My Tasks' Dashboard tab are built once (as visible placeholders) and filled in later — build them as an explicit empty/coming-soon state, not omitted entirely.
 - **No stats invention:** where a ticket says "no numeric stats" or similar, that's deliberate — don't add a metrics widget that isn't specified, even if it seems natural.
 - **Consistent view patterns:** Board/Calendar/Timeline/Files are each built once for a single List and then reused (not rebuilt) for My Tasks — worth sharing components across the two contexts from the start.

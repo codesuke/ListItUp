@@ -2,7 +2,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import { resolveListAccess, type ListAccessLevel } from "./list-access";
 
 // Item-level access always derives from the Item's parent List's effective
-// access (#23) — never an independent WorkspaceMember/ListMember/Guest
+// access (#23) — never an independent WorkspaceMember/ListMember
 // query, so the single resolution order in list-access.ts stays the one
 // place that logic lives.
 export async function resolveItemAccess(

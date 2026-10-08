@@ -4,7 +4,7 @@ Under the old model, Workspace roles (`Admin`/`Member`/`Viewer`) were the only p
 
 ## Status
 
-accepted (the Admin-implicit-access part is superseded by `0017-list-is-its-own-identity-admin-has-no-implicit-list-access.md`; the Owner part stands)
+accepted (the Admin-implicit-access part is superseded by `0017-list-is-its-own-identity-admin-has-no-implicit-list-access.md`; the Guest part is superseded by `0022-remove-list-scoped-guests.md`; the Owner part stands)
 
 ## Consequences
 

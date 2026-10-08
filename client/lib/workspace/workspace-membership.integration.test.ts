@@ -139,16 +139,13 @@ async function run() {
     // Removal is blocked while the target is the sole Lead of any List; an
     // Owner actor — who has implicit access to every List in the Workspace
     // (ADR 0017) — gets the affected Lists' identities back, and the
-    // membership, List role and Guest grant are all left untouched (#98,
-    // #91).
+    // membership and List role are both left untouched (#98, #91).
     {
       const workspaceId = await createWorkspace();
       const ownerId = await addWorkspaceMember(workspaceId, "OWNER");
       const memberId = await addWorkspaceMember(workspaceId, "MEMBER");
       const soleLeadListId = await createList(workspaceId);
       await addListLead(soleLeadListId, memberId);
-      const guestListId = await createList(workspaceId);
-      await prisma.guest.create({ data: { id: randomUUID(), listId: guestListId, userId: memberId } });
 
       const result = await removeWorkspaceMember(prisma, {
         actingUserId: ownerId,
@@ -166,10 +163,6 @@ async function run() {
         where: { listId_userId: { listId: soleLeadListId, userId: memberId } },
       });
       assert.equal(listRole?.role, "LEAD");
-      const guestRow = await prisma.guest.findUnique({
-        where: { listId_userId: { listId: guestListId, userId: memberId } },
-      });
-      assert.ok(guestRow, "a blocked removal must not touch the Guest grant either");
     }
 
     // The same block for an Admin actor — who has no implicit List access —
@@ -262,7 +255,7 @@ async function run() {
     }
 
     // Once another Lead exists, removal succeeds and clears the person's
-    // List roles and Guest grants in that Workspace so they resolve to no
+    // List roles in that Workspace so they resolve to no
     // access anywhere in it — a stale row would otherwise both leak access
     // and masquerade as a co-Lead for someone else's sole-Lead check.
     {
@@ -272,8 +265,6 @@ async function run() {
       const listId = await createList(workspaceId);
       await addListLead(listId, memberId);
       await addListLead(listId, ownerId);
-      const guestListId = await createList(workspaceId);
-      await prisma.guest.create({ data: { id: randomUUID(), listId: guestListId, userId: memberId } });
 
       const result = await removeWorkspaceMember(prisma, {
         actingUserId: ownerId,
@@ -284,21 +275,13 @@ async function run() {
       assert.deepEqual(result, { status: "removed" });
       assert.equal(await workspaceMembershipExists(workspaceId, memberId), false);
       assert.equal(await resolveListAccess(prisma, { userId: memberId, listId }), "NONE");
-      assert.equal(
-        await resolveListAccess(prisma, { userId: memberId, listId: guestListId }),
-        "NONE"
-      );
 
       // Hygiene, not just the resolveListAccess defense (#106): no
-      // ListMember or Guest row for the removed member survives in this
+      // ListMember row for the removed member survives in this
       // Workspace, so an orphaned row never accumulates even though
       // resolveListAccess would now disregard one anyway.
       assert.equal(
         await prisma.listMember.findFirst({ where: { userId: memberId, list: { workspaceId } } }),
-        null
-      );
-      assert.equal(
-        await prisma.guest.findFirst({ where: { userId: memberId, list: { workspaceId } } }),
         null
       );
     }
@@ -391,7 +374,6 @@ async function run() {
       assert.equal(remainingLeads, 1, "exactly one Lead must remain");
     }
   } finally {
-    await prisma.guest.deleteMany({ where: { listId: { in: createdListIds } } });
     await prisma.listMember.deleteMany({ where: { listId: { in: createdListIds } } });
     await prisma.list.deleteMany({ where: { id: { in: createdListIds } } });
     await prisma.workspaceMember.deleteMany({

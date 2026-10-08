@@ -47,21 +47,19 @@ async function run() {
     name: string;
     workspaceRole: "OWNER" | "ADMIN" | "MEMBER" | "VIEWER" | null;
     listRole: "LEAD" | "MEMBER" | "VIEWER" | null;
-    isGuest: boolean;
     deleted: boolean;
   };
 
   const SCENARIOS: Scenario[] = [
-    { name: "Owner, no explicit List role", workspaceRole: "OWNER", listRole: null, isGuest: false, deleted: false },
-    { name: "Admin, no explicit List role", workspaceRole: "ADMIN", listRole: null, isGuest: false, deleted: false },
-    { name: "Admin, explicit List Lead", workspaceRole: "ADMIN", listRole: "LEAD", isGuest: false, deleted: false },
-    { name: "Member, explicit List Member", workspaceRole: "MEMBER", listRole: "MEMBER", isGuest: false, deleted: false },
-    { name: "Member, no explicit List role", workspaceRole: "MEMBER", listRole: null, isGuest: false, deleted: false },
-    { name: "Workspace Viewer ceiling over List Lead", workspaceRole: "VIEWER", listRole: "LEAD", isGuest: false, deleted: false },
-    { name: "Guest grant, no Workspace membership", workspaceRole: null, listRole: null, isGuest: true, deleted: false },
-    { name: "Stranger: no Workspace or List relationship", workspaceRole: null, listRole: null, isGuest: false, deleted: false },
-    { name: "Deleted Workspace, Owner", workspaceRole: "OWNER", listRole: null, isGuest: false, deleted: true },
-    { name: "Deleted Workspace, Guest grant", workspaceRole: null, listRole: null, isGuest: true, deleted: true },
+    { name: "Owner, no explicit List role", workspaceRole: "OWNER", listRole: null, deleted: false },
+    { name: "Admin, no explicit List role", workspaceRole: "ADMIN", listRole: null, deleted: false },
+    { name: "Admin, explicit List Lead", workspaceRole: "ADMIN", listRole: "LEAD", deleted: false },
+    { name: "Member, explicit List Member", workspaceRole: "MEMBER", listRole: "MEMBER", deleted: false },
+    { name: "Member, no explicit List role", workspaceRole: "MEMBER", listRole: null, deleted: false },
+    { name: "Workspace Viewer ceiling over List Lead", workspaceRole: "VIEWER", listRole: "LEAD", deleted: false },
+    { name: "Stranger: no Workspace or List relationship", workspaceRole: null, listRole: null, deleted: false },
+    { name: "Deleted Workspace, Owner", workspaceRole: "OWNER", listRole: null, deleted: true },
+    { name: "Deleted Workspace, List Member", workspaceRole: "MEMBER", listRole: "MEMBER", deleted: true },
   ];
 
   try {
@@ -80,9 +78,6 @@ async function run() {
       if (scenario.listRole) {
         await prisma.listMember.create({ data: { id: randomUUID(), listId, userId, role: scenario.listRole } });
       }
-      if (scenario.isGuest) {
-        await prisma.guest.create({ data: { id: randomUUID(), listId, userId } });
-      }
       if (scenario.deleted) {
         await prisma.workspace.update({ where: { id: workspaceId }, data: { deletedAt: new Date() } });
       }
@@ -99,10 +94,8 @@ async function run() {
       );
 
       // globalSearch's sole authorization gate is holding a WorkspaceMember
-      // row at all (#56, #70) — a Guest is never meant to reach the header
-      // palette in the first place, so it can't agree with resolveListAccess
-      // for a Guest-only scenario the way browseLists does. The cross-check
-      // is scoped to actual Workspace members, where the two must agree.
+      // row at all (#56, #70), so the cross-check is scoped to actual
+      // Workspace members, where the two must agree.
       if (scenario.workspaceRole) {
         const searched = await globalSearch(prisma, { userId, workspaceId, query: listName });
         const searchVisible = searched.lists.some((list) => list.id === listId);
@@ -117,7 +110,6 @@ async function run() {
     const listIds = (
       await prisma.list.findMany({ where: { workspaceId: { in: createdWorkspaceIds } } })
     ).map((list) => list.id);
-    await prisma.guest.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.listMember.deleteMany({ where: { listId: { in: listIds } } });
     await prisma.list.deleteMany({ where: { id: { in: listIds } } });
     await prisma.workspaceMember.deleteMany({ where: { workspaceId: { in: createdWorkspaceIds } } });

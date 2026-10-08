@@ -145,8 +145,7 @@ export async function lockAndCountSoleLeadLists(
 }
 
 // A ListMember row may only reference a User who already holds a
-// Workspace-level membership in that List's Workspace (ADR 0009) — Guest is
-// the only path to List access without one.
+// Workspace-level membership in that List's Workspace (ADR 0009).
 export async function addListMember(
   database: PrismaClient,
   input: { actorUserId: string; listId: string; userId: string; role: ListMemberRole }

@@ -13,7 +13,7 @@ export type CreateItemResult =
   | { status: "list-archived" };
 
 // A List Member, Lead, or the Workspace Owner can create an Item; a List
-// Viewer or Guest cannot (#30).
+// Viewer cannot (#30).
 const REQUIRED_ACCESS_LEVEL = "WRITE";
 
 export async function createItem(

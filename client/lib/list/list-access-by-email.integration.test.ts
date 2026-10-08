@@ -56,7 +56,7 @@ async function run() {
 
   try {
     // Choosing Member for an email that already holds Workspace membership
-    // adds a List Member, not a Guest.
+    // adds a List Member.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const leadId = await createListLead(workspaceId, listId);
@@ -68,8 +68,6 @@ async function run() {
       assert.deepEqual(result, { status: "added" });
       const membership = await prisma.listMember.findUnique({ where: { listId_userId: { listId, userId: targetId } } });
       assert.equal(membership?.role, "MEMBER");
-      const guest = await prisma.guest.findUnique({ where: { listId_userId: { listId, userId: targetId } } });
-      assert.equal(guest, null);
     }
 
     // Choosing Viewer behaves the same way, for a Viewer role.
@@ -86,23 +84,9 @@ async function run() {
       assert.equal(membership?.role, "VIEWER");
     }
 
-    // Choosing Guest for an email with no Workspace membership grants Guest
-    // access, same as the original Guest-only form.
-    {
-      const { workspaceId, listId } = await createWorkspaceWithList();
-      const leadId = await createListLead(workspaceId, listId);
-      const { userId: guestUserId, email } = await createUser();
-
-      const result = await addListAccessByEmail(prisma, { actorUserId: leadId, listId, email, role: "GUEST" });
-
-      assert.deepEqual(result, { status: "added" });
-      const guest = await prisma.guest.findUnique({ where: { listId_userId: { listId, userId: guestUserId } } });
-      assert.ok(guest);
-    }
-
     // Choosing Member/Viewer for an email with no Workspace membership is
-    // rejected rather than silently granting Guest access instead (ADR
-    // 0009 — a List role requires an existing Workspace membership).
+    // rejected (ADR 0009 — a List role requires an existing Workspace
+    // membership).
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const leadId = await createListLead(workspaceId, listId);
@@ -115,8 +99,8 @@ async function run() {
       assert.equal(membership, null);
     }
 
-    // An email with no matching account is reported for the Member path
-    // too, not just the Guest path.
+    // An email with no matching account is reported rather than creating
+    // anything.
     {
       const { workspaceId, listId } = await createWorkspaceWithList();
       const leadId = await createListLead(workspaceId, listId);
@@ -145,7 +129,6 @@ async function run() {
       assert.deepEqual(result, { status: "forbidden" });
     }
   } finally {
-    await prisma.guest.deleteMany({ where: { listId: { in: createdListIds } } });
     await prisma.listMember.deleteMany({ where: { listId: { in: createdListIds } } });
     await prisma.list.deleteMany({ where: { id: { in: createdListIds } } });
     await prisma.workspaceMember.deleteMany({ where: { workspaceId: { in: createdWorkspaceIds } } });

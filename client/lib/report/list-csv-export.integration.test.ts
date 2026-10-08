@@ -101,9 +101,9 @@ async function run() {
       assert.ok(!result.body.includes("SECRET"), "Notes and Personal Notes must never be exported");
     }
 
-    // Workspace Viewers and List Viewers can export; a Guest, a Workspace
-    // Member with no List role, and a stranger are all told not-found, as
-    // is a List requested through the wrong Workspace.
+    // Workspace Viewers and List Viewers can export; a Workspace Member with
+    // no List role and a stranger are both told not-found, as is a List
+    // requested through the wrong Workspace.
     {
       const { workspaceId, listId } = await createWorkspaceAndList();
       const otherWorkspace = await createWorkspaceAndList("Elsewhere");
@@ -119,12 +119,10 @@ async function run() {
         assert.equal(result.status, "ok", `expected ${userId} to export`);
       }
 
-      const guest = await createUser("Guest");
-      await prisma.guest.create({ data: { id: randomUUID(), listId, userId: guest } });
       const unassigned = await createUser("Unassigned");
       await addWorkspaceMember(workspaceId, unassigned, "MEMBER");
       const stranger = await createUser("Stranger");
-      for (const userId of [guest, unassigned, stranger]) {
+      for (const userId of [unassigned, stranger]) {
         const result = await exportListCsv(prisma, { userId, workspaceId, listId, now: NOW });
         assert.deepEqual(result, { status: "not-found" }, `expected ${userId} to be refused`);
       }

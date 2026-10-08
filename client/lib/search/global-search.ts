@@ -40,16 +40,14 @@ const EMPTY_RESULT: GlobalSearchResult = { lists: [], items: [], members: [] };
 // Mirrors lib/list/list-browsing.ts#browseLists' visibility rule exactly
 // (ADR 0016, which updated the original QnA session's question 10): the
 // Workspace Owner sees every List; everyone else, including an Admin,
-// only Lists they're an explicit Member or Guest of.
+// only Lists they hold an explicit List role in.
 function buildListVisibilityFilter(canSeeEveryList: boolean, userId: string): Prisma.ListWhereInput {
-  return canSeeEveryList ? {} : { OR: [{ members: { some: { userId } } }, { guests: { some: { userId } } }] };
+  return canSeeEveryList ? {} : { members: { some: { userId } } };
 }
 
 // Global Search for the header command palette (#56, #70): Lists, Items,
 // and Members within one Workspace, permission-filtered the same way
-// Lists browsing already is. Guests never call this — the header that
-// opens the palette only renders inside the Workspace shell, which 404s
-// without a WorkspaceMember row.
+// Lists browsing already is.
 export async function globalSearch(
   database: PrismaClient,
   input: GlobalSearchInput

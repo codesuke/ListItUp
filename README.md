@@ -59,7 +59,7 @@ ListItUp deliberately avoids productivity theater. There are no streaks, artific
 
 - Keep private work in an automatically provisioned Personal Space.
 - Collaborate through shared Workspaces with Owner, Admin, Member, and Viewer roles.
-- Set List-level Lead, Member, Viewer, and Guest access.
+- Set List-level Lead, Member, and Viewer access.
 - Use **My Tasks** to see assigned Items across every Workspace without creating duplicates.
 - Track Updates, mentions, notification preferences, and personal Notes.
 
