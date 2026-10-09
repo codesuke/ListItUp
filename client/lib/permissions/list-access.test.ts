@@ -348,16 +348,20 @@ async function run() {
         );
       }
     }
-    // resolveListAccessForMany (#107, ADR 0021) must agree with
-    // resolveListAccess called individually per List — same User, a mix of
-    // Workspace roles/List roles/the Workspace Viewer ceiling/a Deleted
-    // Workspace/a nonexistent List, across more than one distinct
-    // Workspace at once.
+    // resolveListAccessForMany (#107/#108, ADR 0021) must agree with
+    // resolveListAccess called individually per List — same User, covering
+    // every shape #108's acceptance criteria names: Workspace Owner, a
+    // Workspace Viewer with a List Member/Lead role (capped to READ), List
+    // Viewer, List Member, List Lead, an orphaned ListMember with no backing
+    // WorkspaceMember, a List in a Deleted Workspace, and no access at all —
+    // across more than one distinct Workspace at once.
     {
       const workspaceA = await createWorkspace();
       const workspaceB = await createWorkspace();
       const workspaceC = await createWorkspace();
       const deletedWorkspace = await createWorkspace();
+      const orphanWorkspace = await createWorkspace();
+      const strangerWorkspace = await createWorkspace();
       const userId = await createUser();
 
       await addWorkspaceMember(workspaceA, userId, "OWNER");
@@ -367,25 +371,71 @@ async function run() {
       const memberListId = await createListIn(workspaceB);
       await addListMember(memberListId, userId, "MEMBER");
 
+      const leadListId = await createListIn(workspaceB);
+      await addListMember(leadListId, userId, "LEAD");
+
+      const listViewerListId = await createListIn(workspaceB);
+      await addListMember(listViewerListId, userId, "VIEWER");
+
       const noRoleListId = await createListIn(workspaceB);
 
       await addWorkspaceMember(workspaceC, userId, "VIEWER");
       const viewerCeilingListId = await createListIn(workspaceC);
       await addListMember(viewerCeilingListId, userId, "LEAD");
 
+      const viewerCeilingMemberListId = await createListIn(workspaceC);
+      await addListMember(viewerCeilingMemberListId, userId, "MEMBER");
+
       await addWorkspaceMember(deletedWorkspace, userId, "OWNER");
       const deletedListId = await createListIn(deletedWorkspace);
       await prisma.workspace.update({ where: { id: deletedWorkspace }, data: { deletedAt: new Date() } });
 
+      // Orphaned ListMember: a List row exists in a Workspace this User has
+      // no WorkspaceMember row in at all, yet a ListMember row for them
+      // still exists on it — stale data that must resolve to NONE.
+      const orphanListId = await createListIn(orphanWorkspace);
+      await addListMember(orphanListId, userId, "LEAD");
+
+      // No access at all: a List in a Workspace this User has zero
+      // relationship to — no WorkspaceMember, no ListMember.
+      const strangerListId = await createListIn(strangerWorkspace);
+
       const missingListId = randomUUID();
 
-      const listIds = [ownerListId, memberListId, noRoleListId, viewerCeilingListId, deletedListId, missingListId];
+      const listIds = [
+        ownerListId,
+        memberListId,
+        leadListId,
+        listViewerListId,
+        noRoleListId,
+        viewerCeilingListId,
+        viewerCeilingMemberListId,
+        deletedListId,
+        orphanListId,
+        strangerListId,
+        missingListId,
+      ];
       const batched = await resolveListAccessForMany(prisma, { userId, listIds });
 
       for (const listId of listIds) {
         const individual = await resolveListAccess(prisma, { userId, listId });
         assert.equal(batched.get(listId), individual, `mismatch for List ${listId}`);
       }
+
+      // Pin the expected levels directly too, not just agreement with the
+      // single-List resolver, so a bug shared by both implementations can't
+      // slip through as a false "match".
+      assert.equal(batched.get(ownerListId), "LEAD");
+      assert.equal(batched.get(memberListId), "WRITE");
+      assert.equal(batched.get(leadListId), "LEAD");
+      assert.equal(batched.get(listViewerListId), "READ");
+      assert.equal(batched.get(noRoleListId), "NONE");
+      assert.equal(batched.get(viewerCeilingListId), "READ");
+      assert.equal(batched.get(viewerCeilingMemberListId), "READ");
+      assert.equal(batched.get(deletedListId), "NONE");
+      assert.equal(batched.get(orphanListId), "NONE");
+      assert.equal(batched.get(strangerListId), "NONE");
+      assert.equal(batched.get(missingListId), "NONE");
     }
   } finally {
     await prisma.listMember.deleteMany({ where: { userId: { in: createdUserIds } } });
