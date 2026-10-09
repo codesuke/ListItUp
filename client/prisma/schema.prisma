@@ -38,6 +38,7 @@ model User {
   securityEvents                 SecurityEvent[]
   sentWorkspaceInvitations       WorkspaceInvitation[]    @relation("WorkspaceInvitationInviter")
   deletedWorkspaces              Workspace[]              @relation("WorkspaceDeletedBy")
+  createdReports                 Report[]
 
   @@map("user")
 }
@@ -219,6 +220,7 @@ model List {
   sections               Section[]
   items                  Item[]
   customFieldDefinitions CustomFieldDefinition[]
+  reports                Report[]
 
   @@index([workspaceId])
   @@map("list")
@@ -418,6 +420,27 @@ model CustomFieldValue {
   @@unique([itemId, definitionId])
   @@index([definitionId])
   @@map("custom_field_value")
+}
+
+// A named, reusable Assignee/state/date filter on one List's Items
+// (ADR 0012, #45). Persists only the filter definition, never result
+// rows — opening or exporting a Report always re-runs `filter` against
+// current Item data live. Private to its creator by default; no
+// sharing surface in v1.
+model Report {
+  id        String   @id
+  listId    String
+  creatorId String
+  name      String
+  filter    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  creator   User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@index([creatorId])
+  @@map("report")
 }
 
 // A directed link between two Items, including across different Lists —

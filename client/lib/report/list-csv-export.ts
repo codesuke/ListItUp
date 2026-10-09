@@ -1,4 +1,4 @@
-import type { CustomFieldType, ItemPriority, ItemState, PrismaClient } from "@/generated/prisma/client";
+import type { CustomFieldType, ItemPriority, ItemState, Prisma, PrismaClient } from "@/generated/prisma/client";
 import { canExportList } from "@/lib/permissions/list-access";
 
 export type ListExportRow = {
@@ -279,8 +279,15 @@ export type ListCsvExportResult =
 
 // Reads only the fields an export row needs; Notes, Personal Notes,
 // Attachments, Dependencies, and emails are never selected, so they cannot
-// leak into the file (#72).
-async function loadRawExportSource(database: PrismaClient, listId: string): Promise<RawExportSource> {
+// leak into the file (#72). `itemsWhere` defaults to the whole List (every
+// Item, Archived included) but a Report's CSV export (#47) passes its own
+// filtered Item predicate through instead, per ADR 0012's addendum — same
+// serializer, a narrower Item set.
+export async function loadRawExportSource(
+  database: PrismaClient,
+  listId: string,
+  itemsWhere: Prisma.ItemWhereInput = { listId }
+): Promise<RawExportSource> {
   const [sections, customFields, items] = await Promise.all([
     database.section.findMany({
       where: { listId },
@@ -293,7 +300,7 @@ async function loadRawExportSource(database: PrismaClient, listId: string): Prom
       select: { id: true, name: true, type: true },
     }),
     database.item.findMany({
-      where: { listId },
+      where: itemsWhere,
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
