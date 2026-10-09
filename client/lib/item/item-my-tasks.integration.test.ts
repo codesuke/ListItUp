@@ -257,9 +257,10 @@ async function run() {
       assert.deepEqual(items.map((item) => item.title), ["In an active List"]);
     }
 
-    // #107/ADR 0021: an Item an assignee has since lost List access to (List
-    // membership removed) disappears from My Tasks even though the stale
-    // ItemAssignee row is kept, and reappears without re-assignment once
+    // #107/#111/ADR 0021: an Item an assignee has since lost List access to
+    // (List membership removed) disappears from My Tasks even though the
+    // stale ItemAssignee row is kept — asserted directly, not just inferred
+    // from the filtered result — and reappears without re-assignment once
     // access is restored.
     {
       const userId = await createUser();
@@ -277,11 +278,46 @@ async function run() {
 
       assert.deepEqual(await loadMyTasksItems(prisma, { userId }), []);
 
+      const assigneeRow = await prisma.itemAssignee.findUnique({ where: { itemId_userId: { itemId, userId } } });
+      assert.ok(assigneeRow, "the stale ItemAssignee row must not be deleted by access loss alone");
+
       await addMember(workspaceId, listId, userId);
 
       assert.deepEqual((await loadMyTasksItems(prisma, { userId })).map((item) => item.title), [
         "Should vanish on access loss",
       ]);
+    }
+
+    // #111: Items on Lists where the User still has READ or higher keep
+    // appearing — an explicit List Viewer role (a full Workspace Member
+    // capped to READ only on this one List, not a Workspace-level Viewer),
+    // and a Workspace Owner's implicit Lead-equivalent access with no
+    // List-level row at all.
+    {
+      const userId = await createUser();
+
+      const viewerProject = await createWorkspaceWithList("Viewer Project");
+      await prisma.workspaceMember.create({
+        data: { id: randomUUID(), workspaceId: viewerProject.workspaceId, userId, role: "MEMBER" },
+      });
+      await prisma.listMember.create({
+        data: { id: randomUUID(), listId: viewerProject.listId, userId, role: "VIEWER" },
+      });
+      const viewerItemId = await createItem(viewerProject.listId, userId, { title: "Visible to a List Viewer" });
+      await assign(viewerItemId, userId);
+
+      const ownedProject = await createWorkspaceWithList("Owned Project");
+      await prisma.workspaceMember.create({
+        data: { id: randomUUID(), workspaceId: ownedProject.workspaceId, userId, role: "OWNER" },
+      });
+      const ownerItemId = await createItem(ownedProject.listId, userId, { title: "Visible via implicit Owner access" });
+      await assign(ownerItemId, userId);
+
+      const items = await loadMyTasksItems(prisma, { userId });
+      assert.deepEqual(
+        new Set(items.map((item) => item.title)),
+        new Set(["Visible to a List Viewer", "Visible via implicit Owner access"])
+      );
     }
   } finally {
     const listIds = (
