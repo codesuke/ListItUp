@@ -5,6 +5,8 @@ import { MemberAvatar } from "@/components/workspace/MemberAvatar";
 import { formatAttachmentSize } from "@/lib/item/item-attachments";
 
 import { ActivityTabs } from "./ActivityTabs";
+import { AddAssigneeControl } from "./AddAssigneeControl";
+import type { AddItemAssigneeState } from "./actions";
 import { AutoSaveCustomField } from "./AutoSaveCustomField";
 import { AutoSubmitField } from "./AutoSubmitField";
 import { FieldSelect } from "./FieldSelect";
@@ -83,7 +85,7 @@ export function ItemDetailPanel({
   boundUpdateDetails: (formData: FormData) => Promise<void>;
   boundTransition: (formData: FormData) => Promise<void>;
   boundRestore: () => Promise<void>;
-  boundAddAssignee: (formData: FormData) => Promise<void>;
+  boundAddAssignee: (prevState: AddItemAssigneeState, formData: FormData) => Promise<AddItemAssigneeState>;
   boundRemoveAssignee: (userId: string) => () => Promise<void>;
   boundAddChild: (formData: FormData) => Promise<void>;
   boundApplyExistingLabel: (formData: FormData) => Promise<void>;
@@ -310,7 +312,10 @@ export function ItemDetailPanel({
           (AutoSubmitField, matching Priority/Due date below) instead of
           needing a separate "+" click — that mismatch was the one control
           in this strip that didn't save on change, which read as broken
-          rather than deliberate. */}
+          rather than deliberate. Assignee additionally wraps its own
+          useActionState (AddAssigneeControl) so a rejection — e.g. #109's
+          assignee-no-access — surfaces inline instead of failing
+          silently. */}
       <div className="mt-5 flex flex-wrap items-start gap-x-6 gap-y-4 border-b border-line-strong/60 pb-4">
         {/* Status */}
         <div className="flex flex-col gap-1.5">
@@ -414,27 +419,7 @@ export function ItemDetailPanel({
             ))}
             {data.assignees.length === 0 && <span className="text-[13px] text-ink-faint">No one yet.</span>}
             {data.canEdit && unassignedMembers.length > 0 && (
-              <form action={boundAddAssignee} className="contents">
-                <AutoSubmitField>
-                  <FieldSelect
-                    name="userId"
-                    required
-                    defaultValue=""
-                    aria-label="Add an assignee"
-                    wrapperClassName="min-w-0"
-                    controlClassName={CHIP_CONTROL_CLASS}
-                  >
-                    <option value="" disabled>
-                      Add an Assignee…
-                    </option>
-                    {unassignedMembers.map((member) => (
-                      <option key={member.userId} value={member.userId}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </FieldSelect>
-                </AutoSubmitField>
-              </form>
+              <AddAssigneeControl boundAction={boundAddAssignee} unassignedMembers={unassignedMembers} />
             )}
           </div>
         </div>

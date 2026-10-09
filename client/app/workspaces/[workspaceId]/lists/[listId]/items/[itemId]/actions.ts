@@ -100,21 +100,36 @@ export async function restoreItemAction(
   revalidatePath(itemPath(workspaceId, listId, itemId));
 }
 
+export type AddItemAssigneeState = { status: "idle" } | { status: "error"; message: string };
+
+const ADD_ITEM_ASSIGNEE_ERROR_MESSAGE = {
+  "item-not-found": "This Item no longer exists.",
+  forbidden: "You don't have permission to assign this Item.",
+  "assignee-no-access": "That person doesn't have access to this List, so they can't be assigned.",
+  "list-archived": "This List is archived.",
+} as const;
+
 export async function addItemAssigneeAction(
   workspaceId: string,
   listId: string,
   itemId: string,
+  _prevState: AddItemAssigneeState,
   formData: FormData
-): Promise<void> {
+): Promise<AddItemAssigneeState> {
   const session = await requireAuthenticatedSession(itemPath(workspaceId, listId, itemId));
   const userId = String(formData.get("userId") ?? "");
 
   if (!userId) {
-    return;
+    return { status: "idle" };
   }
 
-  await addAssignee(prisma, { actorUserId: session.user.id, itemId, userId });
+  const result = await addAssignee(prisma, { actorUserId: session.user.id, itemId, userId });
+  if (result.status !== "added") {
+    return { status: "error", message: ADD_ITEM_ASSIGNEE_ERROR_MESSAGE[result.status] };
+  }
+
   revalidatePath(itemPath(workspaceId, listId, itemId));
+  return { status: "idle" };
 }
 
 export async function removeItemAssigneeAction(
